@@ -1,0 +1,1 @@
+#pragma comment(linker, "/export:?AppendCharacterNames@CAccount@@QAEXAAV?$list@V?$basic_string@GUci_wchar_traits@@V?$allocator@G@std@@@std@@V?$allocator@V?$basic_string@GUci_wchar_traits@@V?$allocator@G@std@@@std@@@2@@std@@@Z=_public_6ce1050,@60")

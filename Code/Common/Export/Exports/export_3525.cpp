@@ -1,0 +1,1 @@
+#pragma comment(linker, "/export:?rend@?$list@UEquipDesc@@V?$allocator@UEquipDesc@@@std@@@std@@QBE?AV?$reverse_bidirectional_iterator@Vconst_iterator@?$list@UEquipDesc@@V?$allocator@UEquipDesc@@@std@@@std@@UEquipDesc@@ABU4@PBU4@H@2@XZ=_public_632c410,@3526")

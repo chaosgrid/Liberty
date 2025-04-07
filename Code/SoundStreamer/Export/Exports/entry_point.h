@@ -1,0 +1,1 @@
+#define SoundStreamer_entry_point _RelativeAddress(public_6ef505e, 0x06ef505e)

@@ -1,0 +1,1 @@
+#pragma comment(linker, "/export:?init@bodypart@@QAEXPBD0HPAV?$list@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@@std@@PAVDetailSwitchTable@@@Z=_public_62ff060,@3127")

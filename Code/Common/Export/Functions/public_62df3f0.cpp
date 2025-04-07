@@ -1,0 +1,13 @@
+#include "Common-PCH.h"
+
+PROC_DECLARE(0x62df3f0, internal_62df3f0, public_62df3f0);
+extern "C" NAKED register_t __cdecl internal_62df3f0()
+{
+    __asm
+    {
+        mov eax, dword ptr ds : [public_63a0624]
+        mov dword ptr ds : [public_63fca24], eax
+        ret 
+        UNREACHABLE_TRAP(0x62df3f0)
+    }
+}

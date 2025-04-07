@@ -1,0 +1,20 @@
+#include "THORN-PCH.h"
+
+CLANG_FORWARD_PROC_SYMBOL(public_6f409a0);
+
+PROC_DECLARE(0x6f4a070, internal_6f4a070, public_6f4a070);
+extern "C" NAKED register_t __cdecl internal_6f4a070()
+{
+    __asm
+    {
+        push esi
+        mov esi, ecx
+        lea eax, ds:[esi+0x90]
+        push eax
+        call public_6f409a0
+        lea eax, ds:[esi+0x98]
+        pop esi
+        ret 
+        UNREACHABLE_TRAP(0x6f4a070)
+    }
+}

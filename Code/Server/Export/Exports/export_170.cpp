@@ -1,0 +1,1 @@
+#pragma comment(linker, "/export:?GetCharactersForAccount@PlayerDB@@QAE_NAAV?$basic_string@GUci_wchar_traits@@V?$allocator@G@std@@@std@@AAV?$list@V?$basic_string@GUci_wchar_traits@@V?$allocator@G@std@@@std@@V?$allocator@V?$basic_string@GUci_wchar_traits@@V?$allocator@G@std@@@std@@@2@@3@@Z=_public_6d519e0,@171")

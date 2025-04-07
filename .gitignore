@@ -1,0 +1,6 @@
+Build/
+DLLS/
+EXE/
+DATA/
+IDB/
+*.sln

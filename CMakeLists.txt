@@ -1,0 +1,453 @@
+# CMake minimum version
+cmake_minimum_required(VERSION 3.31)
+
+# Set the project name (change as needed)
+project(Liberty LANGUAGES C CXX ASM_MASM CSharp)
+
+# Set C++20 standard
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Specify the NuGet executable URL
+set(NUGET_URL "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe")
+set(NUGET_EXECUTABLE "${CMAKE_BINARY_DIR}/nuget.exe")
+
+# I've got a lovely bunch of coconuts
+if(NOT CMAKE_VS_PLATFORM_TOOLSET STREQUAL "ClangCL")
+    message(FATAL_ERROR "Toolset must use ClangCL CMAKE_VS_PLATFORM_TOOLSET=${CMAKE_VS_PLATFORM_TOOLSET}" )
+endif()
+
+# There they are, all standing in a row
+if(NOT CMAKE_VS_PLATFORM_NAME STREQUAL "Win32")
+    message(FATAL_ERROR "Platform must be Win32 CMAKE_VS_PLATFORM_NAME=${CMAKE_VS_PLATFORM_NAME}" )
+endif()
+
+# Download nuget.exe if it doesn't exist
+if(NOT EXISTS ${NUGET_EXECUTABLE})
+    message(STATUS "Downloading nuget.exe...")
+    file(DOWNLOAD ${NUGET_URL} ${NUGET_EXECUTABLE} SHOW_PROGRESS)
+endif()
+
+# Specify the NuGet package details
+set(NUGET_PACKAGE_DIR "${CMAKE_BINARY_DIR}/nuget_packages")
+function(nuget_install PACKAGE_DIR package_name package_version)
+    block(SCOPE_FOR VARIABLES)
+        set(installed_package_path "${NUGET_PACKAGE_DIR}/${package_name}.${package_version}")
+        set(${PACKAGE_DIR} "${installed_package_path}")
+
+         # Check if the package is already installed
+        if(EXISTS "${installed_package_path}")
+            message(STATUS "Already installed ${package_name} version ${package_version}.")
+            return(PROPAGATE ${PACKAGE_DIR})
+        endif()
+    
+        execute_process(
+            COMMAND ${NUGET_EXECUTABLE} install ${package_name} -Version ${package_version} -OutputDirectory ${NUGET_PACKAGE_DIR}
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            RESULT_VARIABLE result
+            OUTPUT_VARIABLE output
+            ERROR_VARIABLE error)
+
+        # Check for success
+        if(result EQUAL 0)
+            message(STATUS "Successfully installed ${package_name} version ${package_version}.")
+        else()
+            message(FATAL_ERROR "Failed to install ${package_name}. Error: ${error}")
+        endif()
+
+        return(PROPAGATE ${PACKAGE_DIR})
+    endblock()
+endfunction()
+
+# Specify the DxSDK executable URL
+set(DXSDK_URL "https://download.microsoft.com/download/a/e/7/ae743f1f-632b-4809-87a9-aa1bb3458e31/DXSDK_Jun10.exe")
+set(DXSDK_EXECUTABLE "${CMAKE_BINARY_DIR}/DXSDK_Jun10.exe")
+
+# Download DXSDK_Jun10.exe if it doesn't exist
+if(NOT EXISTS ${DXSDK_EXECUTABLE})
+    message(STATUS "Downloading DirectX SDK")
+    file(DOWNLOAD ${DXSDK_URL} ${DXSDK_EXECUTABLE} SHOW_PROGRESS)
+endif()
+
+# Specify the DxSDK package details
+set(DXSDK_DIR "${CMAKE_BINARY_DIR}/DXSDK")
+set(DXSDK_LIB_DIR "${DXSDK_DIR}/Lib")
+set(DXSDK_INCLUDE_DIR "${DXSDK_DIR}/Include")
+function(dxsdk_install)
+    block(SCOPE_FOR VARIABLES)
+         # Check if already installed
+        if(EXISTS "${DXSDK_LIB_DIR}")
+            if(EXISTS "${DXSDK_INCLUDE_DIR}")
+                message(STATUS "Already installed DirectX SDK.")
+                return()
+            endif()
+        endif()
+        
+        find_program(SEVENZIP_EXECUTABLE
+          NAMES 7z 7za 7z.exe 7za.exe
+          HINTS ENV PATH
+                "$ENV{ProgramFiles}/7-Zip"
+                "$ENV{ProgramFiles\(x86\)}/7-Zip")
+        message(STATUS "${SEVENZIP_EXECUTABLE}")
+
+        if(SEVENZIP_EXECUTABLE)
+          message(STATUS "Found 7-Zip at ${SEVENZIP_EXECUTABLE}")
+        else()
+          message(FATAL_ERROR "7-Zip executable not found. Please install 7-Zip and ensure it is in your PATH or in the expected Program Files directories.")
+        endif()
+
+        execute_process(
+            COMMAND ${SEVENZIP_EXECUTABLE} "x" "${DXSDK_EXECUTABLE}" "-aoa" "-o${CMAKE_BINARY_DIR}" "DXSDK/Lib" "DXSDK/Include"
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            RESULT_VARIABLE result
+            OUTPUT_VARIABLE output
+            ERROR_VARIABLE error)
+
+        # Check for success
+        if(result EQUAL 0)
+            message(STATUS "Successfully installed DirectX SDK.")
+        else()
+            message(FATAL_ERROR "Failed to install DirectX SDK. Error: ${error}")
+        endif()
+
+        return()
+    endblock()
+endfunction()
+dxsdk_install()
+
+# Global output directories for binaries and libraries
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+set(LIBERTY_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+set(LIBERTY_EXE_DIRECTORY "EXE")
+set(LIBERTY_DLLS_DIRECTORY "DLLS/BIN")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${LIBERTY_DIRECTORY})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${LIBERTY_DIRECTORY})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${LIBERTY_DIRECTORY})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${LIBERTY_DIRECTORY})
+
+set(LIBERTY_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Code")
+set(LIBERTY_GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Generated")
+
+function(create_source_groups base_dir sources)
+    foreach(file ${sources})
+        # Get the relative path of the file with respect to the base directory
+        file(RELATIVE_PATH file_relative "${base_dir}" "${file}")
+
+        # Extract the directory part of the relative path
+        get_filename_component(file_directory "${file_relative}" DIRECTORY)
+
+        # Use the directory as the group name, or fall back to no group if empty
+        if(file_directory)
+            string(REPLACE "/" "\\" file_group "${file_directory}")
+            source_group("${file_group}" FILES "${file}")
+        else()
+            source_group("" FILES "${file}")
+        endif()
+    endforeach()
+endfunction()
+
+function(generate_generated_sources TARGET_NAME TARGET_TYPE TARGET_FOLDERS)
+    # Define a list of relative paths to exclude (adjust these paths as needed)
+    set(EXCLUDED_FILES
+        "tag_files/tag_definition_generator.cs")
+
+    # Clear the list of generated sources and dependencies
+    set(GENERATED_SOURCES "")
+    set(GENERATED_DEPENDS "")
+
+    foreach(TARGET_FOLDER IN LISTS TARGET_FOLDERS)
+        file(GLOB_RECURSE TARGET_FILES "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/*.cs")
+        foreach(file ${TARGET_FILES})
+            file(READ ${file} fileContent)
+            string(FIND "${fileContent}" "namespace Liberty.Definitions" foundPos)
+            string(FIND "${fileContent}" "Export" foundPos2)
+            if(NOT foundPos EQUAL -1)
+                if(NOT foundPos2 EQUAL -1)
+                    file(RELATIVE_PATH rel ${LIBERTY_SOURCE_DIR} ${file})
+                    # Check if the relative path is NOT in the excluded list
+                    if(NOT rel IN_LIST EXCLUDED_FILES)
+                        cmake_path(REPLACE_EXTENSION rel LAST_ONLY ".h")
+                        cmake_path(APPEND gen ${LIBERTY_GENERATED_DIR} ${rel})
+                        list(APPEND GENERATED_SOURCES ${gen})
+                        list(APPEND GENERATED_DEPENDS ${file})
+                    endif()
+                endif()
+            endif()
+        endforeach()
+    endforeach()
+
+    set(GENERATED_DEPENDS ${GENERATED_DEPENDS} PARENT_SCOPE)
+    set(GENERATED_SOURCES ${GENERATED_SOURCES} PARENT_SCOPE)
+endfunction()
+
+function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDIRECTORY)
+    string(TOUPPER "${TARGET_NAME}" TARGET_NAME_UPPER)
+
+    set(SOURCES "")
+    if(TARGET_FOLDERS)
+        foreach(TARGET_FOLDER IN LISTS TARGET_FOLDERS)
+            file(GLOB_RECURSE TARGET_FILES
+                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/*.hpp"
+                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/*.cpp"
+                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/*.h"
+                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/*.c"
+                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/*.inl")
+            list(APPEND SOURCES ${TARGET_FILES})
+        endforeach()
+    else()
+        file(GLOB_RECURSE TARGET_FILES
+            "${LIBERTY_SOURCE_DIR}/*.hpp"
+            "${LIBERTY_SOURCE_DIR}/*.cpp"
+            "${LIBERTY_SOURCE_DIR}/*.h"
+            "${LIBERTY_SOURCE_DIR}/*.c"
+            "${LIBERTY_SOURCE_DIR}/*.inl")
+        list(APPEND SOURCES ${TARGET_FILES})
+    endif()
+    
+    set(GENERATED_SOURCES "")
+    set(GENERATED_DEPENDS "")
+    
+    set(IS_COMPILABLE False)
+    if(TARGET_TYPE STREQUAL "library")
+        add_library(${TARGET_NAME} STATIC ${SOURCES} ${GENERATED_SOURCES})
+        target_compile_definitions(${TARGET_NAME} PUBLIC "${TARGET_NAME_UPPER}_DEC=")
+        set(IS_COMPILABLE True)
+    elseif(TARGET_TYPE STREQUAL "shared")
+        add_library(${TARGET_NAME} SHARED ${SOURCES} ${GENERATED_SOURCES})
+        target_compile_definitions(${TARGET_NAME} INTERFACE "${TARGET_NAME_UPPER}_DEC=__declspec(dllimport)")
+        target_compile_definitions(${TARGET_NAME} PRIVATE "${TARGET_NAME_UPPER}_DEC=__declspec(dllexport)")
+        set(IS_COMPILABLE True)
+    elseif(TARGET_TYPE STREQUAL "executable")
+        add_executable(${TARGET_NAME} ${SOURCES} ${GENERATED_SOURCES})
+        set_target_properties(${TARGET_NAME} PROPERTIES WIN32_EXECUTABLE ON)
+        target_compile_definitions(${TARGET_NAME} INTERFACE "${TARGET_NAME_UPPER}_DEC=__declspec(dllimport)")
+        target_compile_definitions(${TARGET_NAME} PRIVATE "${TARGET_NAME_UPPER}_DEC=__declspec(dllexport)")
+        set(IS_COMPILABLE True)
+    elseif(TARGET_TYPE STREQUAL "console")
+        add_executable(${TARGET_NAME} ${SOURCES} ${GENERATED_SOURCES})
+        target_compile_definitions(${TARGET_NAME} INTERFACE "${TARGET_NAME_UPPER}_DEC=__declspec(dllimport)")
+        target_compile_definitions(${TARGET_NAME} PRIVATE "${TARGET_NAME_UPPER}_DEC=__declspec(dllexport)")
+        set(IS_COMPILABLE True)
+    else(TARGET_TYPE STREQUAL "noop")
+        add_custom_target(${TARGET_NAME} SOURCES ${SOURCES} ${GENERATED_SOURCES})
+    endif()
+
+    if(${IS_COMPILABLE})
+        set(PCH_FILE "${LIBERTY_SOURCE_DIR}/${TARGET_NAME}/${TARGET_NAME}_headers.cpp")
+        if(EXISTS "${PCH_FILE}")
+            target_precompile_headers(${TARGET_NAME} PRIVATE "${PCH_FILE}")
+        endif()
+        
+        set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${LIBERTY_DIRECTORY}/${TARGET_SUBDIRECTORY}")
+        set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${LIBERTY_DIRECTORY}/${TARGET_SUBDIRECTORY}")
+        set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${LIBERTY_DIRECTORY}/${TARGET_SUBDIRECTORY}")
+        set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${LIBERTY_DIRECTORY}/${TARGET_SUBDIRECTORY}")
+        set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${LIBERTY_DIRECTORY}/${TARGET_SUBDIRECTORY}")
+
+        if (CMAKE_GENERATOR MATCHES "Visual Studio")
+            target_compile_options(${TARGET_NAME} PRIVATE /MP)
+            target_compile_options(${TARGET_NAME} PRIVATE /clang:-Wno-unused-private-field)
+        endif()
+        if(CMAKE_VS_PLATFORM_NAME STREQUAL "Win32")
+            target_link_directories(${TARGET_NAME} PRIVATE "${DXSDK_LIB_DIR}/x86")
+        elseif(CMAKE_VS_PLATFORM_NAME STREQUAL "x64")
+            target_link_directories(${TARGET_NAME} PRIVATE "${DXSDK_LIB_DIR}/x64")
+        else()
+            message(FATAL_ERROR "Unsupported DXSDK platform '${CMAKE_VS_PLATFORM_NAME}'")
+        endif()
+
+        foreach(TARGET_FOLDER IN LISTS TARGET_FOLDERS)
+            set(PCH_FILE "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/${TARGET_FOLDER}-PCH.h")
+            if(EXISTS "${PCH_FILE}")
+                target_precompile_headers(${TARGET_NAME} PUBLIC ${PCH_FILE})
+            endif()
+            target_include_directories(${TARGET_NAME} PUBLIC "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}")
+        endforeach()
+        target_include_directories(${TARGET_NAME} PRIVATE "${DXSDK_INCLUDE_DIR}")
+        target_include_directories(${TARGET_NAME} PRIVATE "${LIBERTY_SOURCE_DIR}")
+        target_include_directories(${TARGET_NAME} PRIVATE "${LIBERTY_GENERATED_DIR}")
+        target_compile_definitions(${TARGET_NAME} PRIVATE "${TARGET_NAME_UPPER}_PRIVATE")
+        target_compile_definitions(${TARGET_NAME} PRIVATE "_CRT_SECURE_NO_WARNINGS")
+        target_compile_definitions(${TARGET_NAME} PRIVATE "$<$<CONFIG:Debug>:_DEBUG>")
+        target_compile_definitions(${TARGET_NAME} PUBLIC "STRESS_ENABLED")
+        target_compile_definitions(${TARGET_NAME} PUBLIC "DEBUG_ENABLED")
+        target_compile_definitions(${TARGET_NAME} PUBLIC "TEST_ENABLED")
+        target_compile_definitions(${TARGET_NAME} PUBLIC "INSPECTION_ENABLED")
+        target_compile_definitions(${TARGET_NAME} PUBLIC "INTERNAL_RELEASE_ENABLED")
+        target_compile_definitions(${TARGET_NAME} PUBLIC "_ALLOW_KEYWORD_MACROS")
+    else()
+        set_property(TARGET ${TARGET_NAME} PROPERTY VS_GLOBAL_IncludePath "${DXSDK_INCLUDE_DIR};${LIBERTY_SOURCE_DIR};${LIBERTY_GENERATED_DIR};$(LLVMInstallDir)/lib/clang/$(LLVMIncludeVersion)/include")
+    endif()
+    
+    create_source_groups("${LIBERTY_SOURCE_DIR}" "${SOURCES}")
+    create_source_groups("${LIBERTY_GENERATED_DIR}" "${GENERATED_SOURCES}")
+endfunction()
+
+function(add_liberty_cs_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS)
+    string(TOUPPER "${TARGET_NAME}" TARGET_NAME_UPPER)
+
+    set(SOURCES "")
+    if(TARGET_FOLDERS)
+        foreach(TARGET_FOLDER IN LISTS TARGET_FOLDERS)
+            file(GLOB_RECURSE TARGET_FILES
+                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/*.cs")
+            list(APPEND SOURCES ${TARGET_FILES})
+        endforeach()
+    else()
+        file(GLOB_RECURSE TARGET_FILES
+            "${LIBERTY_SOURCE_DIR}/*.cs")
+        list(APPEND SOURCES ${TARGET_FILES})
+    endif()
+
+    if(TARGET_TYPE STREQUAL "executable")
+        add_executable(${TARGET_NAME} ${SOURCES})
+    elseif(TARGET_TYPE STREQUAL "generator")
+        add_executable(${TARGET_NAME} ${SOURCES})
+    
+        set(GENERATED_SOURCES "")
+        set(GENERATED_DEPENDS "")
+        generate_generated_sources("${TARGET_NAME}" "${TARGET_TYPE}" "${TARGET_FOLDERS}")
+
+        # Define a custom command that runs the generator executable and produces the generated sources.
+        add_custom_command(
+            OUTPUT ${GENERATED_SOURCES}
+            COMMAND "$<TARGET_FILE:${TARGET_NAME}>" "export_liberty"
+            COMMAND ${CMAKE_COMMAND} -E echo "Generated Sources: ${GENERATED_SOURCES}"
+            DEPENDS ${TARGET_NAME} ${GENERATED_DEPENDS}
+            COMMENT "Running C# Generator")
+
+    endif()
+    
+    target_compile_definitions(${TARGET_NAME} PUBLIC "${TARGET_NAME_UPPER}")
+    set_target_properties(${TARGET_NAME} PROPERTIES VS_GLOBAL_NoWarn "0169") # A private variable was declared but never referenced
+    
+    create_source_groups("${LIBERTY_SOURCE_DIR}" "${SOURCES}")
+endfunction()
+
+add_liberty_project(Core "library" "Core" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(RemoteServer "shared" "RemoteServer" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(RemoteClient "shared" "RemoteClient" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(ReadFile "shared" "ReadFile" ${LIBERTY_EXE_DIRECTORY})
+#add_liberty_project(Movie "shared" "Movie" ${LIBERTY_EXE_DIRECTORY}) # Busted for some reason
+add_liberty_project(LuaProfile "shared" "LuaProfile" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(ImeUi "shared" "ImeUi" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(Freelancer "executable" "Freelancer" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(FLServer "executable" "FLServer" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(FLMaterials "shared" "FLMaterials" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(EngBase "shared" "EngBase" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(Deformable2 "shared" "Deformable2" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(DebugLib "shared" "DebugLib" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(DALib "shared" "DALib" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(DACOM "shared" "DACOM" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(Content "shared" "Content" ${LIBERTY_DLLS_DIRECTORY})
+add_liberty_project(Common "shared" "Common" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(Alchemy "shared" "Alchemy" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(zlib "shared" "zlib" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(ximage "shared" "ximage" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(x86math "shared" "x86math" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(THORN "shared" "THORN" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(System "shared" "System" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(SoundStreamer "shared" "SoundStreamer" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(SoundManager "shared" "SoundManager" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(Shading "shared" "Shading" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(Server "shared" "Server" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(RPCLocal "shared" "RPCLocal" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(RP8 "shared" "RP8" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(RendComp "shared" "RendComp" ${LIBERTY_EXE_DIRECTORY})
+
+target_link_libraries(RemoteServer Core)
+target_link_libraries(RemoteClient Core)
+target_link_libraries(ReadFile Core)
+#target_link_libraries(Movie Core)
+target_link_libraries(LuaProfile Core)
+target_link_libraries(ImeUi Core)
+target_link_libraries(Freelancer Core)
+target_link_libraries(FLServer Core)
+target_link_libraries(FLMaterials Core)
+target_link_libraries(EngBase Core)
+target_link_libraries(Deformable2 Core)
+target_link_libraries(DebugLib Core)
+target_link_libraries(DALib Core)
+target_link_libraries(DACOM Core Version.lib)
+target_link_libraries(Content Core)
+target_link_libraries(Common Core)
+target_link_libraries(Alchemy Core)
+target_link_libraries(zlib Core)
+target_link_libraries(ximage Core)
+target_link_libraries(x86math Core)
+target_link_libraries(THORN Core)
+target_link_libraries(System Core)
+target_link_libraries(SoundStreamer Core)
+target_link_libraries(SoundManager Core)
+target_link_libraries(Shading Core)
+target_link_libraries(Server Core)
+target_link_libraries(RPCLocal Core)
+target_link_libraries(RP8 Core)
+target_link_libraries(RendComp Core)
+
+add_dependencies(Freelancer 
+    RemoteServer
+    RemoteClient
+    ReadFile
+    #Movie Busted for some reason
+    LuaProfile
+    ImeUi
+    FLMaterials
+    EngBase
+    Deformable2
+    DebugLib
+    DALib
+    DACOM
+    Content
+    Common
+    Alchemy
+    zlib
+    ximage
+    x86math
+    THORN
+    System
+    SoundStreamer
+    SoundManager
+    Shading
+    Server
+    RPCLocal
+    RP8
+    RendComp)
+add_dependencies(FLServer 
+    RemoteServer
+    RemoteClient
+    ReadFile
+    #Movie Busted for some reason
+    LuaProfile
+    ImeUi
+    FLMaterials
+    EngBase
+    Deformable2
+    DebugLib
+    DALib
+    DACOM
+    Content
+    Common
+    Alchemy
+    zlib
+    ximage
+    x86math
+    THORN
+    System
+    SoundStreamer
+    SoundManager
+    Shading
+    Server
+    RPCLocal
+    RP8
+    RendComp)
+
+set_target_properties(Freelancer PROPERTIES VS_DEBUGGER_NATIVE_DEBUGGING TRUE)
+set_property(TARGET Freelancer PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${LIBERTY_DIRECTORY}/${LIBERTY_EXE_DIRECTORY}")
+
+set_target_properties(FLServer PROPERTIES VS_DEBUGGER_NATIVE_DEBUGGING TRUE)
+set_property(TARGET FLServer PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${LIBERTY_DIRECTORY}/${LIBERTY_EXE_DIRECTORY}")

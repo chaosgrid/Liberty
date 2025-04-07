@@ -1,0 +1,12 @@
+#include "FLServer-PCH.h"
+
+PROC_DECLARE(0x4144b0, internal_4144b0, public_4144b0);
+extern "C" NAKED register_t __cdecl internal_4144b0()
+{
+    __asm
+    {
+        mov eax, dword ptr ds : [ecx]
+        jmp dword ptr ds : [eax+0xD0]
+        UNREACHABLE_TRAP(0x4144b0)
+    }
+}

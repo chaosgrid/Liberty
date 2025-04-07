@@ -1,0 +1,1 @@
+#pragma comment(linker, "/export:?get_materials@accessory@@QBEABV?$list@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@@std@@XZ=_public_6295a30,@2874")

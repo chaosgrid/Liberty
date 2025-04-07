@@ -1,0 +1,13 @@
+#include "Freelancer-PCH.h"
+
+PROC_DECLARE(0x4486b0, internal_4486b0, public_4486b0);
+extern "C" NAKED register_t __cdecl internal_4486b0()
+{
+    __asm
+    {
+        mov eax, dword ptr ds : [public_5cbe70]
+        mov dword ptr ds : [public_668aa4], eax
+        ret 
+        UNREACHABLE_TRAP(0x4486b0)
+    }
+}

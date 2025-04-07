@@ -1,0 +1,1 @@
+#pragma comment(linker, "/export:??0?$list@UCollisionGroupDesc@@V?$allocator@UCollisionGroupDesc@@@std@@@std@@QAE@PBUCollisionGroupDesc@@0ABV?$allocator@UCollisionGroupDesc@@@1@@Z=_public_6271710,@10")

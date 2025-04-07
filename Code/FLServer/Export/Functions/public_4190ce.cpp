@@ -1,0 +1,11 @@
+#include "FLServer-PCH.h"
+
+PROC_DECLARE(0x4190ce, internal_4190ce, public_4190ce);
+extern "C" NAKED register_t __cdecl internal_4190ce()
+{
+    __asm
+    {
+        jmp dword ptr ds : [public_41b7f0]
+        UNREACHABLE_TRAP(0x4190ce)
+    }
+}

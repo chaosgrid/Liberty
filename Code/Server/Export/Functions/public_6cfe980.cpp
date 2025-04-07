@@ -1,0 +1,18 @@
+#include "Server-PCH.h"
+
+PROC_DECLARE(0x6cfe980, internal_6cfe980, public_6cfe980);
+extern "C" NAKED register_t __cdecl internal_6cfe980()
+{
+    __asm
+    {
+        push 0
+/*FIXUP push offset public_6d66f18 @0x6cfe982*/
+  FIXUP push esp
+  FIXUP mov dword ptr ds : [esp], offset public_6d66f18
+        call dword ptr ds : [public_6d64250]
+        add esp, 8
+        mov dword ptr ds : [public_6d8d8a8], eax
+        ret 
+        UNREACHABLE_TRAP(0x6cfe980)
+    }
+}

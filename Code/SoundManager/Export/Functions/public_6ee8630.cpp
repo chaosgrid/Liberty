@@ -1,0 +1,14 @@
+#include "SoundManager-PCH.h"
+
+CLANG_FORWARD_PROC_SYMBOL(public_6ee8560);
+
+PROC_DECLARE(0x6ee8630, internal_6ee8630, public_6ee8630);
+extern "C" NAKED register_t __cdecl internal_6ee8630()
+{
+    __asm
+    {
+        sub dword ptr ss : [esp+4], 8
+        jmp public_6ee8560
+        UNREACHABLE_TRAP(0x6ee8630)
+    }
+}

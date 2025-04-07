@@ -1,0 +1,13 @@
+#include "Alchemy-PCH.h"
+
+CLANG_FORWARD_PROC_SYMBOL(public_6220e80);
+
+PROC_DECLARE(0x6220e80, internal_6220e80, public_6220e80);
+extern "C" NAKED register_t __cdecl internal_6220e80()
+{
+    __asm
+    {
+        ret 8
+        UNREACHABLE_TRAP(0x6220e80)
+    }
+}
