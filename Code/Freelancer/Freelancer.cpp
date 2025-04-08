@@ -13,6 +13,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	__ExecuteDLLImports();
 	PWinMainCRTStartup WinMainEntryPoint = (PWinMainCRTStartup)Freelancer_entry_point;
 	wipe_stack(1024);
-	int retcode = WinMainEntryPoint(hInstance, hPrevInstance, lpCmdLine, nShowCmd);
-	return retcode;
+	int Result = WinMainEntryPoint(hInstance, hPrevInstance, lpCmdLine, nShowCmd);
+	return Result;
+}
+
+extern "C" HINSTANCE __ImageBase;
+int main()
+{
+	HINSTANCE hInstance = __ImageBase;
+	HINSTANCE hPrevInstance = NULL;
+	LPSTR lpCmdLine = GetCommandLineA();
+	int nShowCmd = SW_SHOW;
+	int Result = WinMain(hInstance, hPrevInstance, lpCmdLine, nShowCmd);
+	return Result;
 }
