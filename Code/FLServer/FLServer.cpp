@@ -1,6 +1,6 @@
 #include "FLServer-PCH.h"
 
-extern "C" __declspec(dllexport) void custom_dacom() {}
+extern "C" __declspec(dllexport) void Liberty() {}
 
 typedef int(APIENTRY* PWinMainCRTStartup)(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd);
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)

@@ -1,6 +1,6 @@
 #include "Freelancer-PCH.h"
 
-extern "C" __declspec(dllexport) void custom_dacom() {}
+extern "C" __declspec(dllexport) void Liberty() {}
 
 static void wipe_stack(int count)
 {

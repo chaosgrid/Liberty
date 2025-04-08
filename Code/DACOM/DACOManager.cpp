@@ -338,12 +338,12 @@ GENRESULT DACOManager::AddLibrary(const C8* DLL_filename)
 	else {
 		U32 m, n, b;
 		DACOM_GetDllVersion(DLL_filename, &m, &n, &b);
-		const char* binary_type = "vanilla";
-		if (GetProcAddress(library->instance, "custom_dacom"))
+		const char* binary_type = "Vanilla";
+		if (GetProcAddress(library->instance, "Liberty"))
 		{
-			binary_type = "custom";
+			binary_type = "Liberty";
 		}
-		GENERAL_NOTICE(TEMPSTR("DACOM: AddLibrary: DLL '%s' [%d.%d.%d] '%s'\n", DLL_filename, m, n, b, binary_type));
+		GENERAL_NOTICE(TEMPSTR("DACOM: AddLibrary: DLL '%s' [%d.%d.%d] Type=%s\n", DLL_filename, m, n, b, binary_type));
 	}
 
 	pCurrentLibrary = 0;

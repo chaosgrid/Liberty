@@ -1,6 +1,6 @@
 #include "LuaProfile-PCH.h"
 
-extern "C" __declspec(dllexport) void custom_dacom() {}
+extern "C" __declspec(dllexport) void Liberty() {}
 
 typedef BOOL(APIENTRY* PDllEntryPoint)(HINSTANCE hModule, DWORD fdwReason, LPVOID lpReserved);
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
