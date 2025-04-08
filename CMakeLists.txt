@@ -187,8 +187,9 @@ endfunction()
 
 function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDIRECTORY)
     string(TOUPPER "${TARGET_NAME}" TARGET_NAME_UPPER)
-
+    
     set(SOURCES "")
+    set(INI_SOURCES "")
     if(TARGET_FOLDERS)
         foreach(TARGET_FOLDER IN LISTS TARGET_FOLDERS)
             file(GLOB_RECURSE TARGET_FILES CONFIGURE_DEPENDS
@@ -199,6 +200,9 @@ function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDI
                 "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/**.inl"
                 "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/**.rc")
             list(APPEND SOURCES ${TARGET_FILES})
+            file(GLOB_RECURSE TARGET_FILES CONFIGURE_DEPENDS
+                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/**.ini")
+            list(APPEND INI_SOURCES ${TARGET_FILES})
         endforeach()
     else()
         file(GLOB_RECURSE TARGET_FILES CONFIGURE_DEPENDS
@@ -209,6 +213,9 @@ function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDI
             "${LIBERTY_SOURCE_DIR}/**.inl"
             "${LIBERTY_SOURCE_DIR}/**.rc")
         list(APPEND SOURCES ${TARGET_FILES})
+        file(GLOB_RECURSE TARGET_FILES CONFIGURE_DEPENDS
+            "${LIBERTY_SOURCE_DIR}/**.ini")
+        list(APPEND INI_SOURCES ${TARGET_FILES})
     endif()
     
     set(GENERATED_SOURCES "")
@@ -216,16 +223,16 @@ function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDI
     
     set(IS_COMPILABLE False)
     if(TARGET_TYPE STREQUAL "library")
-        add_library(${TARGET_NAME} STATIC ${SOURCES} ${GENERATED_SOURCES})
+        add_library(${TARGET_NAME} STATIC ${SOURCES} ${INI_SOURCES} ${GENERATED_SOURCES})
         target_compile_definitions(${TARGET_NAME} PUBLIC "${TARGET_NAME_UPPER}_DEC=")
         set(IS_COMPILABLE True)
     elseif(TARGET_TYPE STREQUAL "shared")
-        add_library(${TARGET_NAME} SHARED ${SOURCES} ${GENERATED_SOURCES})
+        add_library(${TARGET_NAME} SHARED ${SOURCES} ${INI_SOURCES} ${GENERATED_SOURCES})
         target_compile_definitions(${TARGET_NAME} INTERFACE "${TARGET_NAME_UPPER}_DEC=__declspec(dllimport)")
         target_compile_definitions(${TARGET_NAME} PRIVATE "${TARGET_NAME_UPPER}_DEC=__declspec(dllexport)")
         set(IS_COMPILABLE True)
     elseif(TARGET_TYPE STREQUAL "resource")
-        add_library(${TARGET_NAME} SHARED ${SOURCES} ${GENERATED_SOURCES})
+        add_library(${TARGET_NAME} SHARED ${SOURCES} ${INI_SOURCES} ${GENERATED_SOURCES})
         target_compile_definitions(${TARGET_NAME} INTERFACE "${TARGET_NAME_UPPER}_DEC=__declspec(dllimport)")
         target_compile_definitions(${TARGET_NAME} PRIVATE "${TARGET_NAME_UPPER}_DEC=__declspec(dllexport)")
         set(IS_COMPILABLE True)
@@ -233,18 +240,18 @@ function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDI
           set_target_properties(${TARGET_NAME} PROPERTIES LINK_FLAGS "/NOENTRY")
         endif()
     elseif(TARGET_TYPE STREQUAL "executable")
-        add_executable(${TARGET_NAME} ${SOURCES} ${GENERATED_SOURCES})
+        add_executable(${TARGET_NAME} ${SOURCES} ${INI_SOURCES} ${GENERATED_SOURCES})
         set_target_properties(${TARGET_NAME} PROPERTIES WIN32_EXECUTABLE ON)
         target_compile_definitions(${TARGET_NAME} INTERFACE "${TARGET_NAME_UPPER}_DEC=__declspec(dllimport)")
         target_compile_definitions(${TARGET_NAME} PRIVATE "${TARGET_NAME_UPPER}_DEC=__declspec(dllexport)")
         set(IS_COMPILABLE True)
     elseif(TARGET_TYPE STREQUAL "console")
-        add_executable(${TARGET_NAME} ${SOURCES} ${GENERATED_SOURCES})
+        add_executable(${TARGET_NAME} ${SOURCES} ${INI_SOURCES} ${GENERATED_SOURCES})
         target_compile_definitions(${TARGET_NAME} INTERFACE "${TARGET_NAME_UPPER}_DEC=__declspec(dllimport)")
         target_compile_definitions(${TARGET_NAME} PRIVATE "${TARGET_NAME_UPPER}_DEC=__declspec(dllexport)")
         set(IS_COMPILABLE True)
     else(TARGET_TYPE STREQUAL "noop")
-        add_custom_target(${TARGET_NAME} SOURCES ${SOURCES} ${GENERATED_SOURCES})
+        add_custom_target(${TARGET_NAME} SOURCES ${SOURCES} ${INI_SOURCES} ${GENERATED_SOURCES})
     endif()
 
     if(${IS_COMPILABLE})
@@ -258,6 +265,13 @@ function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDI
         set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${LIBERTY_DIRECTORY}/${TARGET_SUBDIRECTORY}")
         set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${LIBERTY_DIRECTORY}/${TARGET_SUBDIRECTORY}")
         set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${LIBERTY_DIRECTORY}/${TARGET_SUBDIRECTORY}")
+
+        # Add post-build commands to copy all .ini files to the binary's output directory.
+        foreach(INI_FILE IN LISTS INI_SOURCES)
+            add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${INI_FILE}" "$<TARGET_FILE_DIR:${TARGET_NAME}>")
+        endforeach()
 
         if (CMAKE_GENERATOR MATCHES "Visual Studio")
             target_compile_options(${TARGET_NAME} PRIVATE /MP)
@@ -295,6 +309,7 @@ function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDI
     endif()
     
     create_source_groups("${LIBERTY_SOURCE_DIR}" "${SOURCES}")
+    create_source_groups("${LIBERTY_SOURCE_DIR}" "${INI_SOURCES}")
     create_source_groups("${LIBERTY_GENERATED_DIR}" "${GENERATED_SOURCES}")
 endfunction()
 
@@ -343,7 +358,6 @@ add_liberty_project(Core "library" "Core" ${LIBERTY_EXE_DIRECTORY})
 add_liberty_project(RemoteServer "shared" "RemoteServer" ${LIBERTY_EXE_DIRECTORY})
 add_liberty_project(RemoteClient "shared" "RemoteClient" ${LIBERTY_EXE_DIRECTORY})
 add_liberty_project(ReadFile "shared" "ReadFile" ${LIBERTY_EXE_DIRECTORY})
-#add_liberty_project(Movie "shared" "Movie" ${LIBERTY_EXE_DIRECTORY}) # Busted for some reason
 add_liberty_project(LuaProfile "shared" "LuaProfile" ${LIBERTY_EXE_DIRECTORY})
 add_liberty_project(ImeUi "shared" "ImeUi" ${LIBERTY_EXE_DIRECTORY})
 add_liberty_project(Freelancer "console" "Freelancer" ${LIBERTY_EXE_DIRECTORY})
@@ -370,6 +384,9 @@ add_liberty_project(RPCLocal "shared" "RPCLocal" ${LIBERTY_EXE_DIRECTORY})
 add_liberty_project(RP8 "shared" "RP8" ${LIBERTY_EXE_DIRECTORY})
 add_liberty_project(RendComp "shared" "RendComp" ${LIBERTY_EXE_DIRECTORY})
 
+add_liberty_project(Movie "shared" "Movie" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(EBUEula "shared" "EBUEula" ${LIBERTY_EXE_DIRECTORY})
+
 add_liberty_project(Resources "resource" "Text/Resources" ${LIBERTY_EXE_DIRECTORY})
 add_liberty_project(EquipResources "resource" "Text/EquipResources" ${LIBERTY_EXE_DIRECTORY})
 add_liberty_project(NameResources "resource" "Text/NameResources" ${LIBERTY_EXE_DIRECTORY})
@@ -390,7 +407,6 @@ set_target_properties(MiscTextInfo2 PROPERTIES FOLDER "Text")
 target_link_libraries(RemoteServer Core)
 target_link_libraries(RemoteClient Core)
 target_link_libraries(ReadFile Core)
-#target_link_libraries(Movie Core)
 target_link_libraries(LuaProfile Core)
 target_link_libraries(ImeUi Core)
 target_link_libraries(Freelancer Core)
@@ -421,7 +437,7 @@ add_dependencies(Freelancer
     RemoteServer
     RemoteClient
     ReadFile
-    #Movie Busted for some reason
+    Movie
     LuaProfile
     ImeUi
     FLMaterials
@@ -452,12 +468,13 @@ add_dependencies(Freelancer
     ServerResources
     InfoCards
     MiscText
-    MiscTextInfo2)
+    MiscTextInfo2
+    EBUEula)
 add_dependencies(FLServer 
     RemoteServer
     RemoteClient
     ReadFile
-    #Movie Busted for some reason
+    Movie
     LuaProfile
     ImeUi
     FLMaterials
@@ -488,10 +505,12 @@ add_dependencies(FLServer
     ServerResources
     InfoCards
     MiscText
-    MiscTextInfo2)
-
+    MiscTextInfo2
+    EBUEula)
+    
 set_target_properties(Freelancer PROPERTIES VS_DEBUGGER_NATIVE_DEBUGGING TRUE)
 set_property(TARGET Freelancer PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${LIBERTY_DIRECTORY}/${LIBERTY_EXE_DIRECTORY}")
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Freelancer)
 
 set_target_properties(FLServer PROPERTIES VS_DEBUGGER_NATIVE_DEBUGGING TRUE)
 set_property(TARGET FLServer PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${LIBERTY_DIRECTORY}/${LIBERTY_EXE_DIRECTORY}")
