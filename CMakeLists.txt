@@ -118,9 +118,15 @@ endfunction()
 dxsdk_install()
 
 # Global output directories for binaries and libraries
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+set(CMAKE_PDB_OUTPUT_DIRECTORY  "${CMAKE_BINARY_DIR}/pdb")
+
+set(CMAKE_PDB_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Debug/pdb")
+set(CMAKE_PDB_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Release/pdb")
+set(CMAKE_PDB_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/MinSizeRel/pdb")
+set(CMAKE_PDB_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/RelWithDebInfo/pdb")
 
 set(LIBERTY_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 set(LIBERTY_EXE_DIRECTORY "EXE")
@@ -189,7 +195,7 @@ function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDI
     string(TOUPPER "${TARGET_NAME}" TARGET_NAME_UPPER)
     
     set(SOURCES "")
-    set(INI_SOURCES "")
+    set(CONFIG_SOURCES "")
     if(TARGET_FOLDERS)
         foreach(TARGET_FOLDER IN LISTS TARGET_FOLDERS)
             file(GLOB_RECURSE TARGET_FILES CONFIGURE_DEPENDS
@@ -201,8 +207,9 @@ function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDI
                 "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/**.rc")
             list(APPEND SOURCES ${TARGET_FILES})
             file(GLOB_RECURSE TARGET_FILES CONFIGURE_DEPENDS
-                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/**.ini")
-            list(APPEND INI_SOURCES ${TARGET_FILES})
+                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/**.ini"
+                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/**.fl")
+            list(APPEND CONFIG_SOURCES ${TARGET_FILES})
         endforeach()
     else()
         file(GLOB_RECURSE TARGET_FILES CONFIGURE_DEPENDS
@@ -214,8 +221,9 @@ function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDI
             "${LIBERTY_SOURCE_DIR}/**.rc")
         list(APPEND SOURCES ${TARGET_FILES})
         file(GLOB_RECURSE TARGET_FILES CONFIGURE_DEPENDS
-            "${LIBERTY_SOURCE_DIR}/**.ini")
-        list(APPEND INI_SOURCES ${TARGET_FILES})
+            "${LIBERTY_SOURCE_DIR}/**.ini"
+            "${LIBERTY_SOURCE_DIR}/**.fl")
+        list(APPEND CONFIG_SOURCES ${TARGET_FILES})
     endif()
     
     set(GENERATED_SOURCES "")
@@ -223,16 +231,16 @@ function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDI
     
     set(IS_COMPILABLE False)
     if(TARGET_TYPE STREQUAL "library")
-        add_library(${TARGET_NAME} STATIC ${SOURCES} ${INI_SOURCES} ${GENERATED_SOURCES})
+        add_library(${TARGET_NAME} STATIC ${SOURCES} ${CONFIG_SOURCES} ${GENERATED_SOURCES})
         target_compile_definitions(${TARGET_NAME} PUBLIC "${TARGET_NAME_UPPER}_DEC=")
         set(IS_COMPILABLE True)
     elseif(TARGET_TYPE STREQUAL "shared")
-        add_library(${TARGET_NAME} SHARED ${SOURCES} ${INI_SOURCES} ${GENERATED_SOURCES})
+        add_library(${TARGET_NAME} SHARED ${SOURCES} ${CONFIG_SOURCES} ${GENERATED_SOURCES})
         target_compile_definitions(${TARGET_NAME} INTERFACE "${TARGET_NAME_UPPER}_DEC=__declspec(dllimport)")
         target_compile_definitions(${TARGET_NAME} PRIVATE "${TARGET_NAME_UPPER}_DEC=__declspec(dllexport)")
         set(IS_COMPILABLE True)
     elseif(TARGET_TYPE STREQUAL "resource")
-        add_library(${TARGET_NAME} SHARED ${SOURCES} ${INI_SOURCES} ${GENERATED_SOURCES})
+        add_library(${TARGET_NAME} SHARED ${SOURCES} ${CONFIG_SOURCES} ${GENERATED_SOURCES})
         target_compile_definitions(${TARGET_NAME} INTERFACE "${TARGET_NAME_UPPER}_DEC=__declspec(dllimport)")
         target_compile_definitions(${TARGET_NAME} PRIVATE "${TARGET_NAME_UPPER}_DEC=__declspec(dllexport)")
         set(IS_COMPILABLE True)
@@ -240,18 +248,18 @@ function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDI
           set_target_properties(${TARGET_NAME} PROPERTIES LINK_FLAGS "/NOENTRY")
         endif()
     elseif(TARGET_TYPE STREQUAL "executable")
-        add_executable(${TARGET_NAME} ${SOURCES} ${INI_SOURCES} ${GENERATED_SOURCES})
+        add_executable(${TARGET_NAME} ${SOURCES} ${CONFIG_SOURCES} ${GENERATED_SOURCES})
         set_target_properties(${TARGET_NAME} PROPERTIES WIN32_EXECUTABLE ON)
         target_compile_definitions(${TARGET_NAME} INTERFACE "${TARGET_NAME_UPPER}_DEC=__declspec(dllimport)")
         target_compile_definitions(${TARGET_NAME} PRIVATE "${TARGET_NAME_UPPER}_DEC=__declspec(dllexport)")
         set(IS_COMPILABLE True)
     elseif(TARGET_TYPE STREQUAL "console")
-        add_executable(${TARGET_NAME} ${SOURCES} ${INI_SOURCES} ${GENERATED_SOURCES})
+        add_executable(${TARGET_NAME} ${SOURCES} ${CONFIG_SOURCES} ${GENERATED_SOURCES})
         target_compile_definitions(${TARGET_NAME} INTERFACE "${TARGET_NAME_UPPER}_DEC=__declspec(dllimport)")
         target_compile_definitions(${TARGET_NAME} PRIVATE "${TARGET_NAME_UPPER}_DEC=__declspec(dllexport)")
         set(IS_COMPILABLE True)
     else(TARGET_TYPE STREQUAL "noop")
-        add_custom_target(${TARGET_NAME} SOURCES ${SOURCES} ${INI_SOURCES} ${GENERATED_SOURCES})
+        add_custom_target(${TARGET_NAME} SOURCES ${SOURCES} ${CONFIG_SOURCES} ${GENERATED_SOURCES})
     endif()
 
     if(${IS_COMPILABLE})
@@ -266,11 +274,10 @@ function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDI
         set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${LIBERTY_DIRECTORY}/${TARGET_SUBDIRECTORY}")
         set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${LIBERTY_DIRECTORY}/${TARGET_SUBDIRECTORY}")
 
-        # Add post-build commands to copy all .ini files to the binary's output directory.
-        foreach(INI_FILE IN LISTS INI_SOURCES)
+        foreach(CONFIG_FILE IN LISTS CONFIG_SOURCES)
             add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    "${INI_FILE}" "$<TARGET_FILE_DIR:${TARGET_NAME}>")
+                    "${CONFIG_FILE}" "$<TARGET_FILE_DIR:${TARGET_NAME}>")
         endforeach()
 
         if (CMAKE_GENERATOR MATCHES "Visual Studio")
@@ -309,7 +316,7 @@ function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDI
     endif()
     
     create_source_groups("${LIBERTY_SOURCE_DIR}" "${SOURCES}")
-    create_source_groups("${LIBERTY_SOURCE_DIR}" "${INI_SOURCES}")
+    create_source_groups("${LIBERTY_SOURCE_DIR}" "${CONFIG_SOURCES}")
     create_source_groups("${LIBERTY_GENERATED_DIR}" "${GENERATED_SOURCES}")
 endfunction()
 
