@@ -148,17 +148,21 @@ extern "C"
 		char* data = static_cast<char*>(func);
 
 #ifdef _WIN64
-		if (*data == 0xE9i8)// jmp rel32
+		if (*data == 0xE9i8) // jmp rel32
 		{
 			data += 5;
 		}
-		else if (*data == 0xEBi8)// jmp rel8
+		else if (*data == 0xEBi8) // jmp rel8
 		{
 			data += 2;
 		}
 		else FATAL("Unsupported instruction");
 #else
-		FATAL("Unsupported instruction");
+		if (*data == 0xEBi8) // jmp rel8
+		{
+			data += 2;
+		}
+		else FATAL("Unsupported instruction");
 #endif
 
 		intptr_t imagebase = reinterpret_cast<intptr_t>(&__ImageBase);
@@ -177,6 +181,7 @@ extern "C"
 			debug_point;
 		}
 
+#ifdef _WIN64
 		// Change protection of the memory region containing 'data' to PAGE_READWRITE
 		DWORD oldProtect;
 		if (VirtualProtect(jump_table_start, jump_table_size, PAGE_EXECUTE_READWRITE, &oldProtect)) {
@@ -189,6 +194,7 @@ extern "C"
 
 			VirtualProtect(jump_table_start, jump_table_size, oldProtect, &oldProtect);
 		}
+#endif
 
 		debug_point;
 		return 0;
