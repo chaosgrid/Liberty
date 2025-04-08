@@ -8,6 +8,7 @@ project(Liberty LANGUAGES C CXX ASM_MASM CSharp)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Specify the NuGet executable URL
 set(NUGET_URL "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe")
@@ -190,21 +191,23 @@ function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDI
     set(SOURCES "")
     if(TARGET_FOLDERS)
         foreach(TARGET_FOLDER IN LISTS TARGET_FOLDERS)
-            file(GLOB_RECURSE TARGET_FILES
-                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/*.hpp"
-                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/*.cpp"
-                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/*.h"
-                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/*.c"
-                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/*.inl")
+            file(GLOB_RECURSE TARGET_FILES CONFIGURE_DEPENDS
+                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/**.hpp"
+                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/**.cpp"
+                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/**.h"
+                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/**.c"
+                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/**.inl"
+                "${LIBERTY_SOURCE_DIR}/${TARGET_FOLDER}/**.rc")
             list(APPEND SOURCES ${TARGET_FILES})
         endforeach()
     else()
-        file(GLOB_RECURSE TARGET_FILES
-            "${LIBERTY_SOURCE_DIR}/*.hpp"
-            "${LIBERTY_SOURCE_DIR}/*.cpp"
-            "${LIBERTY_SOURCE_DIR}/*.h"
-            "${LIBERTY_SOURCE_DIR}/*.c"
-            "${LIBERTY_SOURCE_DIR}/*.inl")
+        file(GLOB_RECURSE TARGET_FILES CONFIGURE_DEPENDS
+            "${LIBERTY_SOURCE_DIR}/**.hpp"
+            "${LIBERTY_SOURCE_DIR}/**.cpp"
+            "${LIBERTY_SOURCE_DIR}/**.h"
+            "${LIBERTY_SOURCE_DIR}/**.c"
+            "${LIBERTY_SOURCE_DIR}/**.inl"
+            "${LIBERTY_SOURCE_DIR}/**.rc")
         list(APPEND SOURCES ${TARGET_FILES})
     endif()
     
@@ -221,6 +224,14 @@ function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDI
         target_compile_definitions(${TARGET_NAME} INTERFACE "${TARGET_NAME_UPPER}_DEC=__declspec(dllimport)")
         target_compile_definitions(${TARGET_NAME} PRIVATE "${TARGET_NAME_UPPER}_DEC=__declspec(dllexport)")
         set(IS_COMPILABLE True)
+    elseif(TARGET_TYPE STREQUAL "resource")
+        add_library(${TARGET_NAME} SHARED ${SOURCES} ${GENERATED_SOURCES})
+        target_compile_definitions(${TARGET_NAME} INTERFACE "${TARGET_NAME_UPPER}_DEC=__declspec(dllimport)")
+        target_compile_definitions(${TARGET_NAME} PRIVATE "${TARGET_NAME_UPPER}_DEC=__declspec(dllexport)")
+        set(IS_COMPILABLE True)
+        if(MSVC)
+          set_target_properties(${TARGET_NAME} PROPERTIES LINK_FLAGS "/NOENTRY")
+        endif()
     elseif(TARGET_TYPE STREQUAL "executable")
         add_executable(${TARGET_NAME} ${SOURCES} ${GENERATED_SOURCES})
         set_target_properties(${TARGET_NAME} PROPERTIES WIN32_EXECUTABLE ON)
@@ -359,6 +370,23 @@ add_liberty_project(RPCLocal "shared" "RPCLocal" ${LIBERTY_EXE_DIRECTORY})
 add_liberty_project(RP8 "shared" "RP8" ${LIBERTY_EXE_DIRECTORY})
 add_liberty_project(RendComp "shared" "RendComp" ${LIBERTY_EXE_DIRECTORY})
 
+add_liberty_project(Resources "resource" "Text/Resources" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(EquipResources "resource" "Text/EquipResources" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(NameResources "resource" "Text/NameResources" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(OfferBribeResources "resource" "Text/OfferBribeResources" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(ServerResources "resource" "Text/ServerResources" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(InfoCards "resource" "Text/InfoCards" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(MiscText "resource" "Text/MiscText" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(MiscTextInfo2 "resource" "Text/MiscTextInfo2" ${LIBERTY_EXE_DIRECTORY})
+set_target_properties(Resources PROPERTIES FOLDER "Text")
+set_target_properties(EquipResources PROPERTIES FOLDER "Text")
+set_target_properties(NameResources PROPERTIES FOLDER "Text")
+set_target_properties(OfferBribeResources PROPERTIES FOLDER "Text")
+set_target_properties(ServerResources PROPERTIES FOLDER "Text")
+set_target_properties(InfoCards PROPERTIES FOLDER "Text")
+set_target_properties(MiscText PROPERTIES FOLDER "Text")
+set_target_properties(MiscTextInfo2 PROPERTIES FOLDER "Text")
+
 target_link_libraries(RemoteServer Core)
 target_link_libraries(RemoteClient Core)
 target_link_libraries(ReadFile Core)
@@ -416,7 +444,15 @@ add_dependencies(Freelancer
     Server
     RPCLocal
     RP8
-    RendComp)
+    RendComp
+    Resources
+    EquipResources
+    NameResources
+    OfferBribeResources
+    ServerResources
+    InfoCards
+    MiscText
+    MiscTextInfo2)
 add_dependencies(FLServer 
     RemoteServer
     RemoteClient
@@ -444,7 +480,15 @@ add_dependencies(FLServer
     Server
     RPCLocal
     RP8
-    RendComp)
+    RendComp
+    Resources
+    EquipResources
+    NameResources
+    OfferBribeResources
+    ServerResources
+    InfoCards
+    MiscText
+    MiscTextInfo2)
 
 set_target_properties(Freelancer PROPERTIES VS_DEBUGGER_NATIVE_DEBUGGING TRUE)
 set_property(TARGET Freelancer PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${LIBERTY_DIRECTORY}/${LIBERTY_EXE_DIRECTORY}")
