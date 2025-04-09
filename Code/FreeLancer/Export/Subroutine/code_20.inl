@@ -14238,7 +14238,7 @@ _naked _weak void _sub_599DE0() // _sub_599DE0
     // chunk 0x599DE0 _sub_599DE0
     asm("loc_599DE0: mov _data_67DB9D,%eax;");
     asm("loc_599DE5: and $0xFF52EAF5,%eax;");
-    asm("loc_599DEA: or $loc_52EAF5,%eax;");
+    asm("loc_599DEA: or $0x52EAF5,%eax;");
     asm("loc_599DEF: movb $8,_data_67DB9C;");
     asm("loc_599DF6: mov %eax,_data_67DB9D;");
     asm("loc_599DFB: ret;");

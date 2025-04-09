@@ -157,7 +157,7 @@ _naked _weak void _sub_45E050() // _sub_45E050
     // chunk 0x45E050 _sub_45E050
     asm("loc_45E050: mov _data_66D9CD,%eax;");
     asm("loc_45E055: and $0xFF52EAF5,%eax;");
-    asm("loc_45E05A: or $loc_52EAF5,%eax;");
+    asm("loc_45E05A: or $0x52EAF5,%eax;");
     asm("loc_45E05F: movb $1,_data_66D9CC;");
     asm("loc_45E066: mov %eax,_data_66D9CD;");
     asm("loc_45E06B: ret;");
@@ -169,7 +169,7 @@ _naked _weak void _sub_45E070() // _sub_45E070
     // chunk 0x45E070 _sub_45E070
     asm("loc_45E070: mov _data_66D9C5,%eax;");
     asm("loc_45E075: and $0xFF52EAF5,%eax;");
-    asm("loc_45E07A: or $loc_52EAF5,%eax;");
+    asm("loc_45E07A: or $0x52EAF5,%eax;");
     asm("loc_45E07F: movb $6,_data_66D9C4;");
     asm("loc_45E086: mov %eax,_data_66D9C5;");
     asm("loc_45E08B: ret;");
@@ -240,7 +240,7 @@ _naked _weak void _sub_45E130() // _sub_45E130
     // chunk 0x45E130 _sub_45E130
     asm("loc_45E130: mov _data_66D995,%eax;");
     asm("loc_45E135: and $0xFF52EAF5,%eax;");
-    asm("loc_45E13A: or $loc_52EAF5,%eax;");
+    asm("loc_45E13A: or $0x52EAF5,%eax;");
     asm("loc_45E13F: movb $8,_data_66D994;");
     asm("loc_45E146: mov %eax,_data_66D995;");
     asm("loc_45E14B: ret;");
@@ -264,7 +264,7 @@ _naked _weak void _sub_45E170() // _sub_45E170
     // chunk 0x45E170 _sub_45E170
     asm("loc_45E170: mov _data_66D985,%eax;");
     asm("loc_45E175: and $0xFF52EAF5,%eax;");
-    asm("loc_45E17A: or $loc_52EAF5,%eax;");
+    asm("loc_45E17A: or $0x52EAF5,%eax;");
     asm("loc_45E17F: movb $0,_data_66D984;");
     asm("loc_45E186: mov %eax,_data_66D985;");
     asm("loc_45E18B: ret;");
@@ -300,7 +300,7 @@ _naked _weak void _sub_45E1D0() // _sub_45E1D0
     // chunk 0x45E1D0 _sub_45E1D0
     asm("loc_45E1D0: mov _data_66D96D,%eax;");
     asm("loc_45E1D5: and $0xFF52EAF5,%eax;");
-    asm("loc_45E1DA: or $loc_52EAF5,%eax;");
+    asm("loc_45E1DA: or $0x52EAF5,%eax;");
     asm("loc_45E1DF: movb $8,_data_66D96C;");
     asm("loc_45E1E6: mov %eax,_data_66D96D;");
     asm("loc_45E1EB: ret;");

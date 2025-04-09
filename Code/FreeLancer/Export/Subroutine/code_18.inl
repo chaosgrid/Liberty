@@ -1094,7 +1094,7 @@ _naked _weak void _sub_567020() // _sub_567020
     asm("loc_5671C7: mov 0x13(%esp),%al;");
     asm("loc_5671CB: mov %bl,0x380(%esi);");
     asm("loc_5671D1: and $0xFF52EAF5,%ecx;");
-    asm("loc_5671D7: or $loc_52EAF5,%ecx;");
+    asm("loc_5671D7: or $0x52EAF5,%ecx;");
     asm("loc_5671DD: mov %ecx,0x381(%esi);");
     asm("loc_5671E3: mov %bl,0x399(%esi);");
     asm("loc_5671E9: mov %dl,0x5A0(%esi);");
