@@ -112,6 +112,7 @@ extern "C"
 		if (module_handle == NULL)
 		{
 			printf("Import> Failed to load library '%s'\n", module_name);
+			__debugbreak();
 		}
 		else
 		{
@@ -119,6 +120,7 @@ extern "C"
 			if (proc == NULL)
 			{
 				printf("Import> Failed to get procedure '%s' in '%s'\n", proc_name, module_name);
+				__debugbreak();
 			}
 		}
 		return reinterpret_cast<void*>(proc);
@@ -131,6 +133,7 @@ extern "C"
 		if (module_handle == NULL)
 		{
 			printf("Ordinal> Failed to load library '%s'\n", module_name);
+			__debugbreak();
 		}
 		else
 		{
