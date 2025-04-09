@@ -1,1 +1,0 @@
-#pragma comment(linker, "/export:?rbegin@?$list@UCollisionGroupDesc@@V?$allocator@UCollisionGroupDesc@@@std@@@std@@QBE?AV?$reverse_bidirectional_iterator@Vconst_iterator@?$list@UCollisionGroupDesc@@V?$allocator@UCollisionGroupDesc@@@std@@@std@@UCollisionGroupDesc@@ABU4@PBU4@H@2@XZ=_public_6266df0,@3391")

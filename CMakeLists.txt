@@ -283,6 +283,8 @@ function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDI
         if (CMAKE_GENERATOR MATCHES "Visual Studio")
             target_compile_options(${TARGET_NAME} PRIVATE /MP)
             target_compile_options(${TARGET_NAME} PRIVATE /clang:-Wno-unused-private-field)
+            #target_compile_options(${TARGET_NAME} PRIVATE /Xclang -ferror-limit=1000)
+            target_compile_options(${TARGET_NAME} PRIVATE /clang:-ferror-limit=1000)
         endif()
         if(CMAKE_VS_PLATFORM_NAME STREQUAL "Win32")
             target_link_directories(${TARGET_NAME} PRIVATE "${DXSDK_LIB_DIR}/x86")

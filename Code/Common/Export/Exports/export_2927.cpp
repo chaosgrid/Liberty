@@ -1,1 +1,0 @@
-#pragma comment(linker, "/export:?get_petal_anims@bodypart@@QBEPAV?$list@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@@std@@XZ=_public_62629e0,@2928")

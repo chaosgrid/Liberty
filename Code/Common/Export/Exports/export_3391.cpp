@@ -1,1 +1,0 @@
-#pragma comment(linker, "/export:?rbegin@?$list@UDamageEntry@@V?$allocator@UDamageEntry@@@std@@@std@@QAE?AV?$reverse_bidirectional_iterator@Viterator@?$list@UDamageEntry@@V?$allocator@UDamageEntry@@@std@@@std@@UDamageEntry@@AAU4@PAU4@H@2@XZ=_public_6266df0,@3392")
