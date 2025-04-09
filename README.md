@@ -11,6 +11,5 @@ Improved project files exported with Excalibur version 2 incoming soonTM.
 > * MSBuild support for LLVM (clang-cl) toolset
 
 * Copy DATA to Root Folder
-* Copy EXE to Root Folder
 * Run SetupBuildEnvironment.bat
 * Build Project (Pray)
