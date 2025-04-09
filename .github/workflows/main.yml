@@ -49,10 +49,17 @@ jobs:
       - name: Build Release
         run: cmake --build Build --config Release
 
+      - name: Prepare Artifacts Directory on Windows
+        run: |
+          New-Item -ItemType Directory -Force -Path Artifacts
+          Copy-Item -Recurse Exe -Destination Artifacts\Exe
+          Copy-Item -Recurse Dlls -Destination Artifacts\Dlls
+        shell: pwsh
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
-          path: Exe
+          path: Artifacts
           retention-days: 30
           compression-level: 9
