@@ -138,6 +138,7 @@ extern "C"
 			if (proc == NULL)
 			{
 				printf("Ordinal> Failed to get procedure %u in '%s'\n", ordinal, module_name);
+				__debugbreak();
 			}
 		}
 		return reinterpret_cast<void*>(proc);
