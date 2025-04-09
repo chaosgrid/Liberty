@@ -41,6 +41,111 @@ struct _DACOM_INTMAP_ENTRY
 #define END_DACOM_MAP()   {0, 0}};\
 	return _entries;}
 
+
+//----------------------------------//
+
+template <class Base> struct DAComponent : public Base
+{
+	U32 ref_count;
+
+
+	DAComponent(void)
+	{
+		ref_count = 1;
+	}
+
+	/* IDAComponent methods */
+
+	DACOM_DEFMETHOD(QueryInterface) (const C8* interface_name, void** instance);
+	DACOM_DEFMETHOD_(U32, AddRef)           (void);
+	DACOM_DEFMETHOD_(U32, Release)          (void);
+};
+
+//--------------------------------------------------------------------------//
+//
+template <class Base>
+GENRESULT DAComponent< Base >::QueryInterface(const C8* interface_name, void** instance)
+{
+	int i;
+	const _DACOM_INTMAP_ENTRY* interfaces = _GetEntriesIn();
+
+	for (i = 0; interfaces[i].interface_name; i++)
+	{
+		if (strcmp(interfaces[i].interface_name, interface_name) == 0)
+		{
+			IDAComponent* result;
+
+			if (interfaces[i].offset & 0x80000000)
+				result = *((IDAComponent**)(((char*)this) + (interfaces[i].offset & ~0x80000000)));
+			else
+				result = (IDAComponent*)(((char*)this) + interfaces[i].offset);
+
+			result->AddRef();
+			*instance = result;
+			return GR_OK;
+		}
+	}
+
+	*instance = 0;
+	return GR_INTERFACE_UNSUPPORTED;
+}
+//--------------------------------------------------------------------------//
+//
+template <class Base>
+U32 DAComponent< Base >::AddRef(void)
+{
+	ref_count++;
+	return ref_count;
+}
+//--------------------------------------------------------------------------//
+//
+template <class Base>
+U32 DAComponent< Base >::Release(void)
+{
+	if (ref_count > 0)
+		ref_count--;
+
+	if (ref_count == 0)
+	{
+		ref_count++;		// artificially add reference to prevent infinite loops
+		delete this;
+		return 0;
+	}
+
+	return ref_count;
+}
+
+//
+
+//--------------------------------------------------------------------------//
+// Debug version of DAComponent
+//
+template <class Base>
+struct DADebugComponent : public DAComponent<Base>
+{
+	DACOM_DEFMETHOD_(U32, AddRef)(void)
+	{
+		U32 ret = DAComponent<Base>::AddRef();
+
+		GENERAL_TRACE_1(TEMPSTR("AddRef %d\n", ret));
+
+		return ret;
+	}
+
+	//
+
+	DACOM_DEFMETHOD_(U32, Release)(void)
+	{
+		U32 ret = DAComponent<Base>::Release();
+
+		GENERAL_TRACE_1(TEMPSTR("RelRef %d\n", ret));
+
+		return ret;
+	}
+
+	//
+};
+
 //--------------------------------------------------------------------------//
 //-------------------Component Factory Implementation-----------------------//
 //--------------------------------------------------------------------------//
