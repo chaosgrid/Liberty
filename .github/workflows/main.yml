@@ -48,3 +48,10 @@ jobs:
 
       - name: Build Release
         run: cmake --build Build --config Release
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: Exe
+          retention-days: 30
