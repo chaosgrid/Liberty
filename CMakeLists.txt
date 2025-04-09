@@ -369,7 +369,7 @@ add_liberty_project(RemoteClient "shared" "RemoteClient" ${LIBERTY_EXE_DIRECTORY
 add_liberty_project(ReadFile "shared" "ReadFile" ${LIBERTY_EXE_DIRECTORY})
 add_liberty_project(LuaProfile "shared" "LuaProfile" ${LIBERTY_EXE_DIRECTORY})
 add_liberty_project(ImeUi "shared" "ImeUi" ${LIBERTY_EXE_DIRECTORY})
-add_liberty_project(Freelancer "console" "Freelancer" ${LIBERTY_EXE_DIRECTORY})
+add_liberty_project(FreeLancer "console" "FreeLancer" ${LIBERTY_EXE_DIRECTORY})
 add_liberty_project(FLServer "console" "FLServer" ${LIBERTY_EXE_DIRECTORY})
 add_liberty_project(FLMaterials "shared" "FLMaterials" ${LIBERTY_EXE_DIRECTORY})
 add_liberty_project(EngBase "shared" "EngBase" ${LIBERTY_EXE_DIRECTORY})
@@ -418,7 +418,7 @@ target_link_libraries(RemoteClient Core)
 target_link_libraries(ReadFile Core)
 target_link_libraries(LuaProfile Core)
 target_link_libraries(ImeUi Core)
-target_link_libraries(Freelancer Core)
+target_link_libraries(FreeLancer Core)
 target_link_libraries(FLServer Core)
 target_link_libraries(FLMaterials Core)
 target_link_libraries(EngBase Core)
@@ -442,7 +442,7 @@ target_link_libraries(RPCLocal Core)
 target_link_libraries(RP8 Core)
 target_link_libraries(RendComp Core)
 
-add_dependencies(Freelancer 
+add_dependencies(FreeLancer 
     RemoteServer
     RemoteClient
     ReadFile
@@ -517,9 +517,9 @@ add_dependencies(FLServer
     MiscTextInfo2
     EBUEula)
     
-set_target_properties(Freelancer PROPERTIES VS_DEBUGGER_NATIVE_DEBUGGING TRUE)
-set_property(TARGET Freelancer PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${LIBERTY_DIRECTORY}/${LIBERTY_EXE_DIRECTORY}")
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Freelancer)
+set_target_properties(FreeLancer PROPERTIES VS_DEBUGGER_NATIVE_DEBUGGING TRUE)
+set_property(TARGET FreeLancer PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${LIBERTY_DIRECTORY}/${LIBERTY_EXE_DIRECTORY}")
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT FreeLancer)
 
 set_target_properties(FLServer PROPERTIES VS_DEBUGGER_NATIVE_DEBUGGING TRUE)
 set_property(TARGET FLServer PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${LIBERTY_DIRECTORY}/${LIBERTY_EXE_DIRECTORY}")

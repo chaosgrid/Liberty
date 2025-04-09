@@ -1,4 +1,4 @@
-#include "Freelancer-PCH.h"
+#include "FreeLancer-PCH.h"
 
 PROC_DECLARE(0x443a80, internal_443a80, public_443a80);
 extern "C" NAKED register_t __cdecl internal_443a80()

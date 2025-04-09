@@ -1,4 +1,4 @@
-#include "Freelancer-PCH.h"
+#include "FreeLancer-PCH.h"
 
 extern "C" __declspec(dllexport) void Liberty() {}
 

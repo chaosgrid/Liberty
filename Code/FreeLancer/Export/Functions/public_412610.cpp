@@ -1,4 +1,4 @@
-#include "Freelancer-PCH.h"
+#include "FreeLancer-PCH.h"
 
 PROC_DECLARE(0x412610, internal_412610, public_412610);
 extern "C" NAKED register_t __cdecl internal_412610()

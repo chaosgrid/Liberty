@@ -1,4 +1,4 @@
-#include "Freelancer-PCH.h"
+#include "FreeLancer-PCH.h"
 
 static DLL_IMPORT_ENTRY const s_DLLImportEntries[] =
 {
