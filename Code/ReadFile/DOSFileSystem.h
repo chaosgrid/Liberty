@@ -19,10 +19,8 @@ struct DACOM_NO_VTABLE DOSFileSystemWrapper : public IFileSystem
 
 	DACOM_DEFMETHOD(CreateInstance) (DACOMDESC* descriptor, void** instance) override;
 
-	//
 	// *** IFileSystem methods ***
 	// Note: Windows types used below for optimum compatibility with Win32 file system API calls
-	//
 
 	DACOM_DEFMETHOD_(BOOL, CloseHandle) (HANDLE handle) override;
 	DACOM_DEFMETHOD_(BOOL, ReadFile) (HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead, LPOVERLAPPED lpOverlapped) override;
@@ -52,9 +50,7 @@ struct DACOM_NO_VTABLE DOSFileSystemWrapper : public IFileSystem
 	DACOM_DEFMETHOD_(BOOL, SetFileAttributes) (LPCTSTR lpFileName, DWORD dwFileAttributes) override;
 	DACOM_DEFMETHOD_(DWORD, GetLastError) (void) override;
 
-	//--------------- 
 	// IFileSystem extensions to WIN32 system
-	//--------------- 
 
 	DACOM_DEFMETHOD_(HANDLE, OpenChild) (DAFILEDESC* lpDesc) override;
 	DACOM_DEFMETHOD_(DWORD, GetFilePosition) (HANDLE hFile, PLONG pPositionHigh) override;

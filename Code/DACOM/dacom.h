@@ -12,7 +12,16 @@
 //#define DACOM_MAKE_IID(name, ver) name "__" #ver
 #define DACOM_MAKE_IID(name) DA_XSTR(LIB_MAJOR) "." DA_XSTR(LIB_MINOR) "_" name
 
-#define DA_HEAP_DEFINE_NEW_OPERATOR(...) // #TODO
+// NOTE: the clearing behavior of the new operator is necessary
+// NOTE: for some components, hence let it in there.
+
+#define DA_HEAP_DEFINE_NEW_OPERATOR(classname)	\
+	void * classname::operator new( size_t size ) { return ::calloc( size, 1 ); } \
+	void classname::operator delete( void *ptr ) { ::free( ptr ); }
+
+#define DA_HEAP_DEFINE_NEW_OPERATOR_HACK(classname, _calloc, _free)	\
+	void * classname::operator new( size_t size ) { return reinterpret_cast<decltype(&::calloc)>(_calloc)( size, 1 ); } \
+	void classname::operator delete( void *ptr ) { reinterpret_cast<decltype(&::free)>(_free)( ptr ); }
 
 #include "fdump.h"
 #include "IDAComponent.h"

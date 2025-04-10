@@ -23,6 +23,8 @@ extern "C"
 #define FIXUP_JUMP_TABLE(func) int __jmptblfixup_##func = __jmptblfixup(reinterpret_cast<void*>(&func));
 #define UNHANDLED_RVA(address) 0
 #define UNHANDLED_PTR(address) nullptr
+
+#define REDIRECT(subroutine, target) extern "C" _naked void subroutine() { _asm { jmp target }; }
 #define TRAMPOLINE(result, call_type, subroutine, ...) static _naked result call_type subroutine(__VA_ARGS__) { asm("jmp _" #subroutine ";"); }
 
 extern "C" struct HINSTANCE__ __ImageBase;

@@ -173,8 +173,10 @@ _extern_c _naked void sub_6B76220() // _DllMain@12
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
 	BOOL Result = EntryPoint(hinstDLL, fdwReason, lpvReserved);
-
-	Register_DOSFileSystem();
+	if (fdwReason == DLL_PROCESS_ATTACH)
+	{
+		Register_DOSFileSystem();
+	}
 
 	return Result;
 }
