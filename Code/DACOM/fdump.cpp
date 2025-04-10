@@ -73,7 +73,12 @@ int __cdecl CUSTOM_DA_ERROR_HANDLER(ErrorCode code, const C8* format, ...)
 
 	va_end(args); // Clean up the va_list
 
-	return COMMON_FDUMP(code, format, filename, line, stack8, stackC, stack10, stack14);
+	int result = 0;
+	if (COMMON_FDUMP != &CUSTOM_DA_ERROR_HANDLER)
+	{
+		result = COMMON_FDUMP(code, format, filename, line, stack8, stackC, stack10, stack14);
+	}
+	return result;
 }
 
 extern "C"
