@@ -1,8 +1,10 @@
-Build/
-DLLS/
-EXE/
-DATA/
-IDB/
+/Build
+/Dlls
+/Exe
+/Data
+/Tools
+/IDB
+/Vanilla
 *.sln
 *.aps
 .vs

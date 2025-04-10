@@ -38,18 +38,29 @@ struct AGGDESC : public DACOMDESC
 	}
 };
 
+#if defined(__cplusplus)
+template<typename T> static constexpr const char* __dacom_uuidof_missing();
+template<typename T> static constexpr const char* __dacom_uuidof = __dacom_uuidof_missing<T>();
+#define DACOM_PPV_ARG(ppType) (void**)ppType
+#define DACOM_IID_PPV_ARGS(ppType) __dacom_uuidof<decltype(**(ppType))>, DACOM_PPV_ARG(ppType)
+#define DACOM_INTERFACE(Type, IID) \
+	struct Type; \
+	template<> static constexpr const char* __dacom_uuidof<Type> = IID; \
+	template<> static constexpr const char* __dacom_uuidof<Type&> = IID;
+#endif
+
 #define IID_IDAComponent DACOM_MAKE_IID("IDAComponent")
+DACOM_INTERFACE(IDAComponent, IID_IDAComponent);
 // Abstract base class from which all DA component classes must be derived
 struct DACOM_NO_VTABLE IDAComponent
 {
 	DACOM_DEFMETHOD(QueryInterface) (const C8* interface_name, void** instance) = 0;
-
 	DACOM_DEFMETHOD_(U32, AddRef) (void) = 0;
-
 	DACOM_DEFMETHOD_(U32, Release) (void) = 0;
 };
 
 #define IID_IComponentFactory DACOM_MAKE_IID("IComponentFactory")
+DACOM_INTERFACE(IComponentFactory, IID_IComponentFactory);
 // Abstract class from which all class factories inherit
 struct DACOM_NO_VTABLE IComponentFactory : public IDAComponent
 {
@@ -57,6 +68,7 @@ struct DACOM_NO_VTABLE IComponentFactory : public IDAComponent
 };
 
 #define IID_IAggregateComponent "IAggregateComponent"
+DACOM_INTERFACE(IAggregateComponent, IID_IAggregateComponent);
 // Abstract class from which all aggregatable classes inherit
 struct DACOM_NO_VTABLE IAggregateComponent : public IDAComponent
 {

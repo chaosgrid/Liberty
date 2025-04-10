@@ -23,11 +23,9 @@ extern "C"
 #define FIXUP_JUMP_TABLE(func) int __jmptblfixup_##func = __jmptblfixup(reinterpret_cast<void*>(&func));
 #define UNHANDLED_RVA(address) 0
 #define UNHANDLED_PTR(address) nullptr
+#define TRAMPOLINE(result, call_type, subroutine, ...) static _naked result call_type subroutine(__VA_ARGS__) { asm("jmp _" #subroutine ";"); }
 
-#ifndef _MINWINDEF_
-struct HINSTANCE__ { int unused; };
-#endif
-extern "C" HINSTANCE__ __ImageBase;
+extern "C" struct HINSTANCE__ __ImageBase;
 template<long long address> void* ___ptr(int offset);
 template<long long address> int ___rva(int offset);
 template<long long address> void* ___ptr_func(int offset);
@@ -35,6 +33,7 @@ template<long long address> int ___rva_func(int offset);
 
 //#define __ptr(a, offset) reinterpret_cast<void*>(reinterpret_cast<char*>(a) + offset)
 //#define __rva(address, offset) static_cast<int>((reinterpret_cast<char*>(address) + offset) - reinterpret_cast<char*>(&__ImageBase))
+#define _extern_c extern "C"
 #define _naked __attribute__((naked))
 #define _weak /*__attribute__((weak))*/
 #define _alias(symbol) __attribute__((alias(symbol)));

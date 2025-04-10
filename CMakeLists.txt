@@ -129,7 +129,8 @@ set(CMAKE_PDB_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/MinSizeRel/pdb")
 set(CMAKE_PDB_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/RelWithDebInfo/pdb")
 
 set(LIBERTY_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-set(LIBERTY_EXE_DIRECTORY "EXE")
+set(LIBERTY_EXE_DIRECTORY "Exe")
+set(LIBERTY_TOOLS_DIRECTORY "Tools")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${LIBERTY_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${LIBERTY_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${LIBERTY_DIRECTORY})
@@ -321,7 +322,7 @@ function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDI
     create_source_groups("${LIBERTY_GENERATED_DIR}" "${GENERATED_SOURCES}")
 endfunction()
 
-function(add_liberty_cs_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS)
+function(add_liberty_cs_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDIRECTORY)
     string(TOUPPER "${TARGET_NAME}" TARGET_NAME_UPPER)
 
     set(SOURCES "")
@@ -355,12 +356,22 @@ function(add_liberty_cs_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS)
             COMMENT "Running C# Generator")
 
     endif()
+        
+    set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${LIBERTY_DIRECTORY}/${TARGET_SUBDIRECTORY}")
+    set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${LIBERTY_DIRECTORY}/${TARGET_SUBDIRECTORY}")
+    set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${LIBERTY_DIRECTORY}/${TARGET_SUBDIRECTORY}")
+    set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${LIBERTY_DIRECTORY}/${TARGET_SUBDIRECTORY}")
+    set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${LIBERTY_DIRECTORY}/${TARGET_SUBDIRECTORY}")
     
     target_compile_definitions(${TARGET_NAME} PUBLIC "${TARGET_NAME_UPPER}")
     set_target_properties(${TARGET_NAME} PROPERTIES VS_GLOBAL_NoWarn "0169") # A private variable was declared but never referenced
+    target_compile_options(${TARGET_NAME} PRIVATE "/langversion:9")
     
     create_source_groups("${LIBERTY_SOURCE_DIR}" "${SOURCES}")
 endfunction()
+
+add_liberty_cs_project(GlobalServer "executable" "GlobalServer" ${LIBERTY_TOOLS_DIRECTORY})
+add_liberty_cs_project(CrashHandler "executable" "CrashHandler" ${LIBERTY_TOOLS_DIRECTORY})
 
 add_liberty_project(Core "library" "Core" ${LIBERTY_EXE_DIRECTORY})
 add_liberty_project(RemoteServer "shared" "RemoteServer" ${LIBERTY_EXE_DIRECTORY})
@@ -414,7 +425,6 @@ set_target_properties(MiscTextInfo2 PROPERTIES FOLDER "Text")
 
 target_link_libraries(RemoteServer Core)
 target_link_libraries(RemoteClient Core)
-target_link_libraries(ReadFile Core)
 target_link_libraries(LuaProfile Core)
 target_link_libraries(ImeUi Core)
 target_link_libraries(FreeLancer Core)
@@ -435,7 +445,6 @@ target_link_libraries(THORN Core)
 target_link_libraries(System Core)
 target_link_libraries(SoundStreamer Core)
 target_link_libraries(SoundManager Core)
-target_link_libraries(Shading Core)
 target_link_libraries(Server Core)
 target_link_libraries(RPCLocal Core)
 target_link_libraries(RP8 Core)
@@ -522,3 +531,33 @@ set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT F
 
 set_target_properties(FLServer PROPERTIES VS_DEBUGGER_NATIVE_DEBUGGING TRUE)
 set_property(TARGET FLServer PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${LIBERTY_DIRECTORY}/${LIBERTY_EXE_DIRECTORY}")
+
+# Define the output file path in the binary directory (same as the .sln file)
+set(SLN_LAUNCH_FILE "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.slnLaunch")
+set(SLN_LAUNCH_FILE_CONTENT "[")
+# Write the JSON content to the file
+file(WRITE ${SLN_LAUNCH_FILE}
+  "["
+  "  {"
+  "    \"Name\": \"FreeLancer\","
+  "    \"Projects\": ["
+  "      { \"Path\": \"FreeLancer.vcxproj\", \"Action\": \"Start\" },"
+  "    ]"
+  "  },"
+  "  {"
+  "    \"Name\": \"FLServer\","
+  "    \"Projects\": ["
+  "      { \"Path\": \"FLServer.vcxproj\", \"Action\": \"Start\" },"
+  "      { \"Path\": \"GlobalServer.csproj\", \"Action\": \"Start\" }"
+  "    ]"
+  "  },"
+  "  {"
+  "    \"Name\": \"FreeLancer + FLServer\","
+  "    \"Projects\": ["
+  "      { \"Path\": \"FreeLancer.vcxproj\", \"Action\": \"Start\" },"
+  "      { \"Path\": \"FLServer.vcxproj\", \"Action\": \"Start\" },"
+  "      { \"Path\": \"GlobalServer.csproj\", \"Action\": \"Start\" }"
+  "    ]"
+  "  },"
+  "]"
+)

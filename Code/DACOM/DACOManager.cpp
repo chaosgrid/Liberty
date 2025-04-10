@@ -41,20 +41,28 @@ DACOManager::DACOManager(void)
 //
 GENRESULT DACOManager::QueryInterface(const C8* interface_name, void** instance)
 {
-	ASSERT(instance);
+	GENRESULT result = GR_INTERFACE_UNSUPPORTED;
 
+	ASSERT(instance);
 	*instance = 0;
 
 	if (strcmp(interface_name, IID_ICOManager) == 0)
 	{
 		AddRef();
-		*instance = (ICOManager*)this;
-		return GR_OK;
+		*instance = static_cast<ICOManager*>(this);
+		result = GR_OK;
 	}
-	if (innerParser)
-		return innerParser->QueryInterface(interface_name, instance);
+	else if (strcmp(interface_name, IID_ICOManagerLiberty) == 0)
+	{
+		*instance = static_cast<ICOManagerLiberty*>(this);
+		result = GR_OK;
+	}
+	else if (innerParser)
+	{
+		result = innerParser->QueryInterface(interface_name, instance);
+	}
 
-	return GR_INTERFACE_UNSUPPORTED;
+	return result;
 }
 //--------------------------------------------------------------------------//
 //
@@ -79,7 +87,7 @@ GENRESULT DACOManager::CreateInstance(DACOMDESC* descriptor, //)
 	ASSERT(instance);
 
 	*instance = 0;
-	
+
 	if ((descriptor == NULL) ||
 		(descriptor->interface_name == NULL) ||
 		(!strcmp(descriptor->interface_name, IID_ICOManager)))
@@ -118,6 +126,46 @@ GENRESULT DACOManager::CreateInstance(DACOMDESC* descriptor, //)
 	{
 		debug_point;
 	}
+	return result;
+}
+
+GENRESULT DACOManager::CreateInstanceEx(DACOMDESC* descriptor, void** instance, U32 low_priority, U32 high_priority)
+{
+	GENRESULT result = GR_INTERFACE_UNSUPPORTED;
+
+	ASSERT(instance);
+	*instance = 0;
+
+	if ((descriptor == NULL) || (descriptor->interface_name == NULL) || (!strcmp(descriptor->interface_name, IID_ICOManager)))
+	{
+		// If no descriptor provided, or if component manager instance 
+		// explicitly requested, return component manager object pointer
+
+		*instance = this;
+		AddRef();
+		result = GR_OK;
+	}
+	else
+	{
+		// Otherwise, pass client request to all registered interface providers 
+		// until creation request is accepted
+
+		REGISTERED_OBJECT* obj = nullptr;
+		while (obj = object_list.next(obj))
+		{
+			if (strcmp(obj->interface_name, descriptor->interface_name) == 0)
+			{
+				if (obj->priority >= low_priority && obj->priority <= high_priority)
+				{
+					if (SUCCEEDED(result = obj->component->CreateInstance(descriptor, instance)))
+					{
+						break;
+					}
+				}
+			}
+		}
+	}
+
 	return result;
 }
 
