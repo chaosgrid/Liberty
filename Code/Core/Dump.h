@@ -25,7 +25,7 @@ extern "C"
 #define UNHANDLED_PTR(address) nullptr
 
 #define REDIRECT(subroutine, target) extern "C" _naked void subroutine() { _asm { jmp target }; }
-#define TRAMPOLINE(result, call_type, subroutine, ...) static _naked result call_type subroutine(__VA_ARGS__) { asm("jmp _" #subroutine ";"); }
+#define TRAMPOLINE(result, call_type, name, subroutine, ...) static _naked result call_type name(__VA_ARGS__) { asm("jmp " #subroutine ";"); }
 
 extern "C" struct HINSTANCE__ __ImageBase;
 template<long long address> void* ___ptr(int offset);

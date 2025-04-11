@@ -1376,19 +1376,19 @@ const char * UTF::getNameBuffer (void)
 }
 //--------------------------------------------------------------------------//
 //
-BaseUTF * CreateUTF (void)
+extern "C" BaseUTF * CreateUTF (void)
 { 
 	return new DAComponent<UTF>;
 }
 //--------------------------------------------------------------------------//
 //
-void startupUTF (void)
+extern "C" void startupUTF(void)
 {
 	InitializeCriticalSection(&UTF::criticalSection);
 }
 //--------------------------------------------------------------------------//
 //
-void shutdownUTF (void)
+extern "C" void shutdownUTF (void)
 {
 	DeleteCriticalSection(&UTF::criticalSection);
 }

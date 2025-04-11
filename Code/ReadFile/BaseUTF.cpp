@@ -1,11 +1,12 @@
 #include "PCH.h"
 #include "BaseUTF.h"
+#include "UTF.h"
+
+//REDIRECT(sub_6B73D60, CreateBaseUTF);
 
 #define CHECKDESCSIZE(x)    (x->size==sizeof(DAFILEDESC)||x->size==sizeof(DAFILEDESC)-sizeof(U32))
 
 static char implementation_name[] = "UTF";
-
-extern BaseUTF* CreateUTF(void);
 
 static BaseUTF* __cdecl CreateSharedUTF(DWORD dwSharing) 
 {
@@ -16,7 +17,7 @@ static BaseUTF* __cdecl CreateSharedUTF(DWORD dwSharing)
 //TRAMPOLINE2(BaseUTF*, __cdecl, CreateSharedUTF, sub_XXXXXXXX, DWORD dwSharing); // CreateSharedUTF
 
 // Handle to component object manager
-static ICOManager* DACOM = DACOM_Acquire();
+extern ICOManager* DACOM;
 
 extern "C"
 {
@@ -35,7 +36,7 @@ extern "C"
 	void Register_BaseUTF()
 	{
 		GENRESULT result = GR_GENERIC;
-		if (ICOManager* DACOM = DACOM_Acquire())
+		if (DACOM)
 		{
 			if (IFileSystem* pFileSystem = CreateBaseUTF())
 			{
@@ -48,8 +49,6 @@ extern "C"
 }
 
 DA_HEAP_DEFINE_NEW_OPERATOR_IMPL_HACK(READFILE_DEC, BaseUTF, _import_6B7906C, _import_6B79070);
-
-//REDIRECT(sub_6B73D60, CreateBaseUTF);
 
 
 //--------------------------------------------------------------------------//

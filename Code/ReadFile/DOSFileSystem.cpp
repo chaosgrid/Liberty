@@ -30,292 +30,25 @@ $Header: /Libs/dev/Src/DOSFile/Dosfile.cpp 20    2/17/00 9:23a Jasony $
 // if instance represents a directory, instead of a file,
 // current directory is stored in szFilename. Path always has a leading and trailing '\\'
 
+// Handle to component object manager
+extern ICOManager* DACOM;
 
 #define MAX_OVERLAPPED_OPS		32
 #define MAX_LOCK_WAIT			60000		// milliseconds to wait for a lock
 #define CHECKDESCSIZE(x)    (x->size==sizeof(DAFILEDESC)||x->size==sizeof(DAFILEDESC)-sizeof(U32))
 
-struct DOSFileSystem* pFirstSystem = 0;
+DOSFileSystem* pFirstSystem = 0;
 HINSTANCE hInstance = 0;
 HANDLE hEvent = 0;
 HANDLE hThread = 0;
 DWORD dwThreadID = 0;
+QueueNode* pMessageList = 0;
 
 static void WaitForDOSThread(void);
 
 #define DOSFILE_SERIAL	(WM_USER+1)
 
-struct SERIAL_STRUCT
-{
-	LPFILESYSTEM lpSystem;
-	DAFILE_SERIAL_PROC lpProc;
-};
 
-struct SEEK_STRUCT
-{
-	HANDLE hFileHandle;
-	LONG lDistanceToMove;
-	PLONG lpDistanceToMoveHigh;
-	DWORD dwMoveMethod;
-};
-
-struct CREATE_MAPPING
-{
-	HANDLE hFileHandle;
-	LPSECURITY_ATTRIBUTES lpFileMappingAttributes;
-	DWORD flProtect;
-	DWORD dwMaximumSizeHigh;
-	DWORD dwMaximumSizeLow;
-	LPCTSTR lpName;
-};
-
-struct FILE_OFFSET
-{
-	DWORD dwLow;
-	DWORD dwHigh;
-
-	FILE_OFFSET& operator += (FILE_OFFSET& offset)
-	{
-		*((__int64*)this) += *((__int64*)&offset);
-		return *this;
-	}
-
-	FILE_OFFSET& operator -= (FILE_OFFSET& offset)
-	{
-		*((__int64*)this) -= *((__int64*)&offset);
-		return *this;
-	}
-
-	FILE_OFFSET& operator += (DWORD offset)
-	{
-		*((__int64*)this) += offset;
-		return *this;
-	}
-
-	FILE_OFFSET& operator -= (DWORD offset)
-	{
-		*((__int64*)this) -= offset;
-		return *this;
-	}
-
-	BOOL operator == (FILE_OFFSET& offset)
-	{
-		return (dwLow == offset.dwLow && dwHigh == offset.dwHigh);
-	}
-
-	BOOL operator != (FILE_OFFSET& offset)
-	{
-		return !(*this == offset);
-	}
-};
-
-struct QueueNode
-{
-	struct QueueNode* pNext;
-	UINT   message;
-	SERIAL_STRUCT* pSerial;
-};
-
-struct READWRITE_STRUCT : public SERIAL_STRUCT
-{
-	int				iIndex : 8;
-	BOOL			bBusy : 1;
-	BOOL			bResult : 1;
-	BOOL			bError : 1;
-	BOOL			bWrite : 1;
-	HANDLE			hFileHandle;
-	LPCVOID			lpBuffer;
-	DWORD			nNumberOfBytesToRead;
-	LPDWORD			lpNumberOfBytesRead;
-	LPOVERLAPPED	lpOverlapped;
-	FILE_OFFSET		start_offset;
-	QueueNode		queueNode;
-};
-
-QueueNode* pMessageList;
-//--------------------------------------------------------------------------//
-//--------------------------------------------------------------------------//
-struct DACOM_NO_VTABLE DOSFileSystem : public IFileSystem
-{
-	char			debugTag[9];		// "DOSFile: "
-	char			szFilename[MAX_PATH + 4];
-	DWORD			dwAccess;            // The mode for the file
-	DWORD			dwLastError;
-	LPFILESYSTEM	pParent;
-	HANDLE			hFile;
-	DWORD			dwAllocationMask;		// related to page allocation granularity
-	FILE_OFFSET		file_position;
-	BOOL			bOpen;
-	int				iRootIndex;			// point where non-root begins (index of last '\\'+1)
-
-	READWRITE_STRUCT	operations[MAX_OVERLAPPED_OPS];
-	CRITICAL_SECTION	criticalSection;
-	int					numOperations;		// current number of read/write operations in progress
-
-
-	BEGIN_DACOM_MAP_INBOUND(DOSFileSystem)
-		DACOM_INTERFACE_ENTRY(IFileSystem)
-		DACOM_INTERFACE_ENTRY2(IID_IFileSystem, IFileSystem)
-		END_DACOM_MAP()
-
-	//---------------------------
-	// public methods
-	//---------------------------
-
-	void* operator new (size_t size)
-	{
-		return calloc(size, 1);
-	}
-
-	void operator delete(void* ptr)
-	{
-		free(ptr);
-	}
-
-	DOSFileSystem(void)
-	{
-#ifdef DA_HEAP_ENABLED
-		HEAP->SetBlockMessage(this, debugTag);
-		memcpy(debugTag, "DOSFile: ", sizeof(debugTag));
-#endif
-		szFilename[0] = '\\';
-		hFile = INVALID_HANDLE_VALUE;
-		InitializeCriticalSection(&criticalSection);
-	}
-
-	~DOSFileSystem(void);
-
-	// *** IComponentFactory methods ***
-
-	DACOM_DEFMETHOD(CreateInstance) (DACOMDESC* descriptor, void** instance);
-
-	// *** IFileSystem methods ***
-
-	DACOM_DEFMETHOD_(BOOL, CloseHandle) (HANDLE handle = 0);
-
-	DACOM_DEFMETHOD_(BOOL, ReadFile) (HANDLE hFileHandle, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
-		LPDWORD lpNumberOfBytesRead,
-		LPOVERLAPPED lpOverlapped);
-
-	DACOM_DEFMETHOD_(BOOL, WriteFile) (HANDLE hFileHandle, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite,
-		LPDWORD lpNumberOfBytesWritten, LPOVERLAPPED lpOverlapped);
-
-	DACOM_DEFMETHOD_(BOOL, GetOverlappedResult)   (HANDLE hFileHandle,
-		LPOVERLAPPED lpOverlapped,
-		LPDWORD lpNumberOfBytesTransferred,
-		BOOL bWait);
-
-	DACOM_DEFMETHOD_(DWORD, SetFilePointer) (HANDLE hFileHandle, LONG lDistanceToMove,
-		PLONG lpDistanceToMoveHigh = 0, DWORD dwMoveMethod = FILE_BEGIN);
-
-	DACOM_DEFMETHOD_(BOOL, SetEndOfFile) (HANDLE hFileHandle = 0);
-
-	DACOM_DEFMETHOD_(DWORD, GetFileSize) (HANDLE hFileHandle, LPDWORD lpFileSizeHigh = 0);
-
-	DACOM_DEFMETHOD_(BOOL, LockFile) (HANDLE hFile,
-		DWORD dwFileOffsetLow,
-		DWORD dwFileOffsetHigh,
-		DWORD nNumberOfBytesToLockLow,
-		DWORD nNumberOfBytesToLockHigh);
-
-	DACOM_DEFMETHOD_(BOOL, UnlockFile) (HANDLE hFile,
-		DWORD dwFileOffsetLow,
-		DWORD dwFileOffsetHigh,
-		DWORD nNumberOfBytesToUnlockLow,
-		DWORD nNumberOfBytesToUnlockHigh);
-
-	DACOM_DEFMETHOD_(BOOL, GetFileTime) (HANDLE hFileHandle, LPFILETIME lpCreationTime,
-		LPFILETIME lpLastAccessTime, LPFILETIME lpLastWriteTime);
-
-	DACOM_DEFMETHOD_(BOOL, SetFileTime) (HANDLE hFileHandle, CONST FILETIME* lpCreationTime,
-		CONST FILETIME* lpLastAccessTime,
-		CONST FILETIME* lpLastWriteTime);
-
-	DACOM_DEFMETHOD_(HANDLE, CreateFileMapping)   (HANDLE hFileHandle,
-		LPSECURITY_ATTRIBUTES lpFileMappingAttributes,
-		DWORD flProtect,
-		DWORD dwMaximumSizeHigh,
-		DWORD dwMaximumSizeLow,
-		LPCTSTR lpName);
-
-	DACOM_DEFMETHOD_(LPVOID, MapViewOfFile)      (HANDLE hFileMappingObject,
-		DWORD dwDesiredAccess,
-		DWORD dwFileOffsetHigh,
-		DWORD dwFileOffsetLow,
-		DWORD dwNumberOfBytesToMap);
-
-	DACOM_DEFMETHOD_(BOOL, UnmapViewOfFile)      (LPCVOID lpBaseAddress);
-
-	DACOM_DEFMETHOD_(HANDLE, FindFirstFile) (LPCTSTR lpFileName, LPWIN32_FIND_DATA lpFindFileData);
-
-	DACOM_DEFMETHOD_(BOOL, FindNextFile) (HANDLE hFindFile, LPWIN32_FIND_DATA lpFindFileData);
-
-	DACOM_DEFMETHOD_(BOOL, FindClose) (HANDLE hFindFile);
-
-	DACOM_DEFMETHOD_(BOOL, CreateDirectory) (LPCTSTR lpPathName, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
-
-	DACOM_DEFMETHOD_(BOOL, RemoveDirectory) (LPCTSTR lpPathName);
-
-	DACOM_DEFMETHOD_(DWORD, GetCurrentDirectory) (DWORD nBufferLength, LPTSTR lpBuffer);
-
-	DACOM_DEFMETHOD_(BOOL, SetCurrentDirectory) (LPCTSTR lpPathName);
-
-	DACOM_DEFMETHOD_(BOOL, DeleteFile)  (LPCTSTR lpFileName);
-
-	DACOM_DEFMETHOD_(BOOL, CopyFile)    (LPCTSTR lpExistingFileName, LPCTSTR lpNewFileName, BOOL bFailIfExists);
-
-	DACOM_DEFMETHOD_(BOOL, MoveFile) (LPCTSTR lpExistingFileName, LPCTSTR lpNewFileName);
-
-	DACOM_DEFMETHOD_(DWORD, GetFileAttributes) (LPCTSTR lpFileName);
-
-	DACOM_DEFMETHOD_(BOOL, SetFileAttributes) (LPCTSTR lpFileName, DWORD dwFileAttributes);
-
-	DACOM_DEFMETHOD_(DWORD, GetLastError) (VOID);
-
-	//---------------   
-	// IFileSystem extensions to WIN32 system
-	//---------------   
-
-	DACOM_DEFMETHOD_(HANDLE, OpenChild) (DAFILEDESC* lpDesc);
-
-	DACOM_DEFMETHOD_(DWORD, GetFilePosition) (HANDLE hFileHandle = 0, PLONG pPositionHigh = 0);
-
-	DACOM_DEFMETHOD_(LONG, GetFileName) (LPSTR lpBuffer, LONG lBufferSize);
-
-	DACOM_DEFMETHOD_(DWORD, GetAccessType) (VOID);
-
-	DACOM_DEFMETHOD(GetParentSystem) (LPFILESYSTEM* lplpFileSystem);
-
-	DACOM_DEFMETHOD(SetPreference)  (DWORD dwNumber, DWORD  dwValue);
-
-	DACOM_DEFMETHOD(GetPreference)  (DWORD dwNumber, PDWORD pdwValue);
-
-	DACOM_DEFMETHOD(ReadDirectoryExtension) (HANDLE hFile, LPVOID lpBuffer,
-		DWORD nNumberOfBytesToRead,
-		LPDWORD lpNumberOfBytesRead = 0, DWORD dwStartOffset = 0);
-
-	DACOM_DEFMETHOD(WriteDirectoryExtension) (HANDLE hFile, LPCVOID lpBuffer,
-		DWORD nNumberOfBytesToWrite,
-		LPDWORD lpNumberOfBytesWritten = 0, DWORD dwStartOffset = 0);
-
-	DACOM_DEFMETHOD_(LONG, SerialCall) (LPFILESYSTEM lpSystem, DAFILE_SERIAL_PROC lpProc, VOID* lpContext);
-
-	DACOM_DEFMETHOD_(BOOL, GetAbsolutePath) (char* lpOutput, LPCTSTR lpInput, LONG lSize);
-
-	//---------------   
-	// DOSFileSystem methods
-	//---------------   
-
-	HANDLE TranslateHandle(HANDLE handle);
-
-	SERIALMETHOD(Seek_S);
-
-	SERIALMETHOD(StartReadWrite_S);
-
-	SERIALMETHOD(ReadWrite_S);
-
-	SERIALMETHOD(CloseAllHandles_S);
-};
 //--------------------------------------------------------------------------//
 //
 void PostQueuedMessage(QueueNode* node)
@@ -513,6 +246,7 @@ GENRESULT DOSFileSystem::CreateInstance(DACOMDESC* descriptor,  //)
 			goto Done;
 		}
 
+		auto x = lpInfo->lpImplementation;
 		if (lpInfo->lpImplementation == 0 || strcmp(lpInfo->lpImplementation, "DOS"))
 		{
 			// need some other implementation
@@ -520,14 +254,34 @@ GENRESULT DOSFileSystem::CreateInstance(DACOMDESC* descriptor,  //)
 			lpInfo->lpParent = this;
 			lpInfo->hParent = handle;
 			AddRef();			// child file system will now reference us
-			// Handle to component object manager
-			ICOManager* DACOM = DACOM_Acquire();
 			if ((result = DACOM->CreateInstance(lpInfo, (void**)&pNewSystem)) != GR_OK)
 			{
 				Release();
+#if 1 // HACK
+				// Some genius decided that instead of exclusively relative, or linux style 
+				// paths they were going to try and shove in absolute paths. This hack here
+				// forces the DOSFileSystem instance to be created for an file that doesn't
+				// have any other suitable interface, but did manage to create a HANDLE
+				// What would have fixed this would have been specifying lpInfo->lpImplementation
+				// but nooo the genius decided to leave that blank too so who knows what they
+				// intended
+				result = GR_OK;
+				if ((pNewSystem = new DAComponent<DOSFileSystem>) == 0)
+				{
+					CloseHandle(handle);
+					result = GR_GENERIC;
+					goto Done;
+				}
+
+				strncpy(pNewSystem->szFilename, lpInfo->lpFileName, sizeof(szFilename));
+				pNewSystem->dwAccess = lpInfo->dwDesiredAccess;
+				pNewSystem->hFile = handle;
+				pNewSystem->bOpen = 1;
+#else
 				CloseHandle(handle);
 				lpInfo->lpParent = 0;
 				lpInfo->hParent = 0;
+#endif
 				goto Done;
 			}
 			lpInfo->lpParent = 0;
@@ -643,9 +397,12 @@ GENRESULT DOSFileSystem::CreateInstance(DACOMDESC* descriptor,  //)
 Done:
 	*instance = pNewSystem;
 
-	if (FAILED(result))
+	if (lpInfo->lpParent == nullptr)
 	{
-		FILE_WARNING(lpInfo->lpFileName, __FUNCTION__);
+		if (FAILED(result))
+		{
+			FILE_WARNING(lpInfo->lpFileName, __FUNCTION__);
+		}
 	}
 
 	return result;
@@ -1609,28 +1366,9 @@ HANDLE DOSFileSystem::OpenChild(DAFILEDESC* lpInfo)
 		return INVALID_HANDLE_VALUE;
 	}
 
-	dwAttribs = ::GetFileAttributes(lpInfo->lpFileName);
-	//if (dwAttribs != 0xFFFFFFFF)
-	//{
-	//	strcpy(buffer, lpInfo->lpFileName);
-	//}
-
-	// #HACK For some reason some audio files are given as absolute paths
-	LPCTSTR lpFileName = lpInfo->lpFileName;
-	{
-		dwAttribs = ::GetFileAttributes(lpInfo->lpFileName);
-		if (dwAttribs != 0xFFFFFFFF && (dwAttribs & FILE_ATTRIBUTE_ARCHIVE))
-		{
-			if (strstr(lpFileName, szFilename) == lpFileName)
-			{
-				lpFileName += strlen(szFilename);
-			}
-		}
-	}
-
 	if (iRootIndex)
 		memcpy(buffer, szFilename, iRootIndex);
-	if (GetAbsolutePath(buffer + iRootIndex, lpFileName, MAX_PATH - iRootIndex) == 0)
+	if (GetAbsolutePath(buffer + iRootIndex, lpInfo->lpFileName, MAX_PATH - iRootIndex) == 0)
 	{
 		dwLastError = ERROR_FILE_NOT_FOUND;
 		return INVALID_HANDLE_VALUE;
@@ -1949,6 +1687,8 @@ void __fastcall switchchar_convert(char* string)
 		*string++ = '\\';
 	}
 }
+#include <shlwapi.h>
+#pragma comment(lib, "Shlwapi.lib")
 //--------------------------------------------------------------------------//
 // Get absolute path in terms of this file system
 //  returns a path with a leading '\\'
@@ -1960,6 +1700,31 @@ BOOL DOSFileSystem::GetAbsolutePath(char* lpOutput, LPCTSTR lpInput, LONG lSize)
 
 	if (lSize <= 0)
 		return FALSE;
+
+	// #HACK Some paths are absolute for reasons unknown to sanity
+	// so this 'fixes' the output. Really this whole function
+	// just needs a nice rewrite
+	{
+		DWORD dwAttribs = ::GetFileAttributes(lpInput);
+		if (dwAttribs != 0xFFFFFFFF && (dwAttribs & FILE_ATTRIBUTE_ARCHIVE))
+		{
+			size_t inputLength = strlen(lpInput);
+			if (PathIsRelativeA(lpInput))
+			{
+				if (strstr(lpInput, szFilename) == lpInput)
+				{
+					lpInput += strlen(szFilename);
+				}
+			}
+			// crappy way to detect if the path begins with a hard drive
+			// If lpInput is already an absolute path (begins with a hard drive letter), simply copy it.
+			else if(inputLength >= 2 && lpInput[1] == ':')
+			{
+				strcpy(lpOutput, lpInput);
+				return TRUE;
+			}
+		}
+	}
 
 	// If lpInput is already an absolute path (begins with a backslash), simply copy it.
 	if (lpInput[0] == '\\')
@@ -2254,7 +2019,7 @@ extern "C"
 	void Register_DOSFileSystem()
 	{
 		GENRESULT result = GR_GENERIC;
-		if (ICOManager* DACOM = DACOM_Acquire())
+		if (DACOM)
 		{
 			if (IFileSystem* pFileSystem = CreateDOSFileSystem())
 			{
@@ -2265,355 +2030,3 @@ extern "C"
 		unused(result);
 	}
 }
-
-//
-//DA_HEAP_DEFINE_NEW_OPERATOR_DECLARE_HACK(READFILE_DEC, DOSFileSystem, _import_6B7906C, _import_6B79070);
-//
-//#define pFileSystem _data_6B7A224
-//extern "C" IFileSystem* pFileSystem;
-//
-//void Register_DOSFileSystem()
-//{
-//	GENRESULT result = GR_GENERIC;
-//	if (ICOManager* DACOM = DACOM_Acquire())
-//	{
-//		if (DOSFileSystemWrapper* pFileSystemWrapper = new DAComponent<DOSFileSystemWrapper>())
-//		{
-//			result = DACOM->RegisterComponent(pFileSystemWrapper, FILESYSTEM_INTERFACE_NAME, DACOM_LOW_PRIORITY);
-//			pFileSystemWrapper->Release();
-//		}
-//	}
-//	// #HACK: DllMain has been modified to keep this around but it needs to be deferenced after the wrapper is created
-//	pFileSystem->Release();
-//	unused(result);
-//}
-//
-//TRAMPOLINE(GENRESULT, __stdcall, sub_6B770A0, IFileSystem* _this, const C8* interface_name, void** instance); // QueryInterface
-//TRAMPOLINE(U32, __stdcall, sub_6B77150, IFileSystem* _this); // AddRef
-//TRAMPOLINE(U32, __stdcall, sub_6B77170, IFileSystem* _this); // Release
-//TRAMPOLINE(GENRESULT, __stdcall, sub_6B74470, IFileSystem* _this, DACOMDESC* descriptor, void** instance); // CreateInstance
-//TRAMPOLINE(BOOL, __stdcall, sub_6B74BF0, IFileSystem* _this, HANDLE handle); // CloseHandle
-//TRAMPOLINE(BOOL, __stdcall, sub_6B74D60, IFileSystem* _this, HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead, LPOVERLAPPED lpOverlapped = 0); // ReadFile
-//TRAMPOLINE(BOOL, __stdcall, sub_6B75E70, IFileSystem* _this, HANDLE hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite, LPDWORD lpNumberOfBytesWritten, LPOVERLAPPED lpOverlapped = 0); // WriteFile
-//TRAMPOLINE(BOOL, __stdcall, sub_6B75E90, IFileSystem* _this, HANDLE hFile, LPOVERLAPPED lpOverlapped, LPDWORD lpNumberOfBytesTransferred, BOOL bWait); // GetOverlappedResult
-//TRAMPOLINE(DWORD, __stdcall, sub_6B74EB0, IFileSystem* _this, HANDLE hFile, LONG lDistanceToMove, PLONG lpDistanceToMoveHigh = 0, DWORD dwMoveMethod = FILE_BEGIN); // SetFilePointer
-//TRAMPOLINE(BOOL, __stdcall, sub_6B75E50, IFileSystem* _this, HANDLE hFile = 0); // SetEndOfFile
-//TRAMPOLINE(DWORD, __stdcall, sub_6B74FF0, IFileSystem* _this, HANDLE hFile = 0, LPDWORD lpFileSizeHigh = 0); // GetFileSize
-//TRAMPOLINE(BOOL, __stdcall, sub_6B75EB0, IFileSystem* _this, HANDLE hFile, DWORD dwFileOffsetLow, DWORD dwFileOffsetHigh, DWORD nNumberOfBytesToLockLow, DWORD nNumberOfBytesToLockHigh); // LockFile
-////TRAMPOLINE(BOOL, __stdcall, sub_6B75EB0, IFileSystem* _this, HANDLE hFile, DWORD dwFileOffsetLow, DWORD dwFileOffsetHigh, DWORD nNumberOfBytesToUnlockLow, DWORD nNumberOfBytesToUnlockHigh); // UnlockFile
-//TRAMPOLINE(BOOL, __stdcall, sub_6B75070, IFileSystem* _this, HANDLE hFile, LPFILETIME lpCreationTime, LPFILETIME lpLastAccessTime, LPFILETIME lpLastWriteTime); // GetFileTime
-//TRAMPOLINE(BOOL, __stdcall, sub_6B75E90, IFileSystem* _this, HANDLE hFile, CONST FILETIME* lpCreationTime, CONST FILETIME* lpLastAccessTime, CONST FILETIME* lpLastWriteTime); // SetFileTime
-//TRAMPOLINE(HANDLE, __stdcall, sub_6B75100, IFileSystem* _this, HANDLE hFile = 0, LPSECURITY_ATTRIBUTES lpFileMappingAttributes = 0, DWORD flProtect = PAGE_READONLY, DWORD dwMaximumSizeHigh = 0, DWORD dwMaximumSizeLow = 0, LPCTSTR lpName = 0); // CreateFileMapping
-//TRAMPOLINE(LPVOID, __stdcall, sub_6B75230, IFileSystem* _this, HANDLE hFileMappingObject, DWORD dwDesiredAccess = FILE_MAP_READ, DWORD dwFileOffsetHigh = 0, DWORD dwFileOffsetLow = 0, DWORD dwNumberOfBytesToMap = 0); // MapViewOfFile
-//TRAMPOLINE(BOOL, __stdcall, sub_6B75350, IFileSystem* _this, LPCVOID lpBaseAddress); // UnmapViewOfFile
-//TRAMPOLINE(HANDLE, __stdcall, sub_6B75360, IFileSystem* _this, LPCTSTR lpFileName, LPWIN32_FIND_DATA lpFindFileData); // FindFirstFile
-//TRAMPOLINE(BOOL, __stdcall, sub_6B75560, IFileSystem* _this, HANDLE hFindFile, LPWIN32_FIND_DATA lpFindFileData); // FindNextFile
-//TRAMPOLINE(BOOL, __stdcall, sub_6B755B0, IFileSystem* _this, HANDLE hFindFile); // FindClose
-//TRAMPOLINE(BOOL, __stdcall, sub_6B75EF0, IFileSystem* _this, LPCTSTR lpPathName, LPSECURITY_ATTRIBUTES lpSecurityAttributes = 0); // CreateDirectory
-//TRAMPOLINE(BOOL, __stdcall, sub_6B75E50, IFileSystem* _this, LPCTSTR lpPathName); // RemoveDirectory
-//TRAMPOLINE(DWORD, __stdcall, sub_6B75600, IFileSystem* _this, DWORD nBufferLength, LPTSTR lpBuffer); // GetCurrentDirectory
-//TRAMPOLINE(BOOL, __stdcall, sub_6B756B0, IFileSystem* _this, LPCTSTR lpPathName); // SetCurrentDirectory
-////TRAMPOLINE(BOOL, __stdcall, sub_6B75E50, IFileSystem* _this, LPCTSTR lpFileName); // DeleteFile
-//TRAMPOLINE(BOOL, __stdcall, sub_6B75ED0, IFileSystem* _this, LPCTSTR lpExistingFileName, LPCTSTR lpNewFileName, BOOL bFailIfExists); // CopyFile
-//TRAMPOLINE(BOOL, __stdcall, sub_6B75EF0, IFileSystem* _this, LPCTSTR lpExistingFileName, LPCTSTR lpNewFileName); // MoveFile
-//TRAMPOLINE(DWORD, __stdcall, sub_6B758A0, IFileSystem* _this, LPCTSTR lpFileName); // GetFileAttributes
-//TRAMPOLINE(BOOL, __stdcall, sub_6B75EF0, IFileSystem* _this, LPCTSTR lpFileName, DWORD dwFileAttributes); // SetFileAttributes
-//TRAMPOLINE(DWORD, __stdcall, sub_6B75A60, IFileSystem* _this); // GetLastError
-//TRAMPOLINE(HANDLE, __stdcall, sub_6B75A70, IFileSystem* _this, DAFILEDESC* lpDesc); // OpenChild
-//TRAMPOLINE(DWORD, __stdcall, sub_6B75D00, IFileSystem* _this, HANDLE hFile = 0, PLONG pPositionHigh = 0); // GetFilePosition
-//TRAMPOLINE(LONG, __stdcall, sub_6B75DA0, IFileSystem* _this, LPSTR lpBuffer, LONG lBufferSize); // GetFileName
-//TRAMPOLINE(DWORD, __stdcall, sub_6B75E10, IFileSystem* _this); // GetAccessType
-//TRAMPOLINE(GENRESULT, __stdcall, sub_6B75E20, IFileSystem* _this, LPFILESYSTEM* lplpFileSystem); // GetParentSystem
-//TRAMPOLINE(GENRESULT, __stdcall, sub_6B776A0, IFileSystem* _this, DWORD dwNumber, DWORD dwValue); // SetPreference
-//TRAMPOLINE(GENRESULT, __stdcall, sub_6B776A0, IFileSystem* _this, DWORD dwNumber, PDWORD pdwValue); // GetPreference
-//TRAMPOLINE(GENRESULT, __stdcall, sub_6B776B0, IFileSystem* _this, HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead = 0, DWORD dwStartOffset = 0); // ReadDirectoryExtension
-//TRAMPOLINE(GENRESULT, __stdcall, sub_6B776B0, IFileSystem* _this, HANDLE hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite, LPDWORD lpNumberOfBytesWritten = 0, DWORD dwStartOffset = 0); // WriteDirectoryExtension
-//TRAMPOLINE(LONG, __stdcall, sub_6B75F10, IFileSystem* _this, LPFILESYSTEM lpSystem, DAFILE_SERIAL_PROC lpProc, void* lpContext); // SerialCall
-//TRAMPOLINE(BOOL, __stdcall, sub_6B75F60, IFileSystem* _this, char* lpOutput, LPCTSTR lpInput, LONG lSize) ; // GetAbsolutePath
-//
-//#define DosFileSystem_QueryInterface sub_6B770A0
-//#define DosFileSystem_AddRef sub_6B77150
-//#define DosFileSystem_Release sub_6B77170
-//#define DosFileSystem_CreateInstance sub_6B74470
-//#define DosFileSystem_CloseHandle sub_6B74BF0
-//#define DosFileSystem_ReadFile sub_6B74D60
-//#define DosFileSystem_WriteFile sub_6B75E70
-//#define DosFileSystem_GetOverlappedResult sub_6B75E90
-//#define DosFileSystem_SetFilePointer sub_6B74EB0
-//#define DosFileSystem_SetEndOfFile sub_6B75E50
-//#define DosFileSystem_GetFileSize sub_6B74FF0
-//#define DosFileSystem_LockFile sub_6B75EB0
-//#define DosFileSystem_UnlockFile sub_6B75EB0
-//#define DosFileSystem_GetFileTime sub_6B75070
-//#define DosFileSystem_SetFileTime sub_6B75E90
-//#define DosFileSystem_CreateFileMapping sub_6B75100
-//#define DosFileSystem_MapViewOfFile sub_6B75230
-//#define DosFileSystem_UnmapViewOfFile sub_6B75350
-//#define DosFileSystem_FindFirstFile sub_6B75360
-//#define DosFileSystem_FindNextFile sub_6B75560
-//#define DosFileSystem_FindClose sub_6B755B0
-//#define DosFileSystem_CreateDirectory sub_6B75EF0
-//#define DosFileSystem_RemoveDirectory sub_6B75E50
-//#define DosFileSystem_GetCurrentDirectory sub_6B75600
-//#define DosFileSystem_SetCurrentDirectory sub_6B756B0
-//#define DosFileSystem_DeleteFile sub_6B75E50
-//#define DosFileSystem_CopyFile sub_6B75ED0
-//#define DosFileSystem_MoveFile sub_6B75EF0
-//#define DosFileSystem_GetFileAttributes sub_6B758A0
-//#define DosFileSystem_SetFileAttributes sub_6B75EF0
-//#define DosFileSystem_GetLastError sub_6B75A60
-//#define DosFileSystem_OpenChild sub_6B75A70
-//#define DosFileSystem_GetFilePosition sub_6B75D00
-//#define DosFileSystem_GetFileName sub_6B75DA0
-//#define DosFileSystem_GetAccessType sub_6B75E10
-//#define DosFileSystem_GetParentSystem sub_6B75E20
-//#define DosFileSystem_SetPreference sub_6B776A0
-//#define DosFileSystem_GetPreference sub_6B776A0
-//#define DosFileSystem_ReadDirectoryExtension sub_6B776B0
-//#define DosFileSystem_WriteDirectoryExtension sub_6B776B0
-//#define DosFileSystem_SerialCall sub_6B75F10
-//#define DosFileSystem_GetAbsolutePath sub_6B75F60
-//
-//DOSFileSystemWrapper::DOSFileSystemWrapper()
-//{
-//	_data_6B7A224->AddRef();
-//}
-//
-//DOSFileSystemWrapper::~DOSFileSystemWrapper()
-//{
-//	_data_6B7A224->Release();
-//}
-//
-//GENRESULT DOSFileSystemWrapper::CreateInstance(DACOMDESC* descriptor, void** instance)
-//{
-//	GENRESULT result = DosFileSystem_CreateInstance(_data_6B7A224, descriptor, instance);
-//	return result;
-//}
-//
-//BOOL DOSFileSystemWrapper::CloseHandle(HANDLE handle)
-//{
-//	auto result = DosFileSystem_CloseHandle(_data_6B7A224, handle);
-//	return result;
-//}
-//
-//BOOL DOSFileSystemWrapper::ReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead, LPOVERLAPPED lpOverlapped)
-//{
-//	auto result = DosFileSystem_ReadFile(_data_6B7A224, hFile, lpBuffer, nNumberOfBytesToRead, lpNumberOfBytesRead, lpOverlapped);
-//	return result;
-//}
-//
-//BOOL DOSFileSystemWrapper::WriteFile(HANDLE hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite, LPDWORD lpNumberOfBytesWritten, LPOVERLAPPED lpOverlapped)
-//{
-//	auto result = DosFileSystem_WriteFile(_data_6B7A224, hFile, lpBuffer, nNumberOfBytesToWrite, lpNumberOfBytesWritten, lpOverlapped);
-//	return result;
-//}
-//
-//BOOL DOSFileSystemWrapper::GetOverlappedResult(HANDLE hFile, LPOVERLAPPED lpOverlapped, LPDWORD lpNumberOfBytesTransferred, BOOL bWait)
-//{
-//	auto result = DosFileSystem_GetOverlappedResult(_data_6B7A224, hFile, lpOverlapped, lpNumberOfBytesTransferred, bWait);
-//	return result;
-//}
-//
-//DWORD DOSFileSystemWrapper::SetFilePointer(HANDLE hFile, LONG lDistanceToMove, PLONG lpDistanceToMoveHigh, DWORD dwMoveMethod)
-//{
-//	auto result = DosFileSystem_SetFilePointer(_data_6B7A224, hFile, lDistanceToMove, lpDistanceToMoveHigh, dwMoveMethod);
-//	return result;
-//}
-//
-//BOOL DOSFileSystemWrapper::SetEndOfFile(HANDLE hFile)
-//{
-//	auto result = DosFileSystem_SetEndOfFile(_data_6B7A224, hFile);
-//	return result;
-//}
-//
-//DWORD DOSFileSystemWrapper::GetFileSize(HANDLE hFile, LPDWORD lpFileSizeHigh)
-//{
-//	auto result = DosFileSystem_GetFileSize(_data_6B7A224, hFile, lpFileSizeHigh);
-//	return result;
-//}
-//
-//BOOL DOSFileSystemWrapper::LockFile(HANDLE hFile, DWORD dwFileOffsetLow, DWORD dwFileOffsetHigh, DWORD nNumberOfBytesToLockLow, DWORD nNumberOfBytesToLockHigh)
-//{
-//	auto result = DosFileSystem_LockFile(_data_6B7A224, hFile, dwFileOffsetLow, dwFileOffsetHigh, nNumberOfBytesToLockLow, nNumberOfBytesToLockHigh);
-//	return result;
-//}
-//
-//BOOL DOSFileSystemWrapper::UnlockFile(HANDLE hFile, DWORD dwFileOffsetLow, DWORD dwFileOffsetHigh, DWORD nNumberOfBytesToUnlockLow, DWORD nNumberOfBytesToUnlockHigh)
-//{
-//	auto result = DosFileSystem_UnlockFile(_data_6B7A224, hFile, dwFileOffsetLow, dwFileOffsetHigh, nNumberOfBytesToUnlockLow, nNumberOfBytesToUnlockHigh);
-//	return result;
-//}
-//
-//BOOL DOSFileSystemWrapper::GetFileTime(HANDLE hFile, LPFILETIME lpCreationTime, LPFILETIME lpLastAccessTime, LPFILETIME lpLastWriteTime)
-//{
-//	auto result = DosFileSystem_GetFileTime(_data_6B7A224, hFile, lpCreationTime, lpLastAccessTime, lpLastWriteTime);
-//	return result;
-//}
-//
-//BOOL DOSFileSystemWrapper::SetFileTime(HANDLE hFile, CONST FILETIME* lpCreationTime, CONST FILETIME* lpLastAccessTime, CONST FILETIME* lpLastWriteTime)
-//{
-//	auto result = DosFileSystem_SetFileTime(_data_6B7A224, hFile, lpCreationTime, lpLastAccessTime, lpLastWriteTime);
-//	return result;
-//}
-//
-//HANDLE DOSFileSystemWrapper::CreateFileMapping(HANDLE hFile, LPSECURITY_ATTRIBUTES lpFileMappingAttributes, DWORD flProtect, DWORD dwMaximumSizeHigh, DWORD dwMaximumSizeLow, LPCTSTR lpName)
-//{
-//	auto result = DosFileSystem_CreateFileMapping(_data_6B7A224, hFile, lpFileMappingAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName);
-//	return result;
-//}
-//
-//LPVOID DOSFileSystemWrapper::MapViewOfFile(HANDLE hFileMappingObject, DWORD dwDesiredAccess, DWORD dwFileOffsetHigh, DWORD dwFileOffsetLow, DWORD dwNumberOfBytesToMap)
-//{
-//	auto result = DosFileSystem_MapViewOfFile(_data_6B7A224, hFileMappingObject, dwDesiredAccess, dwFileOffsetHigh, dwFileOffsetLow, dwNumberOfBytesToMap);
-//	return result;
-//}
-//
-//BOOL DOSFileSystemWrapper::UnmapViewOfFile(LPCVOID lpBaseAddress)
-//{
-//	auto result = DosFileSystem_UnmapViewOfFile(_data_6B7A224, lpBaseAddress);
-//	return result;
-//}
-//
-//HANDLE DOSFileSystemWrapper::FindFirstFile(LPCTSTR lpFileName, LPWIN32_FIND_DATA lpFindFileData)
-//{
-//	auto result = DosFileSystem_FindFirstFile(_data_6B7A224, lpFileName, lpFindFileData);
-//	return result;
-//}
-//
-//BOOL DOSFileSystemWrapper::FindNextFile(HANDLE hFindFile, LPWIN32_FIND_DATA lpFindFileData)
-//{
-//	auto result = DosFileSystem_FindNextFile(_data_6B7A224, hFindFile, lpFindFileData);
-//	return result;
-//}
-//
-//BOOL DOSFileSystemWrapper::FindClose(HANDLE hFindFile)
-//{
-//	auto result = DosFileSystem_FindClose(_data_6B7A224, hFindFile);
-//	return result;
-//}
-//
-//BOOL DOSFileSystemWrapper::CreateDirectory(LPCTSTR lpPathName, LPSECURITY_ATTRIBUTES lpSecurityAttributes)
-//{
-//	auto result = DosFileSystem_CreateDirectory(_data_6B7A224, lpPathName, lpSecurityAttributes);
-//	return result;
-//}
-//
-//BOOL DOSFileSystemWrapper::RemoveDirectory(LPCTSTR lpPathName)
-//{
-//	auto result = DosFileSystem_RemoveDirectory(_data_6B7A224, lpPathName);
-//	return result;
-//}
-//
-//DWORD DOSFileSystemWrapper::GetCurrentDirectory(DWORD nBufferLength, LPTSTR lpBuffer)
-//{
-//	auto result = DosFileSystem_GetCurrentDirectory(_data_6B7A224, nBufferLength, lpBuffer);
-//	return result;
-//}
-//
-//BOOL DOSFileSystemWrapper::SetCurrentDirectory(LPCTSTR lpPathName)
-//{
-//	auto result = DosFileSystem_SetCurrentDirectory(_data_6B7A224, lpPathName);
-//	return result;
-//}
-//
-//BOOL DOSFileSystemWrapper::DeleteFile(LPCTSTR lpFileName)
-//{
-//	auto result = DosFileSystem_DeleteFile(_data_6B7A224, lpFileName);
-//	return result;
-//}
-//
-//BOOL DOSFileSystemWrapper::CopyFile(LPCTSTR lpExistingFileName, LPCTSTR lpNewFileName, BOOL bFailIfExists)
-//{
-//	auto result = DosFileSystem_CopyFile(_data_6B7A224, lpExistingFileName, lpNewFileName, bFailIfExists);
-//	return result;
-//}
-//
-//BOOL DOSFileSystemWrapper::MoveFile(LPCTSTR lpExistingFileName, LPCTSTR lpNewFileName)
-//{
-//	auto result = DosFileSystem_MoveFile(_data_6B7A224, lpExistingFileName, lpNewFileName);
-//	return result;
-//}
-//
-//DWORD DOSFileSystemWrapper::GetFileAttributes(LPCTSTR lpFileName)
-//{
-//	auto result = DosFileSystem_GetFileAttributes(_data_6B7A224, lpFileName);
-//	return result;
-//}
-//
-//BOOL DOSFileSystemWrapper::SetFileAttributes(LPCTSTR lpFileName, DWORD dwFileAttributes)
-//{
-//	auto result = DosFileSystem_SetFileAttributes(_data_6B7A224, lpFileName, dwFileAttributes);
-//	return result;
-//}
-//
-//DWORD DOSFileSystemWrapper::GetLastError(void)
-//{
-//	auto result = DosFileSystem_GetLastError(_data_6B7A224);
-//	return result;
-//}
-//
-//HANDLE DOSFileSystemWrapper::OpenChild(DAFILEDESC* lpDesc)
-//{
-//	auto result = DosFileSystem_OpenChild(_data_6B7A224, lpDesc);
-//	return result;
-//}
-//
-//DWORD DOSFileSystemWrapper::GetFilePosition(HANDLE hFile, PLONG pPositionHigh)
-//{
-//	auto result = DosFileSystem_GetFilePosition(_data_6B7A224, hFile, pPositionHigh);
-//	return result;
-//}
-//
-//LONG DOSFileSystemWrapper::GetFileName(LPSTR lpBuffer, LONG lBufferSize)
-//{
-//	auto result = DosFileSystem_GetFileName(_data_6B7A224, lpBuffer, lBufferSize);
-//	return result;
-//}
-//
-//DWORD DOSFileSystemWrapper::GetAccessType(void)
-//{
-//	auto result = DosFileSystem_GetAccessType(_data_6B7A224);
-//	return result;
-//}
-//
-//GENRESULT DOSFileSystemWrapper::GetParentSystem(LPFILESYSTEM* lplpFileSystem)
-//{
-//	auto result = DosFileSystem_GetParentSystem(_data_6B7A224, lplpFileSystem);
-//	return result;
-//}
-//
-//GENRESULT DOSFileSystemWrapper::SetPreference(DWORD dwNumber, DWORD dwValue)
-//{
-//	auto result = DosFileSystem_SetPreference(_data_6B7A224, dwNumber, dwValue);
-//	return result;
-//}
-//
-//GENRESULT DOSFileSystemWrapper::GetPreference(DWORD dwNumber, PDWORD pdwValue)
-//{
-//	auto result = DosFileSystem_GetPreference(_data_6B7A224, dwNumber, pdwValue);
-//	return result;
-//}
-//
-//GENRESULT DOSFileSystemWrapper::ReadDirectoryExtension(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead, DWORD dwStartOffset)
-//{
-//	auto result = DosFileSystem_ReadDirectoryExtension(_data_6B7A224, hFile, lpBuffer, nNumberOfBytesToRead, lpNumberOfBytesRead, dwStartOffset);
-//	return result;
-//}
-//
-//GENRESULT DOSFileSystemWrapper::WriteDirectoryExtension(HANDLE hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite, LPDWORD lpNumberOfBytesWritten, DWORD dwStartOffset)
-//{
-//	auto result = DosFileSystem_WriteDirectoryExtension(_data_6B7A224, hFile, lpBuffer, nNumberOfBytesToWrite, lpNumberOfBytesWritten, dwStartOffset);
-//	return result;
-//}
-//
-//LONG DOSFileSystemWrapper::SerialCall(LPFILESYSTEM lpSystem, DAFILE_SERIAL_PROC lpProc, void* lpContext)
-//{
-//	auto result = DosFileSystem_SerialCall(_data_6B7A224, lpSystem, lpProc, lpContext);
-//	return result;
-//}
-//
-//BOOL DOSFileSystemWrapper::GetAbsolutePath(char* lpOutput, LPCTSTR lpInput, LONG lSize)
-//{
-//	auto result = DosFileSystem_GetAbsolutePath(_data_6B7A224, lpOutput, lpInput, lSize);
-//	return result;
-//}
