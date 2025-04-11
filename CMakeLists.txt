@@ -423,6 +423,7 @@ set_target_properties(InfoCards PROPERTIES FOLDER "Text")
 set_target_properties(MiscText PROPERTIES FOLDER "Text")
 set_target_properties(MiscTextInfo2 PROPERTIES FOLDER "Text")
 
+target_compile_definitions(ReadFile PUBLIC "READFILE_EXTRA_LOGGING")
 target_compile_definitions(ReadFile PUBLIC "UTF_FILESYSTEM")
 #target_compile_definitions(ReadFile PUBLIC "MEM_FILE_FILESYSTEM")
 #target_compile_definitions(ReadFile PUBLIC "SEARCH_PATH_FILESYSTEM")

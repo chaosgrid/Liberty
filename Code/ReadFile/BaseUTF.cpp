@@ -400,10 +400,17 @@ GENRESULT BaseUTF::CreateInstance(DACOMDESC* descriptor, void** instance)
 Done:
 	*instance = pNewSystem;
 
-	if (FAILED(result))
+#ifdef READFILE_EXTRA_LOGGING
+	if (lpInfo->lpParent == nullptr && FAILED(result))
 	{
-		FILE_WARNING(lpInfo->lpFileName, __FUNCTION__);
+		// Expected Query Items for UTF Files
+		if (strcmp(lpInfo->lpFileName, "Cmpnd") != 0 && 
+			strcmp(lpInfo->lpFileName, "MultiLevel"))
+		{
+			FILE_WARNING(lpInfo->lpFileName, __FUNCTION__);
+		}
 	}
+#endif
 
 	return result;
 }

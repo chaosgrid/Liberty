@@ -390,13 +390,12 @@ GENRESULT DOSFileSystem::CreateInstance(DACOMDESC* descriptor,  //)
 Done:
 	*instance = pNewSystem;
 
-	if (lpInfo->lpParent == nullptr)
+#ifdef READFILE_EXTRA_LOGGING
+	if (lpInfo->lpParent == nullptr && FAILED(result))
 	{
-		if (FAILED(result))
-		{
-			FILE_WARNING(lpInfo->lpFileName, __FUNCTION__);
-		}
+		FILE_WARNING(lpInfo->lpFileName, __FUNCTION__);
 	}
+#endif
 
 	return result;
 }
