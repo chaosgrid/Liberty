@@ -14,7 +14,8 @@
 typedef struct IFileSystem* LPFILESYSTEM;
 typedef long(__stdcall IFileSystem::* DAFILE_SERIAL_PROC) (void* lpContext);
 
-#define FILESYSTEM_INTERFACE_NAME "FileSystem"
+#define FILESYSTEM_IMPLEMENTATION_NAME "FileSystem"
+#define IID_IFileSystem DACOM_MAKE_IID("IFileSystem")
 
 struct DAFILEDESC : public DACOMDESC
 {
@@ -30,7 +31,7 @@ struct DAFILEDESC : public DACOMDESC
 	HANDLE					hParent;
 	HANDLE					hFindFirst;
 
-	DAFILEDESC(const C8* _file_name = NULL, const C8* _interface_name = FILESYSTEM_INTERFACE_NAME) :
+	DAFILEDESC(const C8* _file_name = NULL, const C8* _interface_name = FILESYSTEM_IMPLEMENTATION_NAME) :
 		DACOMDESC(_interface_name),
 		lpImplementation(),
 		lpFileName(_file_name),
@@ -49,7 +50,6 @@ struct DAFILEDESC : public DACOMDESC
 };
 static_assert(sizeof(DAFILEDESC) == 52);
 
-#define IID_IFileSystem DACOM_MAKE_IID("IFileSystem")
 struct DACOM_NO_VTABLE IFileSystem : public IComponentFactory
 {
 	// *** IDAComponent methods ***
@@ -111,5 +111,7 @@ struct DACOM_NO_VTABLE IFileSystem : public IComponentFactory
 	DACOM_DEFMETHOD_(LONG, SerialCall) (LPFILESYSTEM lpSystem, DAFILE_SERIAL_PROC lpProc, void* lpContext) = 0;
 	DACOM_DEFMETHOD_(BOOL, GetAbsolutePath) (char* lpOutput, LPCTSTR lpInput, LONG lSize) = 0;
 };
+
+extern void __fastcall switchchar_convert(char* string);
 
 #endif

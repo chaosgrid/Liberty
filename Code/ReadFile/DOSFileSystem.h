@@ -5,8 +5,6 @@
 #ifndef __DOSFILESYSTEM_H__
 #define __DOSFILESYSTEM_H__
 
-
-
 #define MAX_OVERLAPPED_OPS		32
 #define MAX_LOCK_WAIT			60000		// milliseconds to wait for a lock
 #define CHECKDESCSIZE(x)    (x->size==sizeof(DAFILEDESC)||x->size==sizeof(DAFILEDESC)-sizeof(U32))
@@ -291,7 +289,10 @@ extern QueueNode* pMessageList;
 
 extern "C"
 {
-	// READFILE_DEC BOOL StartUpFileSystem(void);
+#if ENABLE_DOS_THREADING
+	READFILE_DEC BOOL StartUpFileSystem(void);
+#endif // ENABLE_DOS_THREADING
+	READFILE_DEC LONG __stdcall DOS__SerialCall(LPFILESYSTEM lpSystem, DAFILE_SERIAL_PROC lpProc, VOID* lpContext);
 	READFILE_DEC IFileSystem* CreateDOSFileSystem();
 	READFILE_DEC void Register_DOSFileSystem();
 }

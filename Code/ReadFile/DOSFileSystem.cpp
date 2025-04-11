@@ -1,41 +1,19 @@
-#include "PCH.h"
-#include "DOSFileSystem.h"
-
-//--------------------------------------------------------------------------//
-//                                                                          //
-//                              DOSFILE.CPP                                 //
-//                                                                          //
-//               COPYRIGHT (C) 1997 BY DIGITAL ANVIL, INC.                  //
-//                                                                          //
-//--------------------------------------------------------------------------//
-/*
-$Header: /Libs/dev/Src/DOSFile/Dosfile.cpp 20    2/17/00 9:23a Jasony $
-*/
-//--------------------------------------------------------------------------//
-
-
-#include <windows.h>
-#include <process.h>
-
 #include "DACOM.h"
+#include "DOSFileSystem.h"
 #include "FileSys.h"
-//#include "da_heap_utility.h"
 #include "TComponent.h"
 #include "FDump.h"
 
-//--------------------------------------------------------------------------//
-//-----------------------GLOBAL DATA & MEMBERS OF FILE SYSTEM---------------//
-//--------------------------------------------------------------------------//
+#include <Windows.h>
+#include <Shlwapi.h>
+#include <process.h>
 
-// if instance represents a directory, instead of a file,
-// current directory is stored in szFilename. Path always has a leading and trailing '\\'
-
-// Handle to component object manager
 extern ICOManager* DACOM;
 
 #define MAX_OVERLAPPED_OPS		32
 #define MAX_LOCK_WAIT			60000		// milliseconds to wait for a lock
 #define CHECKDESCSIZE(x)    (x->size==sizeof(DAFILEDESC)||x->size==sizeof(DAFILEDESC)-sizeof(U32))
+#define DOSFILE_SERIAL	(WM_USER+1)
 
 DOSFileSystem* pFirstSystem = 0;
 HINSTANCE hInstance = 0;
@@ -44,9 +22,25 @@ HANDLE hThread = 0;
 DWORD dwThreadID = 0;
 QueueNode* pMessageList = 0;
 
+
+
+
+//--------------------------------------------------------------------------//
+//-----------------------GLOBAL DATA & MEMBERS OF FILE SYSTEM---------------//
+//--------------------------------------------------------------------------//
+
+// if instance represents a directory, instead of a file,
+// current directory is stored in szFilename. 
+// Path always has a leading and trailing '\\'
+
+// Handle to component object manager
+
+
+
+
 static void WaitForDOSThread(void);
 
-#define DOSFILE_SERIAL	(WM_USER+1)
+
 
 
 //--------------------------------------------------------------------------//
@@ -164,7 +158,7 @@ GENRESULT DOSFileSystem::CreateInstance(DACOMDESC* descriptor,  //)
 	// If unsupported interface requested, fail call
 	//
 		
-	if (CHECKDESCSIZE(lpInfo) == 0 || strcmp(lpInfo->interface_name, FILESYSTEM_INTERFACE_NAME))
+	if (CHECKDESCSIZE(lpInfo) == 0 || strcmp(lpInfo->interface_name, FILESYSTEM_IMPLEMENTATION_NAME))
 	{
 		result = GR_INTERFACE_UNSUPPORTED;
 		goto Done;
@@ -1688,15 +1682,7 @@ LONG DOSFileSystem::CloseAllHandles_S(VOID* lpContext)
 }
 //--------------------------------------------------------------------------//
 //
-void __fastcall switchchar_convert(char* string)
-{
-	while ((string = strchr(string, '/')) != 0)
-	{
-		*string++ = '\\';
-	}
-}
-#include <shlwapi.h>
-#pragma comment(lib, "Shlwapi.lib")
+
 //--------------------------------------------------------------------------//
 // Get absolute path in terms of this file system
 //  returns a path with a leading '\\'
@@ -1928,6 +1914,7 @@ static long __stdcall DispatchQueuedMessage(const QueueNode* node)
 //
 static void WaitForDOSThread(void)
 {
+#if ENABLE_DOS_THREADING
 	// if we are already running in the file system thread
 	if (GetCurrentThreadId() == dwThreadID)
 	{
@@ -1943,76 +1930,82 @@ static void WaitForDOSThread(void)
 	}
 	else
 		Sleep(0);
+#else
+	NOT_IMPLEMENTED;
+#endif // ENABLE_DOS_THREADING
 }
-// //--------------------------------------------------------------------------
-// //  
-// static DWORD CALLBACK DOSFileMain(void* pNull)
-// {
-// 	//
-// 	// create event
-// 	//
-// 	hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);		// create an auto-reset event
-// 
-// 	if (!hEvent)
-// 	{
-// 		GENERAL_ERROR("Failed to create event");
-// 		goto Done;
-// 	}
-// 
-// 	// main loop
-// 
-// 	while (1)
-// 	{
-// 		QueueNode* node;
-// 
-// 		WaitForSingleObject(hEvent, INFINITE);
-// 
-// 		while (GetQueuedMessage(&node))
-// 		{
-// 			if (node->message == WM_QUIT)
-// 				goto Done;
-// 			else
-// 				DispatchQueuedMessage(node);
-// 		}
-// 	}
-// 
-// 	// close down the show
-// Done:
-// 	if (hEvent)
-// 	{
-// 		CloseHandle(hEvent);
-// 		hEvent = 0;
-// 	}
-// 
-// 	return 0;
-// }
-// 
-// //--------------------------------------------------------------------------
-// //  
-// extern "C" BOOL StartUpFileSystem(void)
-// {
-// 	if (hThread)
-// 		return 1;
-// 
-// 	hThread = CreateThread(0, 4096, (LPTHREAD_START_ROUTINE)DOSFileMain,
-// 		(LPVOID)0, 0, &dwThreadID);
-// 
-// 	if (hThread == 0)
-// 		return 0;
-// 
-// 	return 1;
-// }
 
-LONG __stdcall DOS__SerialCall(LPFILESYSTEM lpSystem, DAFILE_SERIAL_PROC lpProc, VOID* lpContext)
+#if ENABLE_DOS_THREADING
+static DWORD CALLBACK DOSFileMain(void* pNull)
 {
-	EnterCriticalSection(&pFirstSystem->criticalSection);
-	LONG result = (lpSystem->*(lpProc))(lpContext);
-	LeaveCriticalSection(&pFirstSystem->criticalSection);
-	return result;
+	//
+	// create event
+	//
+	hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);		// create an auto-reset event
+
+	if (!hEvent)
+	{
+		GENERAL_ERROR("Failed to create event");
+		goto Done;
+	}
+
+	// main loop
+
+	while (1)
+	{
+		QueueNode* node;
+
+		WaitForSingleObject(hEvent, INFINITE);
+
+		while (GetQueuedMessage(&node))
+		{
+			if (node->message == WM_QUIT)
+				goto Done;
+			else
+				DispatchQueuedMessage(node);
+		}
+	}
+
+	// close down the show
+Done:
+	if (hEvent)
+	{
+		CloseHandle(hEvent);
+		hEvent = 0;
+	}
+
+	return 0;
 }
+#endif // ENABLE_DOS_THREADING
+
+#if ENABLE_DOS_THREADING
+extern "C" BOOL StartUpFileSystem(void)
+{
+	if (hThread)
+		return 1;
+
+	hThread = CreateThread(0, 4096, (LPTHREAD_START_ROUTINE)DOSFileMain,
+		(LPVOID)0, 0, &dwThreadID);
+
+	if (hThread == 0)
+		return 0;
+
+	return 1;
+}
+#endif // ENABLE_DOS_THREADING
+
+
 
 extern "C"
 {
+	LONG __stdcall DOS__SerialCall(LPFILESYSTEM lpSystem, DAFILE_SERIAL_PROC lpProc, VOID* lpContext)
+	{
+		EnterCriticalSection(&pFirstSystem->criticalSection);
+		LONG result = (lpSystem->*(lpProc))(lpContext);
+		LeaveCriticalSection(&pFirstSystem->criticalSection);
+		return result;
+	}
+
 	IFileSystem* CreateDOSFileSystem()
 	{
 		IFileSystem* pFileSystem = new DAComponent<DOSFileSystem>;
@@ -2026,7 +2019,7 @@ extern "C"
 		{
 			if (IFileSystem* pFileSystem = CreateDOSFileSystem())
 			{
-				result = DACOM->RegisterComponent(pFileSystem, FILESYSTEM_INTERFACE_NAME, DACOM_LOW_PRIORITY);
+				result = DACOM->RegisterComponent(pFileSystem, FILESYSTEM_IMPLEMENTATION_NAME, DACOM_LOW_PRIORITY);
 				pFileSystem->Release();
 			}
 		}

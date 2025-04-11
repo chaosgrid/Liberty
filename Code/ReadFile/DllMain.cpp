@@ -1,26 +1,20 @@
 #include <Windows.h>
-#include <PCH.h>
 
 #include <DACOM.h>
 #include "FileSys.h"
 #include "DOSFileSystem.h"
 #include "BaseUTF.h"
 #include "UTF.h"
-
-#ifdef IFF_FILESYSTEM
-LPFILESYSTEM CreateAnIFF(void);
-#endif
+#include "MemFile.h"
+#include "SearchPath.h"
 
 extern "C" __declspec(dllexport) void Liberty() {}
 
 ICOManager* DACOM;
 
-TRAMPOLINE(IFileSystem*, __cdecl, CreateMemFileFactory, _sub_6B77900, void);
-TRAMPOLINE(IFileSystem*, __cdecl, CreateSearchPathFactory, _sub_6B78020, void);
-
 BOOL WINAPI DllMain(HINSTANCE hinstDLL,
-	DWORD     fdwReason,
-	LPVOID    lpvReserved)
+	DWORD fdwReason,
+	LPVOID lpvReserved)
 {
 	switch (fdwReason)
 	{
@@ -28,57 +22,33 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,
 	{
 		hInstance = hinstDLL;
 
-/*#if !defined(DA_MULTI_THREADED)
-		// have to call this to startup the da heap because the
-		// module entry point is non standard in the non-multithreaded
-		// builds.
-		//
-		_heap_init();
+#ifdef UTF_FILESYSTEM
+		startupUTF(); // create a critical section
 #endif
 
-		DA_HEAP_DEFINE_HEAP_MESSAGE(hinstDLL);*/
+#if ENABLE_DOS_THREADING
+		if (StartUpFileSystem() == 0)
+			return 0;
+#endif
 
-		startupUTF();		// create a critical section
-		//if (StartUpFileSystem() == 0)
-		//	return 0;
 		pFirstSystem = new DAComponent<DOSFileSystem>;
 		if ((pFirstSystem != NULL) && (DACOM = DACOM_Acquire()) != NULL)
 		{
-			DACOM->RegisterComponent(pFirstSystem, FILESYSTEM_INTERFACE_NAME, DACOM_LOW_PRIORITY);
+			DACOM->RegisterComponent(pFirstSystem, FILESYSTEM_IMPLEMENTATION_NAME, DACOM_LOW_PRIORITY);
 			pFirstSystem->Release();
 		}
 		if (DACOM)
 		{
-			IComponentFactory* lpSystem = CreateBaseUTF();
+#ifdef UTF_FILESYSTEM
+			Register_BaseUTF();
+#endif
 
-			if (lpSystem)
-			{
-				DACOM->RegisterComponent(lpSystem, FILESYSTEM_INTERFACE_NAME);
-				lpSystem->Release();
-			}
+#ifdef MEM_FILE_FILESYSTEM
+			Register_MemFile();
+#endif
 
-			lpSystem = CreateMemFileFactory();
-			if (lpSystem)
-			{
-				DACOM->RegisterComponent(lpSystem, FILESYSTEM_INTERFACE_NAME, DACOM_NORMAL_PRIORITY + 1);
-				lpSystem->Release();
-			}
-
-			lpSystem = CreateSearchPathFactory();
-			if (lpSystem)
-			{
-				DACOM->RegisterComponent(lpSystem, "ISearchPath", DACOM_NORMAL_PRIORITY + 1);
-				lpSystem->Release();
-			}
-
-#ifdef IFF_FILESYSTEM
-			lpSystem = CreateAnIFF();
-
-			if (lpSystem)
-			{
-				DACOM->RegisterComponent(lpSystem, interface_name);
-				lpSystem->Release();
-			}
+#ifdef SEARCH_PATH_FILESYSTEM
+			Register_SearchPath();
 #endif
 		}
 	}
@@ -87,7 +57,9 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,
 	case DLL_PROCESS_DETACH:
 		if (DACOM != NULL)
 		{
-			shutdownUTF();			// delete the critical section
+#ifdef UTF_FILESYSTEM
+			shutdownUTF(); // delete the critical section
+#endif
 			DACOM->Release();
 		}
 		break;
