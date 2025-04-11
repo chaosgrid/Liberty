@@ -1,4 +1,4 @@
-#include "dacom.h"
+#include "DACOM.h"
 
 #include <stdio.h>
 

@@ -169,14 +169,13 @@ extern "C"
 		else FATAL("Unsupported instruction");
 #endif
 
+#ifdef _WIN64
 		intptr_t imagebase = reinterpret_cast<intptr_t>(&__ImageBase);
-		rva32_t imagebase_low = static_cast<rva32_t>(imagebase);
 
 		rva32_t jump_table_low = *reinterpret_cast<rva32_t*>(data);
 		intptr_t jump_table = static_cast<intptr_t>(imagebase & 0xFFFFFFFF00000000) | jump_table_low;
 
 		rva32_t* const jump_table_start = reinterpret_cast<rva32_t*>(jump_table);
-
 
 		size_t jump_table_size = 0;
 		for (rva32_t* jump_table = jump_table_start; *jump_table != 0xCCCCCCCC; jump_table++)
@@ -185,7 +184,7 @@ extern "C"
 			debug_point;
 		}
 
-#ifdef _WIN64
+		rva32_t imagebase_low = static_cast<rva32_t>(imagebase);
 		// Change protection of the memory region containing 'data' to PAGE_READWRITE
 		DWORD oldProtect;
 		if (VirtualProtect(jump_table_start, jump_table_size, PAGE_EXECUTE_READWRITE, &oldProtect)) {
@@ -208,7 +207,7 @@ extern "C"
 
 	void _set_last_chunk(size_t address)
 	{
-		printf("%llX\n", address);
+		printf("%llX\n", uint64_t(address));
 	}
 	_naked void __set_last_chunk()
 	{

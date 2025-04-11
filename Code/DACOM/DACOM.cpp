@@ -1,4 +1,4 @@
-#include "dacom.h"
+#include "DACOM.h"
 #include "DACOManager.h"
 
 // extern "C" interface to guarantee static linkage without name-mangling 

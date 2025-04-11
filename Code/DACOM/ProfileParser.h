@@ -41,15 +41,10 @@ struct DACOM_NO_VTABLE ProfileParser : public IProfileParser
 	/* IProfileParser methods */
 
 	DACOM_DEFMETHOD(Initialize) (const C8 *fileName, ACCESS access = READ_ACCESS );
-
 	DACOM_DEFMETHOD_(BOOL32,EnumerateSections) (ENUM_PROC proc = 0, void *context=0);
-	
 	DACOM_DEFMETHOD_(HANDLE,CreateSection) (const C8 *sectionName, CREATE_MODE mode = PP_OPENEXISTING);
-
 	DACOM_DEFMETHOD_(BOOL32,CloseSection) (HANDLE hSection);
-
 	DACOM_DEFMETHOD_(U32,ReadProfileLine) (HANDLE hSection, U32 lineNumber, C8 * buffer, U32 bufferSize);
-
 	DACOM_DEFMETHOD_(U32,ReadKeyValue) (HANDLE hSection, const C8 * keyName, C8 * buffer, U32 bufferSize);
 
 	/* ProfileParser methods */

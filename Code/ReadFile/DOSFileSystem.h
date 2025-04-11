@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Filesys.h"
+#include "FileSys.h"
 
 #ifndef __DOSFILESYSTEM_H__
 #define __DOSFILESYSTEM_H__
@@ -85,10 +85,10 @@ struct QueueNode
 struct READWRITE_STRUCT : public SERIAL_STRUCT
 {
 	int				iIndex : 8;
-	BOOL			bBusy : 1;
-	BOOL			bResult : 1;
-	BOOL			bError : 1;
-	BOOL			bWrite : 1;
+	bool			bBusy : 1;
+	bool			bResult : 1;
+	bool			bError : 1;
+	bool			bWrite : 1;
 	HANDLE			hFileHandle;
 	LPCVOID			lpBuffer;
 	DWORD			nNumberOfBytesToRead;
@@ -291,6 +291,7 @@ extern QueueNode* pMessageList;
 
 extern "C"
 {
+	// READFILE_DEC BOOL StartUpFileSystem(void);
 	READFILE_DEC IFileSystem* CreateDOSFileSystem();
 	READFILE_DEC void Register_DOSFileSystem();
 }

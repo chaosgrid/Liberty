@@ -8,47 +8,51 @@ struct DACOM_NO_VTABLE ProfileParser2 : public IProfileParser2, ProfileParser
 	// interface mapping
 	//
 	BEGIN_DACOM_MAP_INBOUND(ProfileParser2)
-	DACOM_INTERFACE_ENTRY(IProfileParser2)
-	DACOM_INTERFACE_ENTRY(IProfileParser)
-	DACOM_INTERFACE_ENTRY2(IID_IProfileParser2,IProfileParser2)
-	DACOM_INTERFACE_ENTRY2(IID_IProfileParser,IProfileParser)
-	END_DACOM_MAP()
+		DACOM_INTERFACE_ENTRY(IProfileParser2)
+		DACOM_INTERFACE_ENTRY(IProfileParser)
+		DACOM_INTERFACE_ENTRY2(IID_IProfileParser2, IProfileParser2)
+		DACOM_INTERFACE_ENTRY2(IID_IProfileParser, IProfileParser)
+		END_DACOM_MAP()
 
 
-	GENRESULT init (PROFPARSEDESC2 * info) { return GR_OK; }
+	GENRESULT init(PROFPARSEDESC2* info) { return GR_OK; }
 
 	/* IProfileParser methods */
 
-	DACOM_DEFMETHOD(Initialize) (const C8 *fileName, ACCESS access)
+	DACOM_DEFMETHOD(Initialize) (const C8* fileName, ACCESS access = READ_ACCESS) override
 	{
-		return ProfileParser::Initialize(fileName, access);
+		GENRESULT result = ProfileParser::Initialize(fileName, access);
+		return result;
 	}
-
-	virtual HANDLE __stdcall CreateSection (const C8 *sectionName, IProfileParser::CREATE_MODE mode)
+	DACOM_DEFMETHOD_(BOOL32, EnumerateSections) (ENUM_PROC proc = 0, void* context = 0) override
 	{
-		return ProfileParser::CreateSection(sectionName, mode);
+		BOOL32 result = ProfileParser::EnumerateSections(proc, context);
+		return result;
 	}
-
-	virtual BOOL32 __stdcall CloseSection (HANDLE hSection)
+	DACOM_DEFMETHOD_(HANDLE, CreateSection) (const C8* sectionName, CREATE_MODE mode = PP_OPENEXISTING) override
 	{
-		return ProfileParser::CloseSection(hSection);
+		HANDLE result = ProfileParser::CreateSection(sectionName, mode);
+		return result;
 	}
-
-	virtual U32 __stdcall ReadProfileLine (HANDLE hSection, U32 lineNumber, C8 * buffer, U32 bufferSize)
+	DACOM_DEFMETHOD_(BOOL32, CloseSection) (HANDLE hSection) override
 	{
-		return ProfileParser::ReadProfileLine(hSection, lineNumber, buffer, bufferSize);
+		BOOL32 result = ProfileParser::CloseSection(hSection);
+		return result;
 	}
-
-	virtual U32 __stdcall ReadKeyValue (HANDLE hSection, const C8 * keyName, C8 * buffer, U32 bufferSize)
+	DACOM_DEFMETHOD_(U32, ReadProfileLine) (HANDLE hSection, U32 lineNumber, C8* buffer, U32 bufferSize) override
 	{
-		return ProfileParser::ReadKeyValue(hSection, keyName, buffer, bufferSize);
+		U32 result = ProfileParser::ReadProfileLine(hSection, lineNumber, buffer, bufferSize);
+		return result;
+	}
+	DACOM_DEFMETHOD_(U32, ReadKeyValue) (HANDLE hSection, const C8* keyName, C8* buffer, U32 bufferSize) override
+	{
+		U32 result = ProfileParser::ReadKeyValue(hSection, keyName, buffer, bufferSize);
+		return result;
 	}
 
 	/* IProfileParser2 methods */
 
-	virtual GENRESULT __stdcall Initialize2 (const C8 *buffer, U32 bufferSize );
-
-	virtual BOOL32 __stdcall EnumerateSections(IProfileCallback* callback, void* context);
-
-	virtual BOOL32 __stdcall EnumerateKeys (IProfileCallback * callback, HANDLE hSection, void *context);
+	DACOM_DEFMETHOD(Initialize2) (const C8* buffer, U32 bufferSize) override;
+	DACOM_DEFMETHOD_(BOOL32, EnumerateSections) (IProfileCallback* callback, void* context = 0) override;
+	DACOM_DEFMETHOD_(BOOL32, EnumerateKeys) (IProfileCallback* callback, HANDLE hSection, void* context = 0) override;
 };

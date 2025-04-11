@@ -246,7 +246,6 @@ GENRESULT DOSFileSystem::CreateInstance(DACOMDESC* descriptor,  //)
 			goto Done;
 		}
 
-		auto x = lpInfo->lpImplementation;
 		if (lpInfo->lpImplementation == 0 || strcmp(lpInfo->lpImplementation, "DOS"))
 		{
 			// need some other implementation
@@ -444,9 +443,7 @@ BOOL DOSFileSystem::ReadFile(HANDLE hFileHandle, LPVOID lpBuffer, DWORD nNumberO
 	LPDWORD lpNumberOfBytesRead,
 	LPOVERLAPPED lpOverlapped)
 {
-	BOOL result;
-	READWRITE_STRUCT read;
-	int iIndex;
+	BOOL result = FALSE;
 
 	if (pParent)
 	{
@@ -455,17 +452,27 @@ BOOL DOSFileSystem::ReadFile(HANDLE hFileHandle, LPVOID lpBuffer, DWORD nNumberO
 			nNumberOfBytesToRead,
 			lpNumberOfBytesRead,
 			lpOverlapped);
-		if (result == 0)
+		if (result == FALSE)
 			dwLastError = pParent->GetLastError();
 		return result;
 	}
 
-	read.hFileHandle = TranslateHandle(hFileHandle);
-	read.bBusy = 1;
-	read.bError = 0;
-	read.bResult = read.bWrite = 0;
-	read.lpBuffer = lpBuffer;
-	read.nNumberOfBytesToRead = nNumberOfBytesToRead;
+	READWRITE_STRUCT read =
+	{
+		// .iIndex = ,
+		.bBusy = true,
+		.bResult = false,
+		.bError = false,
+		.bWrite = false,
+		.hFileHandle = TranslateHandle(hFileHandle),
+		.lpBuffer = lpBuffer,
+		.nNumberOfBytesToRead = nNumberOfBytesToRead,
+		// .lpNumberOfBytesRead = ,
+		// .lpOverlapped = ,
+		// .start_offset = ,
+		// .queueNode = ,
+	};
+
 	if ((read.lpNumberOfBytesRead = lpNumberOfBytesRead) != 0)
 		*lpNumberOfBytesRead = 0;
 
@@ -485,13 +492,13 @@ BOOL DOSFileSystem::ReadFile(HANDLE hFileHandle, LPVOID lpBuffer, DWORD nNumberO
 	if (read.bBusy)  // could not find an open slot
 	{
 		dwLastError = ERROR_OUT_OF_STRUCTURES;
-		result = 0;
+		result = FALSE;
 		return result;
 	}
 
 	// read.bBusy must be false, read op started
 
-	iIndex = read.iIndex;
+	int iIndex = read.iIndex;
 
 	if (operations[iIndex].bResult)
 	{
@@ -503,7 +510,7 @@ BOOL DOSFileSystem::ReadFile(HANDLE hFileHandle, LPVOID lpBuffer, DWORD nNumberO
 		if (lpOverlapped)
 		{
 			dwLastError = ERROR_IO_PENDING;
-			result = 0;
+			result = FALSE;
 		}
 		else
 			GENERAL_FATAL("ReadFile() internal error");
@@ -515,7 +522,7 @@ BOOL DOSFileSystem::ReadFile(HANDLE hFileHandle, LPVOID lpBuffer, DWORD nNumberO
 BOOL DOSFileSystem::WriteFile(HANDLE hFileHandle, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite,
 	LPDWORD lpNumberOfBytesWritten, LPOVERLAPPED lpOverlapped)
 {
-	BOOL result;
+	BOOL result = FALSE;
 	READWRITE_STRUCT read;
 	int iIndex;
 
@@ -531,9 +538,10 @@ BOOL DOSFileSystem::WriteFile(HANDLE hFileHandle, LPCVOID lpBuffer, DWORD nNumbe
 		return result;
 	}
 
-	read.bBusy = read.bWrite = 1;
-	read.bResult = 0;
-	read.bError = 0;
+	read.bBusy = true;
+	read.bWrite = true;
+	read.bResult = false;
+	read.bError = false;
 	read.hFileHandle = TranslateHandle(hFileHandle);
 	read.lpBuffer = lpBuffer;
 	read.nNumberOfBytesToRead = nNumberOfBytesToWrite;
@@ -556,7 +564,7 @@ BOOL DOSFileSystem::WriteFile(HANDLE hFileHandle, LPCVOID lpBuffer, DWORD nNumbe
 	if (read.bBusy)  // could not find an open slot
 	{
 		dwLastError = ERROR_OUT_OF_STRUCTURES;
-		result = 0;
+		result = FALSE;
 		return result;
 	}
 
@@ -574,7 +582,7 @@ BOOL DOSFileSystem::WriteFile(HANDLE hFileHandle, LPCVOID lpBuffer, DWORD nNumbe
 		if (lpOverlapped)
 		{
 			dwLastError = ERROR_IO_PENDING;
-			result = 0;
+			result = FALSE;
 		}
 		else
 			GENERAL_FATAL("WriteFile() internal error");
@@ -1936,63 +1944,64 @@ static void WaitForDOSThread(void)
 	else
 		Sleep(0);
 }
-//--------------------------------------------------------------------------
-//  
-static DWORD CALLBACK DOSFileMain(void* pNull)
-{
-	//
-	// create event
-	//
-	hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);		// create an auto-reset event
-
-	if (!hEvent)
-	{
-		GENERAL_ERROR("Failed to create event");
-		goto Done;
-	}
-
-	// main loop
-
-	while (1)
-	{
-		QueueNode* node;
-
-		WaitForSingleObject(hEvent, INFINITE);
-
-		while (GetQueuedMessage(&node))
-		{
-			if (node->message == WM_QUIT)
-				goto Done;
-			else
-				DispatchQueuedMessage(node);
-		}
-	}
-
-	// close down the show
-Done:
-	if (hEvent)
-	{
-		CloseHandle(hEvent);
-		hEvent = 0;
-	}
-
-	return 0;
-}
-//--------------------------------------------------------------------------
-//  
-static BOOL StartUpFileSystem(void)
-{
-	if (hThread)
-		return 1;
-
-	hThread = CreateThread(0, 4096, (LPTHREAD_START_ROUTINE)DOSFileMain,
-		(LPVOID)0, 0, &dwThreadID);
-
-	if (hThread == 0)
-		return 0;
-
-	return 1;
-}
+// //--------------------------------------------------------------------------
+// //  
+// static DWORD CALLBACK DOSFileMain(void* pNull)
+// {
+// 	//
+// 	// create event
+// 	//
+// 	hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);		// create an auto-reset event
+// 
+// 	if (!hEvent)
+// 	{
+// 		GENERAL_ERROR("Failed to create event");
+// 		goto Done;
+// 	}
+// 
+// 	// main loop
+// 
+// 	while (1)
+// 	{
+// 		QueueNode* node;
+// 
+// 		WaitForSingleObject(hEvent, INFINITE);
+// 
+// 		while (GetQueuedMessage(&node))
+// 		{
+// 			if (node->message == WM_QUIT)
+// 				goto Done;
+// 			else
+// 				DispatchQueuedMessage(node);
+// 		}
+// 	}
+// 
+// 	// close down the show
+// Done:
+// 	if (hEvent)
+// 	{
+// 		CloseHandle(hEvent);
+// 		hEvent = 0;
+// 	}
+// 
+// 	return 0;
+// }
+// 
+// //--------------------------------------------------------------------------
+// //  
+// extern "C" BOOL StartUpFileSystem(void)
+// {
+// 	if (hThread)
+// 		return 1;
+// 
+// 	hThread = CreateThread(0, 4096, (LPTHREAD_START_ROUTINE)DOSFileMain,
+// 		(LPVOID)0, 0, &dwThreadID);
+// 
+// 	if (hThread == 0)
+// 		return 0;
+// 
+// 	return 1;
+// }
 
 LONG __stdcall DOS__SerialCall(LPFILESYSTEM lpSystem, DAFILE_SERIAL_PROC lpProc, VOID* lpContext)
 {

@@ -16,8 +16,8 @@
 // NOTE: for some components, hence let it in there.
 
 #define DA_HEAP_DEFINE_NEW_OPERATOR(classname)	\
-	void * classname::operator new( size_t size ) { return ::calloc( size, 1 ); } \
-	void classname::operator delete( void *ptr ) { ::free( ptr ); }
+	void * operator new( size_t size ) { return ::calloc( size, 1 ); } \
+	void operator delete( void *ptr ) { ::free( ptr ); }
 
 #define DA_HEAP_DEFINE_NEW_OPERATOR_DECLARE_HACK(declare, classname, _calloc, _free)	\
 	declare void * operator new( size_t size ); \
@@ -27,7 +27,7 @@
 	void * classname::operator new( size_t size ) { return reinterpret_cast<decltype(&::calloc)>(_calloc)( size, 1 ); } \
 	void classname::operator delete( void *ptr ) { reinterpret_cast<decltype(&::free)>(_free)( ptr ); }
 
-#include "fdump.h"
+#include "FDump.h"
 #include "IDAComponent.h"
 #include "ICOManager.h"
 #include "IProfileParser.h"

@@ -1,4 +1,4 @@
-#include "dacom.h"
+#include "DACOM.h"
 #include "DACOManager.h"
 #include <tchar.h>
 
@@ -151,7 +151,7 @@ GENRESULT DACOManager::CreateInstanceEx(DACOMDESC* descriptor, void** instance, 
 		// until creation request is accepted
 
 		REGISTERED_OBJECT* obj = nullptr;
-		while (obj = object_list.next(obj))
+		while ((obj = object_list.next(obj)))
 		{
 			if (strcmp(obj->interface_name, descriptor->interface_name) == 0)
 			{

@@ -1,8 +1,8 @@
 #include <Windows.h>
 #include <PCH.h>
 
-#include <DACOM/dacom.h>
-#include "Filesys.h"
+#include <DACOM.h>
+#include "FileSys.h"
 #include "DOSFileSystem.h"
 #include "BaseUTF.h"
 #include "UTF.h"

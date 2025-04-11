@@ -39,14 +39,13 @@ struct AGGDESC : public DACOMDESC
 };
 
 #if defined(__cplusplus)
-template<typename T> static constexpr const char* __dacom_uuidof_missing();
-template<typename T> static constexpr const char* __dacom_uuidof = __dacom_uuidof_missing<T>();
+template<typename T> constexpr const char* __dacom_uuidof();
 #define DACOM_PPV_ARG(ppType) (void**)ppType
 #define DACOM_IID_PPV_ARGS(ppType) __dacom_uuidof<decltype(**(ppType))>, DACOM_PPV_ARG(ppType)
 #define DACOM_INTERFACE(Type, IID) \
 	struct Type; \
-	template<> static constexpr const char* __dacom_uuidof<Type> = IID; \
-	template<> static constexpr const char* __dacom_uuidof<Type&> = IID;
+	template<> constexpr const char* __dacom_uuidof<Type>() { return IID; } \
+	template<> constexpr const char* __dacom_uuidof<Type&>() { return IID; }
 #endif
 
 #define IID_IDAComponent DACOM_MAKE_IID("IDAComponent")

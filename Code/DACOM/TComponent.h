@@ -67,7 +67,7 @@ template <class Base>
 GENRESULT DAComponent< Base >::QueryInterface(const C8* interface_name, void** instance)
 {
 	int i;
-	const _DACOM_INTMAP_ENTRY* interfaces = _GetEntriesIn();
+	const _DACOM_INTMAP_ENTRY* interfaces = Base::_GetEntriesIn();
 
 	for (i = 0; interfaces[i].interface_name; i++)
 	{

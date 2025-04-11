@@ -160,7 +160,7 @@ GENRESULT BaseUTF::CreateInstance(DACOMDESC* descriptor, void** instance)
 				if ((pNewBaseDirEntry = pParentUTF->getDirectoryEntryForChild(pNewSystem->szFilename + iRootIndex, pBaseDirEntry, GETFFHANDLE(lpInfo))) != 0)
 				{
 					// verify that filename matched the findFirst handle
-					if (GETFFHANDLE(lpInfo) != INVALID_HANDLE_VALUE && (lpInfo->lpFileName == 0 || stricmp(pParentUTF->getNameBuffer() + pNewBaseDirEntry->dwName, lpInfo->lpFileName) != 0))
+					if (GETFFHANDLE(lpInfo) != INVALID_HANDLE_VALUE && (lpInfo->lpFileName == 0 || _stricmp(pParentUTF->getNameBuffer() + pNewBaseDirEntry->dwName, lpInfo->lpFileName) != 0))
 					{
 						delete pNewSystem;
 						pNewSystem = 0;

@@ -1096,7 +1096,7 @@ HANDLE UTF::openChild (DAFILEDESC *lpDesc, UTF_DIR_ENTRY * pEntry)
 			return INVALID_HANDLE_VALUE;
 		}
 
-		if (lpDesc->lpFileName==0 || stricmp(pNames+pEntry->dwName, lpDesc->lpFileName) != 0)
+		if (lpDesc->lpFileName==0 || _stricmp(pNames+pEntry->dwName, lpDesc->lpFileName) != 0)
 		{
 			dwLastError = ERROR_INVALID_PARAMETER;
 			return INVALID_HANDLE_VALUE;
@@ -1146,7 +1146,7 @@ HANDLE UTF::OpenChild (DAFILEDESC *lpDesc)
 			return INVALID_HANDLE_VALUE;
 		}
 
-		if (lpDesc->lpFileName==0 || stricmp(pNames+pEntry->dwName, lpDesc->lpFileName) != 0)
+		if (lpDesc->lpFileName==0 || _stricmp(pNames+pEntry->dwName, lpDesc->lpFileName) != 0)
 		{
 			dwLastError = ERROR_INVALID_PARAMETER;
 			return INVALID_HANDLE_VALUE;

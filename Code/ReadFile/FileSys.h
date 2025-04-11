@@ -3,7 +3,7 @@
 #ifndef __FILESYS_H__
 #define __FILESYS_H__
 
-#include <DACOM/dacom.h>
+#include <DACOM.h>
 
 #define SERIALMETHOD(method)        LONG __stdcall method (void *lpContext=0)
 

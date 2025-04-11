@@ -1,4 +1,4 @@
-#include "dacom.h"
+#include "DACOM.h"
 #include "ProfileParser2.h"
 
 IComponentFactory* CreateProfileParserFactory2(void)
