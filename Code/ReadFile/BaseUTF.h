@@ -127,20 +127,14 @@ struct UTF_WRITE_STRUCT
 	LPOVERLAPPED	lpOverlapped;
 };
 
-extern "C"
-{
-	extern void* _import_6B7906C; // = __imp("MSVCRT.dll", "calloc");
-	extern void* _import_6B79070; // = __imp("MSVCRT.dll", "free");
-}
-
 struct /*DACOM_NO_VTABLE*/ BaseUTF : public IFileSystem
 {
 	BEGIN_DACOM_MAP_INBOUND(BaseUTF)
 		DACOM_INTERFACE_ENTRY(IFileSystem)
 		DACOM_INTERFACE_ENTRY2(IID_IFileSystem, IFileSystem)
-	END_DACOM_MAP()
+		END_DACOM_MAP()
 
-	DA_HEAP_DEFINE_NEW_OPERATOR_HACK(BaseUTF, _import_6B7906C, _import_6B79070);
+	DA_HEAP_DEFINE_NEW_OPERATOR_DECLARE_HACK(READFILE_DEC, BaseUTF, _import_6B7906C, _import_6B79070);
 
 	HANDLE hParentFile;
 	int unknown8;

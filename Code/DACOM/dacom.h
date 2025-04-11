@@ -19,7 +19,11 @@
 	void * classname::operator new( size_t size ) { return ::calloc( size, 1 ); } \
 	void classname::operator delete( void *ptr ) { ::free( ptr ); }
 
-#define DA_HEAP_DEFINE_NEW_OPERATOR_HACK(classname, _calloc, _free)	\
+#define DA_HEAP_DEFINE_NEW_OPERATOR_DECLARE_HACK(declare, classname, _calloc, _free)	\
+	declare void * operator new( size_t size ); \
+	declare void operator delete( void *ptr );
+
+#define DA_HEAP_DEFINE_NEW_OPERATOR_IMPL_HACK(declare, classname, _calloc, _free)	\
 	void * classname::operator new( size_t size ) { return reinterpret_cast<decltype(&::calloc)>(_calloc)( size, 1 ); } \
 	void classname::operator delete( void *ptr ) { reinterpret_cast<decltype(&::free)>(_free)( ptr ); }
 
