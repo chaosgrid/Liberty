@@ -2,7 +2,7 @@
 #include "BaseUTF.h"
 #include "UTF.h"
 
-//REDIRECT(sub_6B73D60, CreateBaseUTF);
+REDIRECT(sub_6B73D60, CreateBaseUTF);
 
 #define CHECKDESCSIZE(x)    (x->size==sizeof(DAFILEDESC)||x->size==sizeof(DAFILEDESC)-sizeof(U32))
 
