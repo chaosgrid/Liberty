@@ -49,7 +49,7 @@ extern "C"
 
 DA_HEAP_DEFINE_NEW_OPERATOR_IMPL_HACK(READFILE_DEC, BaseUTF, _import_6B7906C, _import_6B79070);
 
-REDIRECT(sub_6B73D60, CreateBaseUTF);
+//REDIRECT(sub_6B73D60, CreateBaseUTF);
 
 
 //--------------------------------------------------------------------------//
