@@ -435,6 +435,8 @@ add_liberty_project(FreeLancer "console" "FreeLancer" ${LIBERTY_EXE_DIRECTORY})
 add_liberty_project(FLServer "console" "FLServer" ${LIBERTY_EXE_DIRECTORY})
 set_target_properties(FreeLancer PROPERTIES FOLDER "Executable")
 set_target_properties(FLServer PROPERTIES FOLDER "Executable")
+set_target_properties(FreeLancer PROPERTIES OUTPUT_NAME "Liberty")
+set_target_properties(FLServer PROPERTIES OUTPUT_NAME "LibertyServer")
 
 add_liberty_project(Movie "shared" "Movie" ${LIBERTY_EXE_DIRECTORY})
 add_liberty_project(EBUEula "shared" "EBUEula" ${LIBERTY_EXE_DIRECTORY})

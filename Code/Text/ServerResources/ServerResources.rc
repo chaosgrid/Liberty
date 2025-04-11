@@ -73,9 +73,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 128                     BITMAP                  "bmp128.bmp"
 
-
 159                     BITMAP                  "bmp159.bmp"
-
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -158,8 +156,8 @@ CAPTION "About FLServer"
 FONT 8, "MS Sans Serif"
 BEGIN
     ICON            128,-1,11,17,20,20
-    LTEXT           "FLServer Version 1.0",-1,40,10,119,8,SS_NOPREFIX
-    LTEXT           "Copyright (C) 2003 Microsoft Corporation",-1,40,25,176,8
+    LTEXT           "Liberty Server - Version 1.0",-1,40,10,119,8,SS_NOPREFIX
+    // LTEXT           "Copyright (C) 2003 Microsoft Corporation",-1,40,25,176,8
     DEFPUSHBUTTON   "OK",1,178,7,50,14,WS_GROUP
 END
 
@@ -390,9 +388,9 @@ BEGIN
     CTEXT           "0",1063,199,144,45,13,SS_CENTERIMAGE | SS_SUNKEN,WS_EX_TRANSPARENT
     CONTROL         "List1",1040,"SysListView32",LVS_REPORT | LVS_NOSORTHEADER | WS_BORDER | WS_TABSTOP,18,68,157,89
     CTEXT           "SERVER STATISTICS",-1,50,58,93,9,SS_CENTERIMAGE,WS_EX_TRANSPARENT
-    CTEXT           "FREELANCER",1064,7,7,267,27,SS_CENTERIMAGE,WS_EX_TRANSPARENT
+    CTEXT           "LIBERTY",1064,7,7,267,27,SS_CENTERIMAGE,WS_EX_TRANSPARENT
     CTEXT           "SERVER NAME",-1,70,36,51,9,SS_CENTERIMAGE,WS_EX_TRANSPARENT
-    CONTROL         "",1067,"RICHEDIT20W",WS_TABSTOP | 0x801,7,45,185,11,WS_EX_TRANSPARENT | WS_EX_CLIENTEDGE
+    CONTROL         "",1067,"RichEdit20A",ES_CENTER | ES_READONLY | WS_TABSTOP,7,45,185,11,WS_EX_TRANSPARENT | WS_EX_CLIENTEDGE
 END
 
 160 DIALOGEX 0, 0, 266, 46
@@ -453,9 +451,7 @@ END
 // remains consistent on all systems.
 128                     ICON                    "ico128.ico"
 
-
 129                     ICON                    "ico129.ico"
-
 
 
 /////////////////////////////////////////////////////////////////////////////
