@@ -2,7 +2,7 @@
 
 #include <stdarg.h>
 #include <stdlib.h>
-#include <windows.h>
+#include <Windows.h>
 
 #define DA_XSTR(s) DA_STR(s)
 #define DA_STR(s) #s
@@ -25,3 +25,4 @@
 #include <Core/libver.h>
 #include <Core/TempStr.h>
 #include <Core/stddat.h>
+#include <Core/MangledAssert.h>

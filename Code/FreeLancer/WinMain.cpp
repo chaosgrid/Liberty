@@ -22,14 +22,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	return Result;
 }
 
-
-void nullsub();
-extern "C" void* import_5C6CE4 = reinterpret_cast<void*>(&nullsub);
-void nullsub()
-{
-	import_5C6CE4 = import_5C6CE4;
-}
-
 extern "C" HINSTANCE__ __ImageBase;
 int main()
 {
