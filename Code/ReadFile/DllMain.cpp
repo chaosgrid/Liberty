@@ -170,11 +170,15 @@ _extern_c _naked void sub_6B76220() // _DllMain@12
 	asm("int3;"); // unreachable
 }
 
+extern void shutdownUTF(void);
+extern void startupUTF(void);
+
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
 	BOOL Result = EntryPoint(hinstDLL, fdwReason, lpvReserved);
 	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
+		startupUTF();		// create a critical section
 		Register_DOSFileSystem();
 	}
 

@@ -5,6 +5,25 @@
 #ifndef __BASEUTF_H__
 #define __BASEUTF_H__
 
+
+
+#ifndef MAKE_4CHAR
+#define MAKE_4CHAR(a,b,c,d) (((U32) (a)) + (((U32) (b)) << 8) + (((U32) (c)) << 16) + (((U32) (d)) << 24))
+#endif
+
+// options that can be switched over to preferences later
+#define UTF_SWITCH_CHAR			'\\'
+#define UTF_EXTRA_ALLOC(x)      (0)				// extra space to alloc when allocating a new block of length 'x'
+#define DEFAULT_UTF_EXTRA_ENTRIES		0
+#define DEFAULT_UTF_EXTRA_NAME_SPACE	0
+
+#define UTF_VERSION			0x101
+
+#define FILE_ATTRIBUTE_UNUSED	0xFFFFFFFF			// unused directory entry
+
+// get handle from DAFILEDESC, backward compatible
+#define GETFFHANDLE(x)    (x->size==sizeof(DAFILEDESC) ? x->hFindFirst : INVALID_HANDLE_VALUE)
+
 //
 // UTF container file header
 //
@@ -73,15 +92,12 @@ struct UTF_SHARING
 
 	BOOL isEmpty(void)
 	{
-		return read == 0 && write == 0 && readSharing == 0 && writeSharing == 0;
+		return (((DWORD*)this)[0] == 0);
 	}
 
 	void setEmpty(void)
 	{
-		read = 0;
-		write = 0;
-		readSharing = 0;
-		writeSharing = 0;
+		((DWORD*)this)[0] = 0;
 	}
 };
 
@@ -127,114 +143,197 @@ struct UTF_WRITE_STRUCT
 	LPOVERLAPPED	lpOverlapped;
 };
 
-struct /*DACOM_NO_VTABLE*/ BaseUTF : public IFileSystem
+//-------------------------------------
+// define the basic version of UTF implementation
+//-------------------------------------
+
+struct DACOM_NO_VTABLE BaseUTF : public IFileSystem
 {
+	char   			szFilename[MAX_PATH + 4];
+	DWORD			dwAccess;            // The mode for the file
+	DWORD			dwLastError;
+	LPFILESYSTEM	pParent;
+	int				iRootIndex;			// point where non-root begins (index of last '\\'+1)
+
+	HANDLE			hParentFile;
+
+	//
+	// data needed to optimize directory searches
+	//
+	BaseUTF* pParentUTF;                // may be NULL if parent if not UTF instance
+	UTF_DIR_ENTRY* pBaseDirEntry;       // will be valid only if pParentUTF is valid
+	// points to current directory 
+
+//
+// interface map
+//
 	BEGIN_DACOM_MAP_INBOUND(BaseUTF)
 		DACOM_INTERFACE_ENTRY(IFileSystem)
 		DACOM_INTERFACE_ENTRY2(IID_IFileSystem, IFileSystem)
 		END_DACOM_MAP()
 
+	//---------------------------
+	// public methods
+	//---------------------------
+
+	BaseUTF(void)
+	{
+		szFilename[0] = '\\';
+		hParentFile = INVALID_HANDLE_VALUE;
+	}
+
 	DA_HEAP_DEFINE_NEW_OPERATOR_DECLARE_HACK(READFILE_DEC, BaseUTF, _import_6B7906C, _import_6B79070);
 
-	HANDLE hParentFile;
-	int unknown8;
-	int unknownC;
-	int unknown10;
-	int unknown14;
-	int unknown18;
-	DWORD dwLastError;
-	char szPathUnknown20[264];
-	char szPathUnknown128[260];
-	int unknown22C;
-	int unknown230;
-	int unknown234;
-	int unknown238;
-	int unknown23C;
-	char unknown240;
-	void* unknown244;
-	int unknown248;
-
-	BaseUTF();
-	~BaseUTF();
-
-	// *** IDAComponent methods ***
-
-	DACOM_DEFMETHOD(QueryInterface) (const C8* interface_name, void** instance) override;
-	DACOM_DEFMETHOD_(U32, AddRef)  (void) override;
-	DACOM_DEFMETHOD_(U32, Release)  (void) override;
+	virtual ~BaseUTF(void);
 
 	// *** IComponentFactory methods ***
 
-	DACOM_DEFMETHOD(CreateInstance) (DACOMDESC* descriptor, void** instance) override;
+	DACOM_DEFMETHOD(CreateInstance) (DACOMDESC* descriptor, void** instance);
+
 
 	// *** IFileSystem methods ***
-	// Note: Windows types used below for optimum compatibility with Win32 file system API calls
 
-	DACOM_DEFMETHOD_(BOOL, CloseHandle) (HANDLE handle) override;
-	DACOM_DEFMETHOD_(BOOL, ReadFile) (HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead, LPOVERLAPPED lpOverlapped) override;
-	DACOM_DEFMETHOD_(BOOL, WriteFile) (HANDLE hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite, LPDWORD lpNumberOfBytesWritten, LPOVERLAPPED lpOverlapped) override;
-	DACOM_DEFMETHOD_(BOOL, GetOverlappedResult) (HANDLE hFile, LPOVERLAPPED lpOverlapped, LPDWORD lpNumberOfBytesTransferred, BOOL bWait) override;
-	DACOM_DEFMETHOD_(DWORD, SetFilePointer) (HANDLE hFile, LONG lDistanceToMove, PLONG lpDistanceToMoveHigh, DWORD dwMoveMethod = FILE_BEGIN) override;
-	DACOM_DEFMETHOD_(BOOL, SetEndOfFile) (HANDLE hFile) override;
-	DACOM_DEFMETHOD_(DWORD, GetFileSize) (HANDLE hFile, LPDWORD lpFileSizeHigh) override;
-	DACOM_DEFMETHOD_(BOOL, LockFile) (HANDLE hFile, DWORD dwFileOffsetLow, DWORD dwFileOffsetHigh, DWORD nNumberOfBytesToLockLow, DWORD nNumberOfBytesToLockHigh) override;
-	DACOM_DEFMETHOD_(BOOL, UnlockFile) (HANDLE hFile, DWORD dwFileOffsetLow, DWORD dwFileOffsetHigh, DWORD nNumberOfBytesToUnlockLow, DWORD nNumberOfBytesToUnlockHigh) override;
-	DACOM_DEFMETHOD_(BOOL, GetFileTime) (HANDLE hFile, LPFILETIME lpCreationTime, LPFILETIME lpLastAccessTime, LPFILETIME lpLastWriteTime) override;
-	DACOM_DEFMETHOD_(BOOL, SetFileTime) (HANDLE hFile, CONST FILETIME* lpCreationTime, CONST FILETIME* lpLastAccessTime, CONST FILETIME* lpLastWriteTime) override;
-	DACOM_DEFMETHOD_(HANDLE, CreateFileMapping) (HANDLE hFile, LPSECURITY_ATTRIBUTES lpFileMappingAttributes, DWORD flProtect/* = PAGE_READONLY*/, DWORD dwMaximumSizeHigh, DWORD dwMaximumSizeLow, LPCTSTR lpName) override;
-	DACOM_DEFMETHOD_(LPVOID, MapViewOfFile) (HANDLE hFileMappingObject, DWORD dwDesiredAccess/* = FILE_MAP_READ*/, DWORD dwFileOffsetHigh, DWORD dwFileOffsetLow, DWORD dwNumberOfBytesToMap) override;
-	DACOM_DEFMETHOD_(BOOL, UnmapViewOfFile) (LPCVOID lpBaseAddress) override;
-	DACOM_DEFMETHOD_(HANDLE, FindFirstFile) (LPCTSTR lpFileName, LPWIN32_FIND_DATA lpFindFileData) override;
-	DACOM_DEFMETHOD_(BOOL, FindNextFile) (HANDLE hFindFile, LPWIN32_FIND_DATA lpFindFileData) override;
-	DACOM_DEFMETHOD_(BOOL, FindClose) (HANDLE hFindFile) override;
-	DACOM_DEFMETHOD_(BOOL, CreateDirectory) (LPCTSTR lpPathName, LPSECURITY_ATTRIBUTES lpSecurityAttributes) override;
-	DACOM_DEFMETHOD_(BOOL, RemoveDirectory) (LPCTSTR lpPathName) override;
-	DACOM_DEFMETHOD_(DWORD, GetCurrentDirectory) (DWORD nBufferLength, LPTSTR lpBuffer) override;
-	DACOM_DEFMETHOD_(BOOL, SetCurrentDirectory) (LPCTSTR lpPathName) override;
-	DACOM_DEFMETHOD_(BOOL, DeleteFile) (LPCTSTR lpFileName) override;
-	DACOM_DEFMETHOD_(BOOL, CopyFile) (LPCTSTR lpExistingFileName, LPCTSTR lpNewFileName, BOOL bFailIfExists) override;
-	DACOM_DEFMETHOD_(BOOL, MoveFile) (LPCTSTR lpExistingFileName, LPCTSTR lpNewFileName) override;
-	DACOM_DEFMETHOD_(DWORD, GetFileAttributes) (LPCTSTR lpFileName) override;
-	DACOM_DEFMETHOD_(BOOL, SetFileAttributes) (LPCTSTR lpFileName, DWORD dwFileAttributes) override;
-	DACOM_DEFMETHOD_(DWORD, GetLastError) (void) override;
+	DACOM_DEFMETHOD_(BOOL, CloseHandle) (HANDLE handle);
 
+	DACOM_DEFMETHOD_(BOOL, ReadFile) (HANDLE hFileHandle, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
+		LPDWORD lpNumberOfBytesRead,
+		LPOVERLAPPED lpOverlapped);
+
+	DACOM_DEFMETHOD_(BOOL, WriteFile) (HANDLE hFileHandle, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite,
+		LPDWORD lpNumberOfBytesWritten, LPOVERLAPPED lpOverlapped);
+
+	DACOM_DEFMETHOD_(BOOL, GetOverlappedResult)   (HANDLE hFileHandle,
+		LPOVERLAPPED lpOverlapped,
+		LPDWORD lpNumberOfBytesTransferred,
+		BOOL bWait);
+
+	DACOM_DEFMETHOD_(DWORD, SetFilePointer) (HANDLE hFileHandle, LONG lDistanceToMove,
+		PLONG lpDistanceToMoveHigh = 0, DWORD dwMoveMethod = FILE_BEGIN);
+
+	DACOM_DEFMETHOD_(BOOL, SetEndOfFile) (HANDLE hFileHandle = 0);
+
+	DACOM_DEFMETHOD_(DWORD, GetFileSize) (HANDLE hFileHandle, LPDWORD lpFileSizeHigh = 0);
+
+	DACOM_DEFMETHOD_(BOOL, LockFile) (HANDLE hFile,
+		DWORD dwFileOffsetLow,
+		DWORD dwFileOffsetHigh,
+		DWORD nNumberOfBytesToLockLow,
+		DWORD nNumberOfBytesToLockHigh);
+
+	DACOM_DEFMETHOD_(BOOL, UnlockFile) (HANDLE hFile,
+		DWORD dwFileOffsetLow,
+		DWORD dwFileOffsetHigh,
+		DWORD nNumberOfBytesToUnlockLow,
+		DWORD nNumberOfBytesToUnlockHigh);
+
+	DACOM_DEFMETHOD_(BOOL, GetFileTime) (HANDLE hFileHandle, LPFILETIME lpCreationTime,
+		LPFILETIME lpLastAccessTime, LPFILETIME lpLastWriteTime);
+
+	DACOM_DEFMETHOD_(BOOL, SetFileTime) (HANDLE hFileHandle, CONST FILETIME* lpCreationTime,
+		CONST FILETIME* lpLastAccessTime,
+		CONST FILETIME* lpLastWriteTime);
+
+	DACOM_DEFMETHOD_(HANDLE, CreateFileMapping)   (HANDLE hFileHandle,
+		LPSECURITY_ATTRIBUTES lpFileMappingAttributes,
+		DWORD flProtect,
+		DWORD dwMaximumSizeHigh,
+		DWORD dwMaximumSizeLow,
+		LPCTSTR lpName);
+
+	DACOM_DEFMETHOD_(LPVOID, MapViewOfFile)      (HANDLE hFileMappingObject,
+		DWORD dwDesiredAccess,
+		DWORD dwFileOffsetHigh,
+		DWORD dwFileOffsetLow,
+		DWORD dwNumberOfBytesToMap);
+
+	DACOM_DEFMETHOD_(BOOL, UnmapViewOfFile)      (LPCVOID lpBaseAddress);
+
+	DACOM_DEFMETHOD_(HANDLE, FindFirstFile) (LPCTSTR lpFileName, LPWIN32_FIND_DATA lpFindFileData);
+
+	DACOM_DEFMETHOD_(BOOL, FindNextFile) (HANDLE hFindFile, LPWIN32_FIND_DATA lpFindFileData);
+
+	DACOM_DEFMETHOD_(BOOL, FindClose) (HANDLE hFindFile);
+
+	DACOM_DEFMETHOD_(BOOL, CreateDirectory) (LPCTSTR lpPathName, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
+
+	DACOM_DEFMETHOD_(BOOL, RemoveDirectory) (LPCTSTR lpPathName);
+
+	DACOM_DEFMETHOD_(DWORD, GetCurrentDirectory) (DWORD nBufferLength, LPTSTR lpBuffer);
+
+	DACOM_DEFMETHOD_(BOOL, SetCurrentDirectory) (LPCTSTR lpPathName);
+
+	DACOM_DEFMETHOD_(BOOL, DeleteFile)  (LPCTSTR lpFileName);
+
+	DACOM_DEFMETHOD_(BOOL, CopyFile)    (LPCTSTR lpExistingFileName, LPCTSTR lpNewFileName, BOOL bFailIfExists);
+
+	DACOM_DEFMETHOD_(BOOL, MoveFile) (LPCTSTR lpExistingFileName, LPCTSTR lpNewFileName);
+
+	DACOM_DEFMETHOD_(DWORD, GetFileAttributes) (LPCTSTR lpFileName);
+
+	DACOM_DEFMETHOD_(BOOL, SetFileAttributes) (LPCTSTR lpFileName, DWORD dwFileAttributes);
+
+	DACOM_DEFMETHOD_(DWORD, GetLastError) (VOID);
+
+	//---------------   
 	// IFileSystem extensions to WIN32 system
+	//---------------   
 
-	DACOM_DEFMETHOD_(HANDLE, OpenChild) (DAFILEDESC* lpDesc) override;
-	DACOM_DEFMETHOD_(DWORD, GetFilePosition) (HANDLE hFile, PLONG pPositionHigh) override;
-	DACOM_DEFMETHOD_(LONG, GetFileName) (LPSTR lpBuffer, LONG lBufferSize) override;
-	DACOM_DEFMETHOD_(DWORD, GetAccessType) (void) override;
-	DACOM_DEFMETHOD(GetParentSystem) (LPFILESYSTEM* lplpFileSystem) override;
-	DACOM_DEFMETHOD(SetPreference) (DWORD dwNumber, DWORD dwValue) override;
-	DACOM_DEFMETHOD(GetPreference) (DWORD dwNumber, PDWORD pdwValue) override;
-	DACOM_DEFMETHOD(ReadDirectoryExtension) (HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead, DWORD dwStartOffset) override;
-	DACOM_DEFMETHOD(WriteDirectoryExtension) (HANDLE hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite, LPDWORD lpNumberOfBytesWritten, DWORD dwStartOffset) override;
-	DACOM_DEFMETHOD_(LONG, SerialCall) (LPFILESYSTEM lpSystem, DAFILE_SERIAL_PROC lpProc, void* lpContext) override;
-	//DACOM_DEFMETHOD_(BOOL, GetAbsolutePath) (char* lpOutput, LPCTSTR lpInput, LONG lSize) override;
-	DACOM_DEFMETHOD_(BOOL, GetAbsolutePath) (char* lpOutput, LPCTSTR lpInput, LONG lSize) override;
+	DACOM_DEFMETHOD_(HANDLE, OpenChild) (DAFILEDESC* lpDesc);
+
+	DACOM_DEFMETHOD_(DWORD, GetFilePosition) (HANDLE hFileHandle = 0, PLONG pPositionHigh = 0);
+
+	DACOM_DEFMETHOD_(LONG, GetFileName) (LPSTR lpBuffer, LONG lBufferSize);
+
+	DACOM_DEFMETHOD_(DWORD, GetAccessType) (VOID);
+
+	DACOM_DEFMETHOD(GetParentSystem) (LPFILESYSTEM* lplpFileSystem);
+
+	DACOM_DEFMETHOD(SetPreference)  (DWORD dwNumber, DWORD  dwValue);
+
+	DACOM_DEFMETHOD(GetPreference)  (DWORD dwNumber, PDWORD pdwValue);
+
+	DACOM_DEFMETHOD(ReadDirectoryExtension) (HANDLE hFile, LPVOID lpBuffer,
+		DWORD nNumberOfBytesToRead,
+		LPDWORD lpNumberOfBytesRead = 0, DWORD dwStartOffset = 0);
+
+	DACOM_DEFMETHOD(WriteDirectoryExtension) (HANDLE hFile, LPCVOID lpBuffer,
+		DWORD nNumberOfBytesToWrite,
+		LPDWORD lpNumberOfBytesWritten = 0, DWORD dwStartOffset = 0);
+
+	DACOM_DEFMETHOD_(LONG, SerialCall) (LPFILESYSTEM lpSystem, DAFILE_SERIAL_PROC lpProc, VOID* lpContext);
+
+	DACOM_DEFMETHOD_(BOOL, GetAbsolutePath) (char* lpOutput, LPCTSTR lpInput, LONG lSize);
 
 	//---------------   
 	// BaseUTF methods
 	//---------------   
 
-	BOOL init(DAFILEDESC* lpDesc);		// return TRUE if successful
+	virtual BOOL init(DAFILEDESC* lpDesc);		// return TRUE if successful
 
 	static BOOL __stdcall GetDirectoryEntry(LPCSTR lpFileName, UTF_DIR_ENTRY* pDirectory, LPCTSTR pNames, UTF_DIR_ENTRY** ppEntry);
+
 	static BOOL __fastcall DOSTimeToFileTime(DWORD dwDOSTime, FILETIME* pFileTime);
+
 	static DWORD __fastcall FileTimeToDOSTime(CONST FILETIME* pFileTime);
+
 	static DWORD __stdcall FindName(LPCTSTR lpFileName, LPCTSTR pNames);
+
 	static bool __stdcall TestValid(LPCTSTR lpFileName);	// return FALSE if name contains invalid characters
 
 	// the following are only really implemented by the UTF implementation
 
-	HANDLE openChild(DAFILEDESC* lpDesc, UTF_DIR_ENTRY* pEntry);
-	DWORD getFileAttributes(LPCTSTR lpFileName, UTF_DIR_ENTRY* pEntry);
-	HANDLE findFirstFile(LPCTSTR lpFileName, LPWIN32_FIND_DATA lpFindFileData, UTF_DIR_ENTRY* pEntry);
-	UTF_DIR_ENTRY* getDirectoryEntryForChild(LPCSTR lpFileName, UTF_DIR_ENTRY* pRootDir = 0, HANDLE hFindFirst = INVALID_HANDLE_VALUE);
-	const char* getNameBuffer(void);
+	virtual HANDLE openChild(DAFILEDESC* lpDesc, UTF_DIR_ENTRY* pEntry);
+
+	virtual DWORD getFileAttributes(LPCTSTR lpFileName, UTF_DIR_ENTRY* pEntry);
+
+	virtual HANDLE findFirstFile(LPCTSTR lpFileName, LPWIN32_FIND_DATA lpFindFileData, UTF_DIR_ENTRY* pEntry);
+
+	virtual UTF_DIR_ENTRY* getDirectoryEntryForChild(LPCSTR lpFileName, UTF_DIR_ENTRY* pRootDir = 0, HANDLE hFindFirst = INVALID_HANDLE_VALUE);
+
+	virtual const char* getNameBuffer(void);
 };
-static_assert(sizeof(BaseUTF) == 0x24C); // 588
-static_assert(sizeof(DAComponent<BaseUTF>) == 0x250); // 592
+
+
 
 extern "C"
 {

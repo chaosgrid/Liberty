@@ -1,6 +1,23 @@
 #include "PCH.h"
 #include "BaseUTF.h"
 
+#define CHECKDESCSIZE(x)    (x->size==sizeof(DAFILEDESC)||x->size==sizeof(DAFILEDESC)-sizeof(U32))
+
+static char implementation_name[] = "UTF";
+
+extern BaseUTF* CreateUTF(void);
+
+static BaseUTF* __cdecl CreateSharedUTF(DWORD dwSharing) 
+{
+	NOT_IMPLEMENTED;
+};
+
+//TRAMPOLINE2(BaseUTF*, __cdecl, CreateUTF, sub_XXXXXXXXXX, void); // CreateUTF
+//TRAMPOLINE2(BaseUTF*, __cdecl, CreateSharedUTF, sub_XXXXXXXX, DWORD dwSharing); // CreateSharedUTF
+
+// Handle to component object manager
+static ICOManager* DACOM = DACOM_Acquire();
+
 extern "C"
 {
 	extern void* _import_6B7906C; // = __imp("MSVCRT.dll", "calloc");
@@ -10,8 +27,8 @@ extern "C"
 	IFileSystem* CreateBaseUTF()
 	{
 		IFileSystem* pFileSystem = new DAComponent<BaseUTF>;
-		void** vtable = *(void***)pFileSystem;
-		memcpy(off_6B79138, vtable, sizeof(off_6B79138));
+		//void** vtable = *(void***)pFileSystem;
+		//memcpy(off_6B79138, vtable, sizeof(off_6B79138));
 		return pFileSystem;
 	}
 
@@ -34,417 +51,1462 @@ DA_HEAP_DEFINE_NEW_OPERATOR_IMPL_HACK(READFILE_DEC, BaseUTF, _import_6B7906C, _i
 
 REDIRECT(sub_6B73D60, CreateBaseUTF);
 
-TRAMPOLINE(GENRESULT, __stdcall, sub_6B74060, BaseUTF* _this, const C8* interface_name, void** instance); // QueryInterface
-TRAMPOLINE(U32, __stdcall, sub_6B74110, BaseUTF* _this); // AddRef
-TRAMPOLINE(U32, __stdcall, sub_6B74130, BaseUTF* _this); // Release
-TRAMPOLINE(GENRESULT, __stdcall, sub_6B72990, BaseUTF* _this, DACOMDESC* descriptor, void** instance); // CreateInstance
-TRAMPOLINE(BOOL, __stdcall, sub_6B73650, BaseUTF* _this, HANDLE handle); // CloseHandle
-TRAMPOLINE(BOOL, __stdcall, sub_6B72F90, BaseUTF* _this, HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead, LPOVERLAPPED lpOverlapped = 0); // ReadFile
-TRAMPOLINE(BOOL, __stdcall, sub_6B73D50, BaseUTF* _this, HANDLE hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite, LPDWORD lpNumberOfBytesWritten, LPOVERLAPPED lpOverlapped = 0); // WriteFile
-TRAMPOLINE(BOOL, __stdcall, sub_6B73D40, BaseUTF* _this, HANDLE hFile, LPOVERLAPPED lpOverlapped, LPDWORD lpNumberOfBytesTransferred, BOOL bWait); // GetOverlappedResult
-TRAMPOLINE(DWORD, __stdcall, sub_6B72EF0, BaseUTF* _this, HANDLE hFile, LONG lDistanceToMove, PLONG lpDistanceToMoveHigh = 0, DWORD dwMoveMethod = FILE_BEGIN); // SetFilePointer
-TRAMPOLINE(BOOL, __stdcall, sub_6B73D10, BaseUTF* _this, HANDLE hFile = 0); // SetEndOfFile
-TRAMPOLINE(DWORD, __stdcall, sub_6B72E90, BaseUTF* _this, HANDLE hFile = 0, LPDWORD lpFileSizeHigh = 0); // GetFileSize
-TRAMPOLINE(BOOL, __stdcall, sub_6B73A10, BaseUTF* _this, HANDLE hFile, DWORD dwFileOffsetLow, DWORD dwFileOffsetHigh, DWORD nNumberOfBytesToLockLow, DWORD nNumberOfBytesToLockHigh); // LockFile
-//TRAMPOLINE(BOOL, __stdcall, sub_6B73A10, BaseUTF* _this, HANDLE hFile, DWORD dwFileOffsetLow, DWORD dwFileOffsetHigh, DWORD nNumberOfBytesToUnlockLow, DWORD nNumberOfBytesToUnlockHigh); // UnlockFile
-TRAMPOLINE(BOOL, __stdcall, sub_6B73A30, BaseUTF* _this, HANDLE hFile, LPFILETIME lpCreationTime, LPFILETIME lpLastAccessTime, LPFILETIME lpLastWriteTime); // GetFileTime
-TRAMPOLINE(BOOL, __stdcall, sub_6B73D40, BaseUTF* _this, HANDLE hFile, CONST FILETIME* lpCreationTime, CONST FILETIME* lpLastAccessTime, CONST FILETIME* lpLastWriteTime); // SetFileTime
-TRAMPOLINE(HANDLE, __stdcall, sub_6B737D0, BaseUTF* _this, HANDLE hFile = 0, LPSECURITY_ATTRIBUTES lpFileMappingAttributes = 0, DWORD flProtect = PAGE_READONLY, DWORD dwMaximumSizeHigh = 0, DWORD dwMaximumSizeLow = 0, LPCTSTR lpName = 0); // CreateFileMapping
-TRAMPOLINE(LPVOID, __stdcall, sub_6B738A0, BaseUTF* _this, HANDLE hFileMappingObject, DWORD dwDesiredAccess = FILE_MAP_READ, DWORD dwFileOffsetHigh = 0, DWORD dwFileOffsetLow = 0, DWORD dwNumberOfBytesToMap = 0); // MapViewOfFile
-TRAMPOLINE(BOOL, __stdcall, sub_6B739E0, BaseUTF* _this, LPCVOID lpBaseAddress); // UnmapViewOfFile
-TRAMPOLINE(HANDLE, __stdcall, sub_6B73280, BaseUTF* _this, LPCTSTR lpFileName, LPWIN32_FIND_DATA lpFindFileData); // FindFirstFile
-TRAMPOLINE(BOOL, __stdcall, sub_6B73350, BaseUTF* _this, HANDLE hFindFile, LPWIN32_FIND_DATA lpFindFileData); // FindNextFile
-TRAMPOLINE(BOOL, __stdcall, sub_6B733B0, BaseUTF* _this, HANDLE hFindFile); // FindClose
-TRAMPOLINE(BOOL, __stdcall, sub_6B73D20, BaseUTF* _this, LPCTSTR lpPathName, LPSECURITY_ATTRIBUTES lpSecurityAttributes = 0); // CreateDirectory
-TRAMPOLINE(BOOL, __stdcall, sub_6B73D10, BaseUTF* _this, LPCTSTR lpPathName); // RemoveDirectory
-TRAMPOLINE(DWORD, __stdcall, sub_6B73470, BaseUTF* _this, DWORD nBufferLength, LPTSTR lpBuffer); // GetCurrentDirectory
-TRAMPOLINE(BOOL, __stdcall, sub_6B73500, BaseUTF* _this, LPCTSTR lpPathName); // SetCurrentDirectory
-//TRAMPOLINE(BOOL, __stdcall, sub_6B73D10, BaseUTF* _this, LPCTSTR lpFileName); // DeleteFile
-TRAMPOLINE(BOOL, __stdcall, sub_6B73D30, BaseUTF* _this, LPCTSTR lpExistingFileName, LPCTSTR lpNewFileName, BOOL bFailIfExists); // CopyFile
-TRAMPOLINE(BOOL, __stdcall, sub_6B73D20, BaseUTF* _this, LPCTSTR lpExistingFileName, LPCTSTR lpNewFileName); // MoveFile
-TRAMPOLINE(DWORD, __stdcall, sub_6B73AC0, BaseUTF* _this, LPCTSTR lpFileName); // GetFileAttributes
-TRAMPOLINE(BOOL, __stdcall, sub_6B73D20, BaseUTF* _this, LPCTSTR lpFileName, DWORD dwFileAttributes); // SetFileAttributes
-TRAMPOLINE(DWORD, __stdcall, sub_6B73B70, BaseUTF* _this); // GetLastError
-TRAMPOLINE(HANDLE, __stdcall, sub_6B73B80, BaseUTF* _this, DAFILEDESC* lpDesc); // OpenChild
-TRAMPOLINE(DWORD, __stdcall, sub_6B73410, BaseUTF* _this, HANDLE hFile = 0, PLONG pPositionHigh = 0); // GetFilePosition
-TRAMPOLINE(LONG, __stdcall, sub_6B73C70, BaseUTF* _this, LPSTR lpBuffer, LONG lBufferSize); // GetFileName
-TRAMPOLINE(DWORD, __stdcall, sub_6B77680, BaseUTF* _this); // GetAccessType
-TRAMPOLINE(GENRESULT, __stdcall, sub_6B73CC0, BaseUTF* _this, LPFILESYSTEM* lplpFileSystem); // GetParentSystem
-TRAMPOLINE(GENRESULT, __stdcall, sub_6B776A0, BaseUTF* _this, DWORD dwNumber, DWORD dwValue); // SetPreference
-TRAMPOLINE(GENRESULT, __stdcall, sub_6B776A0, BaseUTF* _this, DWORD dwNumber, PDWORD pdwValue); // GetPreference
-TRAMPOLINE(GENRESULT, __stdcall, sub_6B776B0, BaseUTF* _this, HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead = 0, DWORD dwStartOffset = 0); // ReadDirectoryExtension
-TRAMPOLINE(GENRESULT, __stdcall, sub_6B776B0, BaseUTF* _this, HANDLE hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite, LPDWORD lpNumberOfBytesWritten = 0, DWORD dwStartOffset = 0); // WriteDirectoryExtension
-TRAMPOLINE(LONG, __stdcall, sub_6B73CF0, BaseUTF* _this, LPFILESYSTEM lpSystem, DAFILE_SERIAL_PROC lpProc, void* lpContext); // SerialCall
-TRAMPOLINE(BOOL, __stdcall, sub_6B73130, BaseUTF* _this, char* lpOutput, LPCTSTR lpInput, LONG lSize); // GetAbsolutePath
-TRAMPOLINE(BaseUTF*, __thiscall, sub_6B73F00, BaseUTF* _this, char flag); // ~BaseUTF
 
-#define BaseUTF_QueryInterface sub_6B74060
-#define BaseUTF_AddRef sub_6B74110
-#define BaseUTF_Release sub_6B74130
-#define BaseUTF_CreateInstance sub_6B72990
-#define BaseUTF_CloseHandle sub_6B73650
-#define BaseUTF_ReadFile sub_6B72F90
-#define BaseUTF_WriteFile sub_6B73D50
-#define BaseUTF_GetOverlappedResult sub_6B73D40
-#define BaseUTF_SetFilePointer sub_6B72EF0
-#define BaseUTF_SetEndOfFile sub_6B73D10
-#define BaseUTF_GetFileSize sub_6B72E90
-#define BaseUTF_LockFile sub_6B73A10
-#define BaseUTF_UnlockFile sub_6B73A10
-#define BaseUTF_GetFileTime sub_6B73A30
-#define BaseUTF_SetFileTime sub_6B73D40
-#define BaseUTF_CreateFileMapping sub_6B737D0
-#define BaseUTF_MapViewOfFile sub_6B738A0
-#define BaseUTF_UnmapViewOfFile sub_6B739E0
-#define BaseUTF_FindFirstFile sub_6B73280
-#define BaseUTF_FindNextFile sub_6B73350
-#define BaseUTF_FindClose sub_6B733B0
-#define BaseUTF_CreateDirectory sub_6B73D20
-#define BaseUTF_RemoveDirectory sub_6B73D10
-#define BaseUTF_GetCurrentDirectory sub_6B73470
-#define BaseUTF_SetCurrentDirectory sub_6B73500
-#define BaseUTF_DeleteFile sub_6B73D10
-#define BaseUTF_CopyFile sub_6B73D30
-#define BaseUTF_MoveFile sub_6B73D20
-#define BaseUTF_GetFileAttributes sub_6B73AC0
-#define BaseUTF_SetFileAttributes sub_6B73D20
-#define BaseUTF_GetLastError sub_6B73B70
-#define BaseUTF_OpenChild sub_6B73B80
-#define BaseUTF_GetFilePosition sub_6B73410
-#define BaseUTF_GetFileName sub_6B73C70
-#define BaseUTF_GetAccessType sub_6B77680
-#define BaseUTF_GetParentSystem sub_6B73CC0
-#define BaseUTF_SetPreference sub_6B776A0
-#define BaseUTF_GetPreference sub_6B776A0
-#define BaseUTF_ReadDirectoryExtension sub_6B776B0
-#define BaseUTF_WriteDirectoryExtension sub_6B776B0
-#define BaseUTF_SerialCall sub_6B73CF0
-#define BaseUTF_GetAbsolutePath sub_6B73130
-#define BaseUTF_Dtor sub_6B73F00
-
-extern "C" void* __thiscall sub_6B72DC0(void* _this);
-extern "C" void* __thiscall sub_6B71490(void* _this);
-BaseUTF::BaseUTF()
+//--------------------------------------------------------------------------//
+//-------------------------------UTF_SHARING Methods------------------------//
+//--------------------------------------------------------------------------//
+//
+BOOL UTF_SHARING::isCompatible(const UTF_SHARING& access)
 {
-	// szFilename[0] = '\\';
-	// hParentFile = INVALID_HANDLE_VALUE;
+	BOOL result = 0;
 
-	hParentFile = INVALID_HANDLE_VALUE;
-	sub_6B72DC0(&unknown8);
-	szPathUnknown20[0] = '\\';
-	szPathUnknown128[0] = '\\';
-	unknown22C = 0;
-	unknown230 = 0;
-	unknown234 = 0;
-	unknown238 = 0;
-	unknown23C = 0;
-	sub_6B71490(&unknown240);
-}
+	if (read && access.readSharing == 0)
+		goto Done;
+	if (write && access.writeSharing == 0)
+		goto Done;
+	if (access.read && (read + write != readSharing))
+		goto Done;
+	if (access.write && (read + write != writeSharing))
+		goto Done;
 
-BaseUTF::~BaseUTF()
-{
-	//sub_6B73F00(this, 1);
-}
+	result++;	// else compatible
 
-GENRESULT BaseUTF::QueryInterface(const C8* interface_name, void** instance)
-{
-	GENRESULT result = BaseUTF_QueryInterface(this, interface_name, instance);
+Done:
 	return result;
 }
-
-U32 BaseUTF::AddRef(void)
+//--------------------------------------------------------------------------//
+//-------------------------------BaseUTF Methods----------------------------//
+//--------------------------------------------------------------------------//
+//
+BaseUTF::~BaseUTF(void)
 {
-	U32 result = BaseUTF_AddRef(this);
-	return result;
+	if (pParent)
+	{
+		pParent->CloseHandle(hParentFile);
+		pParent->Release();
+	}
 }
-
-U32 BaseUTF::Release(void)
-{
-	U32 result = BaseUTF_Release(this);
-	return result;
-}
-
+//--------------------------------------------------------------------------//
+//
 GENRESULT BaseUTF::CreateInstance(DACOMDESC* descriptor, void** instance)
 {
 	DAFILEDESC* lpInfo = (DAFILEDESC*)descriptor;
-	static LPCTSTR					lpImplementation; lpImplementation = lpInfo->lpImplementation;
-	static LPCTSTR					lpFileName; lpFileName = lpInfo->lpFileName;
-	static DWORD					dwDesiredAccess; dwDesiredAccess = lpInfo->dwDesiredAccess;
-	static DWORD					dwShareMode; dwShareMode = lpInfo->dwShareMode;
-	static LPSECURITY_ATTRIBUTES	lpSecurityAttributes; lpSecurityAttributes = lpInfo->lpSecurityAttributes;
-	static DWORD					dwCreationDistribution; dwCreationDistribution = lpInfo->dwCreationDistribution;
-	static DWORD					dwFlagsAndAttributes; dwFlagsAndAttributes = lpInfo->dwFlagsAndAttributes;
-	static HANDLE					hTemplateFile; hTemplateFile = lpInfo->hTemplateFile;
-	static LPFILESYSTEM				lpParent; lpParent = lpInfo->lpParent;
-	static HANDLE					hParent; hParent = lpInfo->hParent;
-	static HANDLE					hFindFirst; hFindFirst = lpInfo->hFindFirst;
+	GENRESULT		result = GR_OK;
+	BaseUTF* pNewSystem = NULL;
 
-	GENRESULT result = BaseUTF_CreateInstance(this, descriptor, instance);
+	if (lpInfo == NULL || (lpInfo->interface_name == NULL))
+	{
+		result = GR_GENERIC;
+		goto Done;
+	}
+
+	//
+	// If unsupported interface requested, fail call
+	//
+
+	if (CHECKDESCSIZE(lpInfo) == 0 || strcmp(lpInfo->interface_name, FILESYSTEM_INTERFACE_NAME))
+	{
+		result = GR_INTERFACE_UNSUPPORTED;
+		goto Done;
+	}
+
+
+	//
+	// Can't handle this request (we already have a parent)
+	//
+
+	if (lpInfo->lpParent && pParent)
+	{
+		result = GR_GENERIC;
+		goto Done;
+	}
+
+	// 
+	// if we are an open directory, see if we can find child inside us
+	// 	
+
+	if (hParentFile == INVALID_HANDLE_VALUE && pParent)
+	{
+		HANDLE			handle;
+
+		if ((handle = OpenChild(lpInfo)) == INVALID_HANDLE_VALUE)
+		{
+			//
+			// OpenChild() failed; system could not be created
+			// See if	file is really a directory
+			//
+			DWORD dwAttribs;
+			UTF_DIR_ENTRY* pNewBaseDirEntry = 0;
+
+			if ((pNewSystem = new DAComponent<BaseUTF>) == 0)
+			{
+				result = GR_OUT_OF_MEMORY;
+				goto Done;
+			}
+
+			if (lpInfo->lpFileName)
+			{
+				memcpy(pNewSystem->szFilename, szFilename, iRootIndex);
+				if (GetAbsolutePath(pNewSystem->szFilename + iRootIndex, lpInfo->lpFileName, MAX_PATH - iRootIndex) == 0)
+				{
+					delete pNewSystem;
+					pNewSystem = 0;
+					result = GR_FILE_ERROR;
+					goto Done;
+				}
+			}
+
+			if (pParentUTF)
+			{
+				if ((pNewBaseDirEntry = pParentUTF->getDirectoryEntryForChild(pNewSystem->szFilename + iRootIndex, pBaseDirEntry, GETFFHANDLE(lpInfo))) != 0)
+				{
+					// verify that filename matched the findFirst handle
+					if (GETFFHANDLE(lpInfo) != INVALID_HANDLE_VALUE && (lpInfo->lpFileName == 0 || stricmp(pParentUTF->getNameBuffer() + pNewBaseDirEntry->dwName, lpInfo->lpFileName) != 0))
+					{
+						delete pNewSystem;
+						pNewSystem = 0;
+						result = GR_INVALID_PARMS;
+						goto Done;
+					}
+					dwAttribs = pNewBaseDirEntry->dwAttributes;
+				}
+				else
+					dwAttribs = 0xFFFFFFFF;
+			}
+			else
+			{
+				dwAttribs = pParent->GetFileAttributes(pNewSystem->szFilename);
+			}
+
+			if (dwAttribs == 0xFFFFFFFF || (dwAttribs & FILE_ATTRIBUTE_DIRECTORY) == 0)
+			{
+				delete pNewSystem;
+				pNewSystem = 0;
+
+				result = GR_FILE_ERROR;
+				goto Done;
+			}
+			// 
+			// else it is a directory, add a "\\" to the end of the name
+			//
+			if ((pNewSystem->iRootIndex = strlen(pNewSystem->szFilename)) != 0)
+				if (pNewSystem->szFilename[pNewSystem->iRootIndex - 1] == UTF_SWITCH_CHAR)
+					pNewSystem->iRootIndex--;
+
+			pNewSystem->szFilename[pNewSystem->iRootIndex] = UTF_SWITCH_CHAR;
+			pNewSystem->hParentFile = handle;
+			pNewSystem->pParent = pParent;
+			pNewSystem->dwAccess = dwAccess & lpInfo->dwDesiredAccess;
+			pParent->AddRef();
+			if (pParentUTF && pNewBaseDirEntry)
+			{
+				pNewSystem->pBaseDirEntry = pNewBaseDirEntry;
+				pNewSystem->pParentUTF = pParentUTF;
+			}
+			goto Done;
+		}
+
+		// else we successfully opened the child 
+
+		{
+			// need some other implementation
+
+			lpInfo->lpParent = pParent;
+			lpInfo->hParent = handle;
+			pParent->AddRef();			// child file system will now reference parent directly
+			if ((result = DACOM->CreateInstance(lpInfo, (void**)&pNewSystem)) != GR_OK)
+			{
+				pParent->Release();
+				pParent->CloseHandle(handle);
+				lpInfo->lpParent = 0;
+				lpInfo->hParent = 0;
+				goto Done;
+			}
+			lpInfo->lpParent = 0;
+			lpInfo->hParent = 0;
+			goto Done;
+		}
+	}
+
+	// else we are not a directory
+
+	if (lpInfo->lpParent)
+	{
+		if (lpInfo->lpImplementation != NULL &&
+			strcmp(lpInfo->lpImplementation, implementation_name))
+		{
+			result = GR_GENERIC;
+			goto Done;
+		}
+		else	// dont create a UTF without being asked
+			if (lpInfo->lpImplementation == NULL &&
+				lpInfo->dwCreationDistribution != OPEN_EXISTING)
+			{
+				result = GR_GENERIC;
+				goto Done;
+			}
+
+		// implies that we don't have a parent system
+		// 
+		// create a new instance of UTF
+		//
+
+		if (lpInfo->dwDesiredAccess == GENERIC_READ &&
+			(lpInfo->dwShareMode & ~FILE_SHARE_READ) == 0)
+		{
+			pNewSystem = CreateUTF();
+		}
+		else
+			pNewSystem = CreateSharedUTF(lpInfo->dwShareMode);
+
+		if (pNewSystem == 0)
+		{
+			result = GR_OUT_OF_MEMORY;
+			goto Done;
+		}
+
+		strncpy(pNewSystem->szFilename, lpInfo->lpFileName, sizeof(szFilename));
+		pNewSystem->dwAccess = lpInfo->dwDesiredAccess;
+		pNewSystem->hParentFile = lpInfo->hParent;
+		pNewSystem->pParent = lpInfo->lpParent;
+
+		if (pNewSystem->init(lpInfo) == 0)
+		{
+			// prevent releasing resources we didn't take over
+			lpInfo->lpParent->AddRef();
+			pNewSystem->hParentFile = INVALID_HANDLE_VALUE;
+			pNewSystem->Release();
+			pNewSystem = 0;
+			result = GR_FILE_ERROR;
+		}
+
+		goto Done;
+	}
+
+
+	// request to create a UTF system from nothing
+	if (pParent == 0)
+	{
+		if (lpInfo->lpImplementation != NULL &&
+			strcmp(lpInfo->lpImplementation, implementation_name))
+		{
+			result = GR_GENERIC;
+			goto Done;
+		}
+		else	// dont create a UTF without being asked
+			if (lpInfo->lpImplementation == NULL &&
+				lpInfo->dwCreationDistribution != OPEN_EXISTING)
+			{
+				result = GR_GENERIC;
+				goto Done;
+			}
+
+		LPCTSTR lpSaved = lpInfo->lpImplementation;
+		DWORD dwSavedAccess = lpInfo->dwDesiredAccess;
+
+		if (lpInfo->dwDesiredAccess == GENERIC_READ &&
+			(lpInfo->dwShareMode & ~FILE_SHARE_READ) == 0)
+		{
+			pNewSystem = CreateUTF();
+		}
+		else
+			pNewSystem = CreateSharedUTF(lpInfo->dwShareMode);
+
+		if (pNewSystem == 0)
+		{
+			result = GR_OUT_OF_MEMORY;
+			goto Done;
+		}
+
+		lpInfo->lpImplementation = "DOS";
+		lpInfo->dwDesiredAccess |= GENERIC_READ;
+		if ((result = DACOM->CreateInstance(lpInfo, (void**)&pNewSystem->pParent)) != GR_OK)
+		{
+			delete pNewSystem;
+			pNewSystem = 0;
+			result = GR_FILE_ERROR;
+			lpInfo->lpImplementation = lpSaved;
+			lpInfo->dwDesiredAccess = dwSavedAccess;
+			goto Done;
+		}
+		pNewSystem->hParentFile = 0;
+		lpInfo->lpImplementation = lpSaved;
+		lpInfo->dwDesiredAccess = dwSavedAccess;
+		strncpy(pNewSystem->szFilename, lpInfo->lpFileName, sizeof(szFilename));
+		pNewSystem->dwAccess = lpInfo->dwDesiredAccess;
+
+		if (pNewSystem->init(lpInfo) == 0)
+		{
+			pNewSystem->Release();
+			pNewSystem = 0;
+			result = GR_FILE_ERROR;
+		}
+		goto Done;
+	}
+	else
+	{
+		// attempt to create the child instance from within
+
+		HANDLE			handle;
+		//
+		// Associate file handle with new file system
+		//
+
+		handle = OpenChild(lpInfo);
+
+		if (handle == INVALID_HANDLE_VALUE)
+		{
+			//
+			// CreateFile() failed; system could not be created
+			// See if	file is really a directory
+			//
+			DWORD dwAttribs;
+			UTF_DIR_ENTRY* pNewBaseDirEntry = 0;
+
+			if ((pNewSystem = new DAComponent<BaseUTF>) == 0)
+			{
+				result = GR_OUT_OF_MEMORY;
+				goto Done;
+			}
+
+			if (lpInfo->lpFileName)
+			{
+				if (GetAbsolutePath(pNewSystem->szFilename, lpInfo->lpFileName, MAX_PATH) == 0)
+				{
+					delete pNewSystem;
+					pNewSystem = 0;
+					result = GR_FILE_ERROR;
+					goto Done;
+				}
+			}
+
+			if ((pNewBaseDirEntry = getDirectoryEntryForChild(pNewSystem->szFilename, 0, GETFFHANDLE(lpInfo))) != 0)
+			{
+				// verify that filename matched the findFirst handle
+				if (GETFFHANDLE(lpInfo) != INVALID_HANDLE_VALUE && (lpInfo->lpFileName == 0 || _stricmp(getNameBuffer() + pNewBaseDirEntry->dwName, lpInfo->lpFileName) != 0))
+				{
+					delete pNewSystem;
+					pNewSystem = 0;
+					result = GR_INVALID_PARMS;
+					goto Done;
+				}
+				dwAttribs = pNewBaseDirEntry->dwAttributes;
+			}
+			else
+				dwAttribs = GetFileAttributes(pNewSystem->szFilename);
+
+			if (dwAttribs == 0xFFFFFFFF || (dwAttribs & FILE_ATTRIBUTE_DIRECTORY) == 0)
+			{
+				delete pNewSystem;
+				pNewSystem = 0;
+				result = GR_FILE_ERROR;
+				goto Done;
+			}
+
+			// 
+			// else it is a directory
+			//
+
+			if ((pNewSystem->iRootIndex = strlen(pNewSystem->szFilename)) != 0)
+				if (pNewSystem->szFilename[pNewSystem->iRootIndex - 1] == UTF_SWITCH_CHAR)
+					pNewSystem->iRootIndex--;
+
+			pNewSystem->szFilename[pNewSystem->iRootIndex] = UTF_SWITCH_CHAR;
+			pNewSystem->hParentFile = handle;
+			pNewSystem->pParent = this;
+			pNewSystem->dwAccess = dwAccess & lpInfo->dwDesiredAccess;
+			AddRef();
+			// only if we are a read-only UTF file will the following work
+			if ((pNewSystem->pBaseDirEntry = pNewBaseDirEntry) != 0)
+				pNewSystem->pParentUTF = this;
+			goto Done;
+		}
+
+		// else child file was opened
+
+		{
+			// need another implementation
+
+			lpInfo->lpParent = this;
+			lpInfo->hParent = handle;
+			AddRef();			// child file system will now reference us 
+			if ((result = DACOM->CreateInstance(lpInfo, (void**)&pNewSystem)) != GR_OK)
+			{
+				Release();
+				CloseHandle(handle);
+				lpInfo->lpParent = 0;
+				lpInfo->hParent = 0;
+				goto Done;
+			}
+			lpInfo->lpParent = 0;
+			lpInfo->hParent = 0;
+
+			goto Done;
+		}
+	}
+
+Done:
+	*instance = pNewSystem;
+
+	if (FAILED(result))
+	{
+		FILE_WARNING(lpInfo->lpFileName, __FUNCTION__);
+	}
+
 	return result;
 }
-
+//--------------------------------------------------------------------------//
+//
 BOOL BaseUTF::init(DAFILEDESC* lpDesc)
 {
-	return TRUE;
+	return 1;
 }
-
+//--------------------------------------------------------------------------//
+//
 BOOL BaseUTF::CloseHandle(HANDLE handle)
 {
-	// NOT_IMPLEMENTED;
-	auto result = BaseUTF_CloseHandle(this, handle);
-	return result;
-}
+	if (pParent && handle)
+	{
+		BOOL result;
 
-BOOL BaseUTF::ReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead, LPOVERLAPPED lpOverlapped)
+		result = pParent->CloseHandle(handle);
+		if (result == 0)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
+BOOL BaseUTF::ReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
+	LPDWORD lpNumberOfBytesRead,
+	LPOVERLAPPED lpOverlapped)
 {
-	auto result = BaseUTF_ReadFile(this, hFile, lpBuffer, nNumberOfBytesToRead, lpNumberOfBytesRead, lpOverlapped);
-	return result;
-}
+	if (pParent && hFile)
+	{
+		BOOL result;
 
-BOOL BaseUTF::WriteFile(HANDLE hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite, LPDWORD lpNumberOfBytesWritten, LPOVERLAPPED lpOverlapped)
+		result = pParent->ReadFile(hFile, lpBuffer, nNumberOfBytesToRead, lpNumberOfBytesRead, lpOverlapped);
+		if (result == 0)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
+BOOL BaseUTF::WriteFile(HANDLE hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite,
+	LPDWORD lpNumberOfBytesWritten, LPOVERLAPPED lpOverlapped)
 {
-	dwLastError = ERROR_ACCESS_DENIED;
-	return FALSE;
-}
+	if (pParent && hFile)
+	{
+		BOOL result;
 
-BOOL BaseUTF::GetOverlappedResult(HANDLE hFile, LPOVERLAPPED lpOverlapped, LPDWORD lpNumberOfBytesTransferred, BOOL bWait)
+		result = pParent->WriteFile(hFile, lpBuffer, nNumberOfBytesToWrite, lpNumberOfBytesWritten, lpOverlapped);
+		if (result == 0)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
+BOOL BaseUTF::GetOverlappedResult(HANDLE hFileHandle, LPOVERLAPPED lpOverlapped,
+	LPDWORD lpNumberOfBytesTransferred, BOOL bWait)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_GetOverlappedResult(this, hFile, lpOverlapped, lpNumberOfBytesTransferred, bWait);
-	return result;
-}
+	BOOL result;
 
-DWORD BaseUTF::SetFilePointer(HANDLE hFile, LONG lDistanceToMove, PLONG lpDistanceToMoveHigh, DWORD dwMoveMethod)
+	if (pParent && hFileHandle)
+	{
+		result = pParent->GetOverlappedResult(hFileHandle, lpOverlapped, lpNumberOfBytesTransferred, bWait);
+		if (result == 0)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
+DWORD BaseUTF::SetFilePointer(HANDLE hFileHandle, LONG lDistanceToMove,
+	PLONG lpDistanceToMoveHigh, DWORD dwMoveMethod)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_SetFilePointer(this, hFile, lDistanceToMove, lpDistanceToMoveHigh, dwMoveMethod);
-	return result;
-}
+	DWORD result;
 
-BOOL BaseUTF::SetEndOfFile(HANDLE hFile)
+	if (pParent && hFileHandle)
+	{
+		result = pParent->SetFilePointer(hFileHandle, lDistanceToMove, lpDistanceToMoveHigh, dwMoveMethod);
+		if (result == 0xFFFFFFFF)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0xFFFFFFFF;
+	}
+}
+//--------------------------------------------------------------------------//
+//
+BOOL BaseUTF::SetEndOfFile(HANDLE hFileHandle)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_SetEndOfFile(this, hFile);
-	return result;
-}
+	BOOL result;
 
-DWORD BaseUTF::GetFileSize(HANDLE hFile, LPDWORD lpFileSizeHigh)
+	if (pParent && hFileHandle)
+	{
+		result = pParent->SetEndOfFile(hFileHandle);
+		if (result == 0)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
+DWORD BaseUTF::GetFileSize(HANDLE hFileHandle, LPDWORD lpFileSizeHigh)
 {
-	// NOT_IMPLEMENTED;
-	auto result = BaseUTF_GetFileSize(this, hFile, lpFileSizeHigh);
-	return result;
-}
+	DWORD result;
 
-BOOL BaseUTF::LockFile(HANDLE hFile, DWORD dwFileOffsetLow, DWORD dwFileOffsetHigh, DWORD nNumberOfBytesToLockLow, DWORD nNumberOfBytesToLockHigh)
+	if (pParent && hFileHandle)
+	{
+		result = pParent->GetFileSize(hFileHandle, lpFileSizeHigh);
+		if (result == 0xFFFFFFFF)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0xFFFFFFFF;
+	}
+}
+//--------------------------------------------------------------------------//
+//
+BOOL BaseUTF::LockFile(HANDLE hFileHandle,
+	DWORD dwFileOffsetLow,
+	DWORD dwFileOffsetHigh,
+	DWORD nNumberOfBytesToLockLow,
+	DWORD nNumberOfBytesToLockHigh)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_LockFile(this, hFile, dwFileOffsetLow, dwFileOffsetHigh, nNumberOfBytesToLockLow, nNumberOfBytesToLockHigh);
-	return result;
-}
+	BOOL result;
 
-BOOL BaseUTF::UnlockFile(HANDLE hFile, DWORD dwFileOffsetLow, DWORD dwFileOffsetHigh, DWORD nNumberOfBytesToUnlockLow, DWORD nNumberOfBytesToUnlockHigh)
+	if (pParent && hFileHandle)
+	{
+		result = pParent->LockFile(hFileHandle,
+			dwFileOffsetLow,
+			dwFileOffsetHigh,
+			nNumberOfBytesToLockLow,
+			nNumberOfBytesToLockHigh);
+		if (result == 0)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
+BOOL BaseUTF::UnlockFile(HANDLE hFileHandle,
+	DWORD dwFileOffsetLow,
+	DWORD dwFileOffsetHigh,
+	DWORD nNumberOfBytesToUnlockLow,
+	DWORD nNumberOfBytesToUnlockHigh)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_UnlockFile(this, hFile, dwFileOffsetLow, dwFileOffsetHigh, nNumberOfBytesToUnlockLow, nNumberOfBytesToUnlockHigh);
-	return result;
-}
+	BOOL result;
 
-BOOL BaseUTF::GetFileTime(HANDLE hFile, LPFILETIME lpCreationTime, LPFILETIME lpLastAccessTime, LPFILETIME lpLastWriteTime)
+	if (pParent && hFileHandle)
+	{
+		result = pParent->UnlockFile(hFileHandle,
+			dwFileOffsetLow,
+			dwFileOffsetHigh,
+			nNumberOfBytesToUnlockLow,
+			nNumberOfBytesToUnlockHigh);
+		if (result == 0)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
+BOOL BaseUTF::GetFileTime(HANDLE hFileHandle, LPFILETIME lpCreationTime,
+	LPFILETIME lpLastAccessTime, LPFILETIME lpLastWriteTime)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_GetFileTime(this, hFile, lpCreationTime, lpLastAccessTime, lpLastWriteTime);
-	return result;
-}
+	BOOL result;
 
-BOOL BaseUTF::SetFileTime(HANDLE hFile, CONST FILETIME* lpCreationTime, CONST FILETIME* lpLastAccessTime, CONST FILETIME* lpLastWriteTime)
+	if (pParent && hFileHandle)
+	{
+		result = pParent->GetFileTime(hFileHandle, lpCreationTime, lpLastAccessTime, lpLastWriteTime);
+		if (result == 0)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
+BOOL BaseUTF::SetFileTime(HANDLE hFileHandle, CONST FILETIME* lpCreationTime,
+	CONST FILETIME* lpLastAccessTime,
+	CONST FILETIME* lpLastWriteTime)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_SetFileTime(this, hFile, lpCreationTime, lpLastAccessTime, lpLastWriteTime);
-	return result;
-}
+	BOOL result;
 
-HANDLE BaseUTF::CreateFileMapping(HANDLE hFile, LPSECURITY_ATTRIBUTES lpFileMappingAttributes, DWORD flProtect, DWORD dwMaximumSizeHigh, DWORD dwMaximumSizeLow, LPCTSTR lpName)
+	if (pParent && hFileHandle)
+	{
+		result = pParent->SetFileTime(hFileHandle, lpCreationTime, lpLastAccessTime, lpLastWriteTime);
+		if (result == 0)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
+HANDLE BaseUTF::CreateFileMapping(HANDLE hFileHandle, LPSECURITY_ATTRIBUTES lpFileMappingAttributes,
+	DWORD flProtect, DWORD dwMaximumSizeHigh, DWORD dwMaximumSizeLow, LPCTSTR lpName)
 {
-	// NOT_IMPLEMENTED;
-	auto result = BaseUTF_CreateFileMapping(this, hFile, lpFileMappingAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName);
-	return result;
-}
+	if (pParent && hFileHandle)
+	{
+		HANDLE result;
 
-LPVOID BaseUTF::MapViewOfFile(HANDLE hFileMappingObject, DWORD dwDesiredAccess, DWORD dwFileOffsetHigh, DWORD dwFileOffsetLow, DWORD dwNumberOfBytesToMap)
+		result = pParent->CreateFileMapping(hFileHandle, lpFileMappingAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName);
+		if (result == 0)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
+LPVOID BaseUTF::MapViewOfFile(HANDLE hFileMappingObject,
+	DWORD dwDesiredAccess,
+	DWORD dwFileOffsetHigh,
+	DWORD dwFileOffsetLow,
+	DWORD dwNumberOfBytesToMap)
 {
-	// NOT_IMPLEMENTED;
-	auto result = BaseUTF_MapViewOfFile(this, hFileMappingObject, dwDesiredAccess, dwFileOffsetHigh, dwFileOffsetLow, dwNumberOfBytesToMap);
-	return result;
-}
+	if (pParent)
+	{
+		LPVOID result;
 
+		result = pParent->MapViewOfFile(hFileMappingObject, dwDesiredAccess, dwFileOffsetHigh, dwFileOffsetLow, dwNumberOfBytesToMap);
+		if (result == 0)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
 BOOL BaseUTF::UnmapViewOfFile(LPCVOID lpBaseAddress)
 {
-	// NOT_IMPLEMENTED;
-	auto result = BaseUTF_UnmapViewOfFile(this, lpBaseAddress);
-	return result;
+	if (pParent)
+	{
+		BOOL result;
+		result = pParent->UnmapViewOfFile(lpBaseAddress);
+		if (result == 0)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
 }
-
+//--------------------------------------------------------------------------//
+//
 HANDLE BaseUTF::FindFirstFile(LPCTSTR lpFileName, LPWIN32_FIND_DATA lpFindFileData)
 {
-	// NOT_IMPLEMENTED;
-	auto result = BaseUTF_FindFirstFile(this, lpFileName, lpFindFileData);
-	return result;
-}
+	HANDLE result;
 
+	if (pParent)
+	{
+		char buffer[MAX_PATH + 4];
+
+		if (iRootIndex)
+			memcpy(buffer, szFilename, iRootIndex);
+		if (GetAbsolutePath(buffer + iRootIndex, lpFileName, MAX_PATH - iRootIndex) == 0)
+		{
+			dwLastError = ERROR_BAD_PATHNAME;
+			return INVALID_HANDLE_VALUE;
+		}
+
+		if (pParentUTF)
+			result = pParentUTF->findFirstFile(buffer + iRootIndex, lpFindFileData, pBaseDirEntry);
+		else
+			result = pParent->FindFirstFile(buffer, lpFindFileData);
+
+		if (result == INVALID_HANDLE_VALUE)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_FILE_NOT_FOUND;
+		return INVALID_HANDLE_VALUE;
+	}
+}
+//--------------------------------------------------------------------------//
+//
 BOOL BaseUTF::FindNextFile(HANDLE hFindFile, LPWIN32_FIND_DATA lpFindFileData)
 {
-	// NOT_IMPLEMENTED;
-	auto result = BaseUTF_FindNextFile(this, hFindFile, lpFindFileData);
-	return result;
-}
+	BOOL result;
 
+	if (pParent)
+	{
+		result = pParent->FindNextFile(hFindFile, lpFindFileData);
+
+		if (result == 0)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_FILE_NOT_FOUND;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
 BOOL BaseUTF::FindClose(HANDLE hFindFile)
 {
-	// NOT_IMPLEMENTED;
-	auto result = BaseUTF_FindClose(this, hFindFile);
-	return result;
-}
+	BOOL result;
 
+	if (pParent)
+	{
+		result = pParent->FindClose(hFindFile);
+		if (result == 0)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_FILE_NOT_FOUND;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
 BOOL BaseUTF::CreateDirectory(LPCTSTR lpPathName, LPSECURITY_ATTRIBUTES lpSecurityAttributes)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_CreateDirectory(this, lpPathName, lpSecurityAttributes);
-	return result;
-}
+	BOOL result;
 
+	if (pParent)
+	{
+		char buffer[MAX_PATH + 4];
+
+		if (iRootIndex)
+			memcpy(buffer, szFilename, iRootIndex);
+		if (GetAbsolutePath(buffer + iRootIndex, lpPathName, MAX_PATH - iRootIndex) == 0)
+		{
+			dwLastError = ERROR_BAD_PATHNAME;
+			return 0;
+		}
+
+		result = pParent->CreateDirectory(buffer, lpSecurityAttributes);
+		if (result == 0)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
 BOOL BaseUTF::RemoveDirectory(LPCTSTR lpPathName)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_RemoveDirectory(this, lpPathName);
-	return result;
-}
+	BOOL result;
 
+	if (pParent)
+	{
+		char buffer[MAX_PATH + 4];
+
+		if (iRootIndex)
+			memcpy(buffer, szFilename, iRootIndex);
+		if (GetAbsolutePath(buffer + iRootIndex, lpPathName, MAX_PATH - iRootIndex) == 0)
+		{
+			dwLastError = ERROR_BAD_PATHNAME;
+			return 0;
+		}
+
+		result = pParent->RemoveDirectory(buffer);
+		if (result == 0)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
 DWORD BaseUTF::GetCurrentDirectory(DWORD nBufferLength, LPTSTR lpBuffer)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_GetCurrentDirectory(this, nBufferLength, lpBuffer);
-	return result;
-}
+	DWORD result;
 
+	if (pParent)
+	{
+		DWORD len;
+
+		len = strlen(szFilename + iRootIndex);
+		len = __max(len, 2);
+		len = __min(len, nBufferLength);
+		if (len > 0)
+		{
+			memcpy(lpBuffer, szFilename + iRootIndex, len);
+			lpBuffer[len - 1] = 0;
+			result = len - 1;
+		}
+		else
+			result = 0;
+		dwLastError = NO_ERROR;
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
 BOOL BaseUTF::SetCurrentDirectory(LPCTSTR lpPathName)
 {
-	// NOT_IMPLEMENTED;
-	auto result = BaseUTF_SetCurrentDirectory(this, lpPathName);
-	return result;
-}
+	BOOL result;
 
+	if (pParent)
+	{
+		char buffer[MAX_PATH + 4];
+
+		memcpy(buffer, szFilename, iRootIndex);
+		if ((result = GetAbsolutePath(buffer + iRootIndex, lpPathName, MAX_PATH - iRootIndex)) == 0)
+			dwLastError = ERROR_BAD_PATHNAME;
+		else
+		{
+			int len;
+			DWORD dwAttribs;
+
+			dwAttribs = pParent->GetFileAttributes(buffer);
+
+			if (dwAttribs == 0xFFFFFFFF || (dwAttribs & FILE_ATTRIBUTE_DIRECTORY) == 0)
+			{
+				dwLastError = ERROR_BAD_PATHNAME;
+				return 0;
+			}
+			else
+			{
+				len = strlen(buffer);
+				memcpy(szFilename, buffer, len + 1);
+				if (szFilename[len - 1] != UTF_SWITCH_CHAR)
+				{
+					szFilename[len] = UTF_SWITCH_CHAR;
+					szFilename[len + 1] = 0;
+				}
+			}
+		}
+
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
 BOOL BaseUTF::DeleteFile(LPCTSTR lpFileName)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_DeleteFile(this, lpFileName);
-	return result;
-}
+	BOOL result;
 
+	if (pParent)
+	{
+		char buffer[MAX_PATH + 4];
+
+		if (iRootIndex)
+			memcpy(buffer, szFilename, iRootIndex);
+		if (GetAbsolutePath(buffer + iRootIndex, lpFileName, MAX_PATH - iRootIndex) == 0)
+		{
+			dwLastError = ERROR_BAD_PATHNAME;
+			return 0;
+		}
+
+		result = pParent->DeleteFile(buffer);
+		if (result == 0)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
 BOOL BaseUTF::CopyFile(LPCTSTR lpExistingFileName, LPCTSTR lpNewFileName, BOOL bFailIfExists)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_CopyFile(this, lpExistingFileName, lpNewFileName, bFailIfExists);
+	LPVOID lpMemory = 0;
+	HANDLE hSrc, hDst = 0;
+	DAFILEDESC desc(lpExistingFileName, 0);
+	DWORD dwLength, dwReadWrite;
+	BOOL result = 0;
+
+	hSrc = OpenChild(&desc);
+	if (hSrc == INVALID_HANDLE_VALUE)
+		return 0;
+	dwLength = GetFileSize(hSrc);
+
+	if ((lpMemory = VirtualAlloc(0, dwLength, MEM_COMMIT, PAGE_READWRITE)) == 0)
+	{
+		dwLastError = ERROR_NOT_ENOUGH_MEMORY;
+		goto Done;
+	}
+
+	desc.dwDesiredAccess = GENERIC_WRITE;
+	desc.dwCreationDistribution = (bFailIfExists) ? CREATE_NEW : CREATE_ALWAYS;
+	desc.lpFileName = lpNewFileName;
+
+	hDst = OpenChild(&desc);
+	if (hDst == INVALID_HANDLE_VALUE)
+		goto Done;
+
+	if (ReadFile(hSrc, lpMemory, dwLength, &dwReadWrite, 0) == 0)
+		goto Done;
+	if (WriteFile(hDst, lpMemory, dwLength, &dwReadWrite, 0) == 0)
+		goto Done;
+
+	result = 1;
+
+Done:
+	if (hDst)
+		CloseHandle(hDst);
+	if (hSrc)
+		CloseHandle(hSrc);
+	if (lpMemory)
+		VirtualFree(lpMemory, 0, MEM_RELEASE);
+
 	return result;
 }
-
+//--------------------------------------------------------------------------//
+//
 BOOL BaseUTF::MoveFile(LPCTSTR lpExistingFileName, LPCTSTR lpNewFileName)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_MoveFile(this, lpExistingFileName, lpNewFileName);
-	return result;
-}
+	BOOL result;
 
+	if (pParent)
+	{
+		char buffer1[MAX_PATH + 4];
+		char buffer2[MAX_PATH + 4];
+
+		if (iRootIndex)
+		{
+			memcpy(buffer1, szFilename, iRootIndex);
+			memcpy(buffer2, szFilename, iRootIndex);
+		}
+		if (GetAbsolutePath(buffer1 + iRootIndex, lpExistingFileName, MAX_PATH - iRootIndex) == 0)
+		{
+			dwLastError = ERROR_BAD_PATHNAME;
+			return 0;
+		}
+		if (GetAbsolutePath(buffer2 + iRootIndex, lpNewFileName, MAX_PATH - iRootIndex) == 0)
+		{
+			dwLastError = ERROR_BAD_PATHNAME;
+			return 0;
+		}
+
+		result = pParent->MoveFile(buffer1, buffer2);
+		if (result == 0)
+			dwLastError = pParent->GetLastError();
+
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
 DWORD BaseUTF::GetFileAttributes(LPCTSTR lpFileName)
 {
-	auto result = BaseUTF_GetFileAttributes(this, lpFileName);
-	return result;
-}
+	DWORD result;
 
+	if (pParent)
+	{
+		char buffer[MAX_PATH + 4];
+
+		if (iRootIndex)
+			memcpy(buffer, szFilename, iRootIndex);
+		if (GetAbsolutePath(buffer + iRootIndex, lpFileName, MAX_PATH - iRootIndex) == 0)
+		{
+			dwLastError = ERROR_BAD_PATHNAME;
+			return 0;
+		}
+
+		if (pParentUTF)
+			result = pParentUTF->getFileAttributes(buffer + iRootIndex, pBaseDirEntry);
+		else
+			result = pParent->GetFileAttributes(buffer);
+
+		if (result == 0xFFFFFFFF)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
 BOOL BaseUTF::SetFileAttributes(LPCTSTR lpFileName, DWORD dwFileAttributes)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_SetFileAttributes(this, lpFileName, dwFileAttributes);
-	return result;
-}
+	BOOL result;
 
-DWORD BaseUTF::GetLastError(void)
+	if (pParent)
+	{
+		char buffer[MAX_PATH + 4];
+
+		if (iRootIndex)
+			memcpy(buffer, szFilename, iRootIndex);
+		if (GetAbsolutePath(buffer + iRootIndex, lpFileName, MAX_PATH - iRootIndex) == 0)
+		{
+			dwLastError = ERROR_BAD_PATHNAME;
+			return 0;
+		}
+
+		result = pParent->SetFileAttributes(buffer, dwFileAttributes);
+		if (result == 0)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+//
+DWORD BaseUTF::GetLastError(VOID)
 {
-	auto result = BaseUTF_GetLastError(this);
-	return result;
+	return dwLastError;
 }
-
-HANDLE BaseUTF::OpenChild(DAFILEDESC* lpDesc)
+//--------------------------------------------------------------------------//
+//
+HANDLE BaseUTF::OpenChild(DAFILEDESC* lpInfo)
 {
-	// NOT_IMPLEMENTED;
-	auto result = BaseUTF_OpenChild(this, lpDesc);
-	return result;
-}
+	HANDLE handle;
 
-DWORD BaseUTF::GetFilePosition(HANDLE hFile, PLONG pPositionHigh)
-{
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_GetFilePosition(this, hFile, pPositionHigh);
-	return result;
-}
+	if (pParent == 0)
+	{
+		dwLastError = ERROR_NOT_SUPPORTED;
+		return INVALID_HANDLE_VALUE;
+	}
 
+	// short cut this whole thing if user passed in a findFirstHandle
+	if (pParentUTF && GETFFHANDLE(lpInfo) != INVALID_HANDLE_VALUE)
+	{
+		handle = pParentUTF->openChild(lpInfo, pBaseDirEntry);
+	}
+	else
+	{
+		char buffer[MAX_PATH + 4];
+		LPCSTR lpSaved = lpInfo->lpFileName;
+
+		memcpy(buffer, szFilename, iRootIndex);
+		if (GetAbsolutePath(buffer + iRootIndex, lpInfo->lpFileName, MAX_PATH - iRootIndex) == 0)
+		{
+			dwLastError = ERROR_FILE_NOT_FOUND;
+			return INVALID_HANDLE_VALUE;
+		}
+
+		if (pParentUTF)
+		{
+			lpInfo->lpFileName = buffer + iRootIndex;
+			handle = pParentUTF->openChild(lpInfo, pBaseDirEntry);
+		}
+		else
+		{
+			lpInfo->lpFileName = buffer;
+			handle = pParent->OpenChild(lpInfo);
+		}
+
+		lpInfo->lpFileName = lpSaved;
+	}
+
+	if (handle == INVALID_HANDLE_VALUE)
+		dwLastError = pParent->GetLastError();
+
+	return handle;
+}
+//--------------------------------------------------------------------------//
+//
 LONG BaseUTF::GetFileName(LPSTR lpBuffer, LONG lBufferSize)
 {
-	auto result = BaseUTF_GetFileName(this, lpBuffer, lBufferSize);
-	return result;
-}
+	lBufferSize = __min(lBufferSize, (LONG)strlen(szFilename) + 1);
 
-DWORD BaseUTF::GetAccessType(void)
+	if (lBufferSize > 0 && lpBuffer)
+		memcpy(lpBuffer, szFilename, lBufferSize);
+
+	return lBufferSize;
+}
+//--------------------------------------------------------------------------//
+//
+DWORD BaseUTF::GetAccessType(VOID)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_GetAccessType(this);
-	return result;
+	return dwAccess;
 }
-
+//--------------------------------------------------------------------------//
+//
 GENRESULT BaseUTF::GetParentSystem(LPFILESYSTEM* lplpFileSystem)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_GetParentSystem(this, lplpFileSystem);
-	return result;
+	if ((*lplpFileSystem = pParent) != 0)
+		pParent->AddRef();
+	return GR_OK;
 }
-
-GENRESULT BaseUTF::SetPreference(DWORD dwNumber, DWORD dwValue)
+//--------------------------------------------------------------------------//
+//
+GENRESULT BaseUTF::SetPreference(DWORD dwNumber, DWORD  dwValue)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_SetPreference(this, dwNumber, dwValue);
-	return result;
+	return GR_GENERIC;
 }
-
+//--------------------------------------------------------------------------//
+//
 GENRESULT BaseUTF::GetPreference(DWORD dwNumber, PDWORD pdwValue)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_GetPreference(this, dwNumber, pdwValue);
-	return result;
+	return GR_GENERIC;
 }
-
-GENRESULT BaseUTF::ReadDirectoryExtension(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead, DWORD dwStartOffset)
+//--------------------------------------------------------------------------//
+//
+GENRESULT BaseUTF::ReadDirectoryExtension(HANDLE hFile, LPVOID lpBuffer,
+	DWORD nNumberOfBytesToRead,
+	LPDWORD lpNumberOfBytesRead, DWORD dwStartOffset)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_ReadDirectoryExtension(this, hFile, lpBuffer, nNumberOfBytesToRead, lpNumberOfBytesRead, dwStartOffset);
-	return result;
+	return GR_GENERIC;
 }
-
-GENRESULT BaseUTF::WriteDirectoryExtension(HANDLE hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite, LPDWORD lpNumberOfBytesWritten, DWORD dwStartOffset)
+//--------------------------------------------------------------------------//
+//
+GENRESULT BaseUTF::WriteDirectoryExtension(HANDLE hFile, LPCVOID lpBuffer,
+	DWORD nNumberOfBytesToWrite,
+	LPDWORD lpNumberOfBytesWritten, DWORD dwStartOffset)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_WriteDirectoryExtension(this, hFile, lpBuffer, nNumberOfBytesToWrite, lpNumberOfBytesWritten, dwStartOffset);
-	return result;
+	return GR_GENERIC;
 }
-
-LONG BaseUTF::SerialCall(LPFILESYSTEM lpSystem, DAFILE_SERIAL_PROC lpProc, void* lpContext)
+//--------------------------------------------------------------------------//
+//
+LONG BaseUTF::SerialCall(LPFILESYSTEM lpSystem, DAFILE_SERIAL_PROC lpProc, VOID* lpContext)
 {
-	NOT_IMPLEMENTED;
-	auto result = BaseUTF_SerialCall(this, lpSystem, lpProc, lpContext);
-	return result;
+	return pParent->SerialCall(lpSystem, lpProc, lpContext);
 }
+//--------------------------------------------------------------------------//
+//
+DWORD BaseUTF::GetFilePosition(HANDLE hFileHandle, PLONG pPositionHigh)
+{
+	if (pParent && hFileHandle)
+	{
+		DWORD result;
+		result = pParent->GetFilePosition(hFileHandle, pPositionHigh);
 
+		if (result == 0xFFFFFFFF)
+			dwLastError = pParent->GetLastError();
+		return result;
+	}
+	else
+	{
+		dwLastError = ERROR_ACCESS_DENIED;
+		return 0;
+	}
+}
+//--------------------------------------------------------------------------//
+// lpFileName -> absolute address, without a leading '\\'
+//
+BOOL BaseUTF::GetDirectoryEntry(LPCSTR lpFileName, UTF_DIR_ENTRY* pDirectory, LPCTSTR pNames, UTF_DIR_ENTRY** ppEntry)
+{
+	UTF_DIR_ENTRY* pEntry = *ppEntry;
+	char buffer[MAX_PATH + 4];
+	char* ptr, * tmp;
+
+	// NOTE: This is a strcpy because we know it is safe to do here; this is an internally called
+	// function only.  TNB/JY
+	strcpy(buffer, lpFileName);
+	buffer[MAX_PATH] = 0;
+	ptr = buffer;
+	if (ptr[0] == UTF_SWITCH_CHAR)
+	{
+		ptr++;
+		if (ptr[0] == 0)
+			return 1;	// our job is done
+	}
+
+	if ((pEntry->dwAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
+		return 0;
+
+	// go to first child
+	pEntry = (UTF_DIR_ENTRY*)(((char*)pDirectory) + pEntry->dwDataOffset);
+
+	if ((tmp = strchr(ptr, UTF_SWITCH_CHAR)) != 0)
+		*tmp = 0;
+
+	while (pEntry != pDirectory)
+	{
+		// compare our name with names on this level
+		if (_stricmp(ptr, pNames + pEntry->dwName) == 0)	// found it!
+		{
+			if (tmp == 0 || tmp[1] == 0)
+			{
+				*ppEntry = pEntry;		// we have reached the end of the line
+				return 1;				// success!
+			}
+			else
+				ptr = tmp + 1;
+
+			// decend to next level
+			if ((pEntry->dwAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
+				return 0;
+
+			// go to first child
+			pEntry = (UTF_DIR_ENTRY*)(((char*)pDirectory) + pEntry->dwDataOffset);
+
+			if ((tmp = strchr(ptr, UTF_SWITCH_CHAR)) != 0)
+				*tmp = 0;
+		}
+		else	// go to next sibling
+			pEntry = (UTF_DIR_ENTRY*)(((char*)pDirectory) + pEntry->dwNext);
+	}
+
+	return 0;
+}
+//--------------------------------------------------------------------------//
+void __fastcall switchchar_convert(char* string);
+//--------------------------------------------------------------------------//
+// Get absolute path in terms of this file system
+//  returns a path with a leading '\\'
+//
+//
 BOOL BaseUTF::GetAbsolutePath(char* lpOutput, LPCTSTR lpInput, LONG lSize)
 {
-	// NOT_IMPLEMENTED;
-	auto result = BaseUTF_GetAbsolutePath(this, lpOutput, lpInput, lSize);
+	int len;
+	char* ptr;
+	BOOL result = 1;
+
+	if (--lSize <= 0)
+		return 0;
+	lpOutput[lSize] = 0;
+
+	if (lpInput[0] == UTF_SWITCH_CHAR || lpInput[0] == '/')
+	{
+		strncpy(lpOutput, lpInput, lSize);
+		lpOutput[lSize - 1] = 0;
+		switchchar_convert(lpOutput);
+		return 1;
+	}
+
+	//	if (iRootIndex)
+	strncpy(lpOutput, szFilename + iRootIndex, lSize);
+	//	else
+	//		*lpOutput = 0;
+
+		// now of the form "\\Path\\"
+
+	if (lpInput[0] == '.' && (lpInput[1] == UTF_SWITCH_CHAR || lpInput[1] == '/'))
+		lpInput += 2;
+
+	while (lpInput[0] == '.' && lpInput[1] == '.')
+	{
+		len = strlen(lpOutput);
+		if (len > 2)
+		{
+			lpOutput[len - 1] = 0;		// get rid of trailing '\\'
+
+			if ((ptr = strrchr(lpOutput, UTF_SWITCH_CHAR)) != 0)
+				ptr[1] = 0;
+			else
+				result = 0;
+		}
+		else
+			result = 0;
+		lpInput += 2;
+		if (lpInput[0] == UTF_SWITCH_CHAR || lpInput[0] == '/')
+			lpInput++;
+	}
+
+	len = strlen(lpOutput);
+	if (lSize - len > 0)
+		strncpy(lpOutput + len, lpInput, lSize - len);
+	switchchar_convert(lpOutput);
+
 	return result;
+}
+//--------------------------------------------------------------------------//
+//
+BOOL BaseUTF::DOSTimeToFileTime(DWORD dwDOSTime, FILETIME* pFileTime)
+{
+	return DosDateTimeToFileTime(LOWORD(dwDOSTime), HIWORD(dwDOSTime), pFileTime);
+}
+//--------------------------------------------------------------------------//
+//
+DWORD BaseUTF::FileTimeToDOSTime(CONST FILETIME* pFileTime)
+{
+	DWORD result = 0;
+
+	FileTimeToDosDateTime(pFileTime, ((WORD*)&result), ((WORD*)&result) + 1);
+
+	return result;
+}
+//--------------------------------------------------------------------------//
+// returns the offset into 'pNames' where match is found
+//
+DWORD BaseUTF::FindName(LPCTSTR lpFileName, LPCTSTR _pNames)
+{
+	LPCTSTR pNames = _pNames;
+	DWORD len, namelen;
+
+	if ((namelen = strlen(lpFileName)) == 0)
+		goto Done;
+
+	if (pNames[0] == 0)
+		pNames++;
+
+	while (pNames[0] != 0)
+	{
+		len = strlen(pNames);
+
+		if (len >= namelen)
+		{
+			LPCTSTR pTmp;
+
+			pTmp = pNames + len - namelen;
+			if (memcmp(pTmp, lpFileName, namelen) == 0)
+				return pTmp - _pNames;
+		}
+
+		pNames += len + 1;
+	}
+
+Done:
+	return 0;
+}
+//--------------------------------------------------------------------------//
+//
+HANDLE BaseUTF::openChild(DAFILEDESC* lpDesc, UTF_DIR_ENTRY* pEntry)
+{
+	ASSERT(0 && "Not Implemented");
+	return INVALID_HANDLE_VALUE;
+}
+//--------------------------------------------------------------------------//
+//
+DWORD BaseUTF::getFileAttributes(LPCTSTR lpFileName, UTF_DIR_ENTRY* pEntry)
+{
+	ASSERT(0 && "Not Implemented");
+	return DWORD(-1);
+}
+//--------------------------------------------------------------------------//
+//
+HANDLE BaseUTF::findFirstFile(LPCTSTR lpFileName, LPWIN32_FIND_DATA lpFindFileData, UTF_DIR_ENTRY* pEntry)
+{
+	ASSERT(0 && "Not Implemented");
+	return INVALID_HANDLE_VALUE;
+}
+//--------------------------------------------------------------------------//
+//
+UTF_DIR_ENTRY* BaseUTF::getDirectoryEntryForChild(LPCSTR lpFileName, UTF_DIR_ENTRY* pDirectory, HANDLE hFindFirst)
+{
+	return 0;
+}
+//--------------------------------------------------------------------------//
+//
+const char* BaseUTF::getNameBuffer(void)
+{
+	ASSERT(0 && "Not Implemented");
+	return 0;
+}
+//--------------------------------------------------------------------------//
+// return FALSE if name contains invalid characters
+//
+static inline void setBit(U8* bitArray, U8 pos)
+{
+	bitArray += (pos >> 3);
+	bitArray[0] |= (1 << (pos & 7));
+}
+static inline bool getBit(U8* bitArray, U8 pos)
+{
+	bitArray += (pos >> 3);
+	return ((bitArray[0] & (1 << (pos & 7))) != 0);
+}
+bool BaseUTF::TestValid(LPCTSTR lpFileName)
+{
+	static bool initialized = false;
+	static U8 charMap[256 / 8];
+	if (initialized == false)
+	{
+		setBit(charMap, '<');
+		setBit(charMap, '>');
+		setBit(charMap, ':');
+		setBit(charMap, '"');
+		setBit(charMap, '/');
+		setBit(charMap, '|');
+		setBit(charMap, '*');
+		setBit(charMap, '?');
+		initialized = true;
+	}
+
+	U8 a;
+	while ((a = *lpFileName++) != 0)
+	{
+		if (getBit(charMap, a))
+			return false;
+	}
+
+	return true;
 }

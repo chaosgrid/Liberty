@@ -40,7 +40,6 @@ HINSTANCE hInstance = 0;
 HANDLE hEvent = 0;
 HANDLE hThread = 0;
 DWORD dwThreadID = 0;
-C8 interface_name[] = "IFileSystem";
 
 static void WaitForDOSThread(void);
 
@@ -428,25 +427,11 @@ GENRESULT DOSFileSystem::CreateInstance(DACOMDESC* descriptor,  //)
 	GENRESULT		result = GR_OK;
 	DOSFileSystem* pNewSystem = NULL;
 
-	static U32						size; size = lpInfo->size;
-	static const C8*				interface_name; interface_name = lpInfo->interface_name;
-	static LPCTSTR					lpImplementation; lpImplementation = lpInfo->lpImplementation;
-	static LPCTSTR					lpFileName; lpFileName = lpInfo->lpFileName;
-	static DWORD					dwDesiredAccess; dwDesiredAccess = lpInfo->dwDesiredAccess;
-	static DWORD					dwShareMode; dwShareMode = lpInfo->dwShareMode;
-	static LPSECURITY_ATTRIBUTES	lpSecurityAttributes; lpSecurityAttributes = lpInfo->lpSecurityAttributes;
-	static DWORD					dwCreationDistribution; dwCreationDistribution = lpInfo->dwCreationDistribution;
-	static DWORD					dwFlagsAndAttributes; dwFlagsAndAttributes = lpInfo->dwFlagsAndAttributes;
-	static HANDLE					hTemplateFile; hTemplateFile = lpInfo->hTemplateFile;
-	static LPFILESYSTEM				lpParent; lpParent = lpInfo->lpParent;
-	static HANDLE					hParent; hParent = lpInfo->hParent;
-	static HANDLE					hFindFirst; hFindFirst = lpInfo->hFindFirst;
-
 	//
 	// If unsupported interface requested, fail call
 	//
 		
-	if (CHECKDESCSIZE(lpInfo) == 0 || strcmp(lpInfo->interface_name, interface_name))
+	if (CHECKDESCSIZE(lpInfo) == 0 || strcmp(lpInfo->interface_name, FILESYSTEM_INTERFACE_NAME))
 	{
 		result = GR_INTERFACE_UNSUPPORTED;
 		goto Done;
@@ -660,7 +645,7 @@ Done:
 
 	if (FAILED(result))
 	{
-		FILE_WARNING(lpFileName, __FUNCTION__);
+		FILE_WARNING(lpInfo->lpFileName, __FUNCTION__);
 	}
 
 	return result;
