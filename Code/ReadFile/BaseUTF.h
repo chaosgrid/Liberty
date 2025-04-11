@@ -182,7 +182,7 @@ struct DACOM_NO_VTABLE BaseUTF : public IFileSystem
 		hParentFile = INVALID_HANDLE_VALUE;
 	}
 
-	DA_HEAP_DEFINE_NEW_OPERATOR_DECLARE_HACK(READFILE_DEC, BaseUTF, _import_6B7906C, _import_6B79070);
+	DA_HEAP_DEFINE_NEW_OPERATOR(BaseUTF);
 
 	virtual ~BaseUTF(void);
 

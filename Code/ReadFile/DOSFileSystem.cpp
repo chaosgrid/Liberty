@@ -2013,15 +2013,9 @@ LONG __stdcall DOS__SerialCall(LPFILESYSTEM lpSystem, DAFILE_SERIAL_PROC lpProc,
 
 extern "C"
 {
-	extern void* _import_6B7906C; // = __imp("MSVCRT.dll", "calloc");
-	extern void* _import_6B79070; // = __imp("MSVCRT.dll", "free");
-	extern "C" void* off_6B79218[43]; // DOSFileSystem_vtbl
-
 	IFileSystem* CreateDOSFileSystem()
 	{
 		IFileSystem* pFileSystem = new DAComponent<DOSFileSystem>;
-		//void** vtable = *(void***)pFileSystem;
-		//memcpy(off_6B79138, vtable, sizeof(off_6B79138));
 		return pFileSystem;
 	}
 

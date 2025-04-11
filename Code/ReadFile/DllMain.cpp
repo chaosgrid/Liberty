@@ -15,7 +15,6 @@ extern "C" __declspec(dllexport) void Liberty() {}
 
 ICOManager* DACOM;
 
-TRAMPOLINE(IFileSystem*, __cdecl, _CreateBaseUTF, _sub_6B73D60, void);
 TRAMPOLINE(IFileSystem*, __cdecl, CreateMemFileFactory, _sub_6B77900, void);
 TRAMPOLINE(IFileSystem*, __cdecl, CreateSearchPathFactory, _sub_6B78020, void);
 
@@ -50,7 +49,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,
 		}
 		if (DACOM)
 		{
-			IComponentFactory* lpSystem = _CreateBaseUTF();
+			IComponentFactory* lpSystem = CreateBaseUTF();
 
 			if (lpSystem)
 			{
