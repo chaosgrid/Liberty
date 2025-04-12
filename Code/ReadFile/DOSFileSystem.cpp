@@ -158,7 +158,7 @@ GENRESULT DOSFileSystem::CreateInstance(DACOMDESC* descriptor,  //)
 	// If unsupported interface requested, fail call
 	//
 		
-	if (CHECKDESCSIZE(lpInfo) == 0 || strcmp(lpInfo->interface_name, FILESYSTEM_IMPLEMENTATION_NAME))
+	if (CHECKDESCSIZE(lpInfo) == 0 || strcmp(lpInfo->interface_name, CLSID_FileSystem))
 	{
 		result = GR_INTERFACE_UNSUPPORTED;
 		goto Done;
@@ -2018,7 +2018,7 @@ extern "C"
 		{
 			if (IFileSystem* pFileSystem = CreateDOSFileSystem())
 			{
-				result = DACOM->RegisterComponent(pFileSystem, FILESYSTEM_IMPLEMENTATION_NAME, DACOM_LOW_PRIORITY);
+				result = DACOM->RegisterComponent(pFileSystem, CLSID_FileSystem, DACOM_LOW_PRIORITY);
 				pFileSystem->Release();
 			}
 		}

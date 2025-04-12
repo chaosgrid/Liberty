@@ -34,7 +34,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,
 		pFirstSystem = new DAComponent<DOSFileSystem>;
 		if ((pFirstSystem != NULL) && (DACOM = DACOM_Acquire()) != NULL)
 		{
-			DACOM->RegisterComponent(pFirstSystem, FILESYSTEM_IMPLEMENTATION_NAME, DACOM_LOW_PRIORITY);
+			DACOM->RegisterComponent(pFirstSystem, CLSID_FileSystem, DACOM_LOW_PRIORITY);
 			pFirstSystem->Release();
 		}
 		if (DACOM)

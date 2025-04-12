@@ -27,7 +27,7 @@ extern "C"
 	{
 		if (IComponentFactory* lpSystem = CreateBaseUTF())
 		{
-			DACOM->RegisterComponent(lpSystem, FILESYSTEM_IMPLEMENTATION_NAME);
+			DACOM->RegisterComponent(lpSystem, CLSID_FileSystem);
 			lpSystem->Release();
 		}
 	}
@@ -74,7 +74,7 @@ GENRESULT BaseUTF::CreateInstance(DACOMDESC* descriptor, void** instance)
 	}
 
 	// If unsupported interface requested, fail call
-	if (CHECKDESCSIZE(lpInfo) == 0 || strcmp(lpInfo->interface_name, FILESYSTEM_IMPLEMENTATION_NAME))
+	if (CHECKDESCSIZE(lpInfo) == 0 || strcmp(lpInfo->interface_name, CLSID_FileSystem))
 	{
 		result = GR_INTERFACE_UNSUPPORTED;
 		goto Done;

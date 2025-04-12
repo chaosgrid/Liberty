@@ -14,7 +14,7 @@
 typedef struct IFileSystem* LPFILESYSTEM;
 typedef long(__stdcall IFileSystem::* DAFILE_SERIAL_PROC) (void* lpContext);
 
-#define FILESYSTEM_IMPLEMENTATION_NAME "FileSystem"
+#define CLSID_FileSystem "FileSystem"
 #define IID_IFileSystem DACOM_MAKE_IID("IFileSystem")
 
 struct DAFILEDESC : public DACOMDESC
@@ -31,7 +31,7 @@ struct DAFILEDESC : public DACOMDESC
 	HANDLE					hParent;
 	HANDLE					hFindFirst;
 
-	DAFILEDESC(const C8* _file_name = NULL, const C8* _interface_name = FILESYSTEM_IMPLEMENTATION_NAME) :
+	DAFILEDESC(const C8* _file_name = NULL, const C8* _interface_name = CLSID_FileSystem) :
 		DACOMDESC(_interface_name),
 		lpImplementation(),
 		lpFileName(_file_name),
