@@ -28,24 +28,19 @@ extern "C"
 #define SoundStreamer_init sub_6EF2D80
 #define SoundStreamer_main sub_6EF35B0
 
-
-	// #pragma comment(linker, "/alternatename:_sub_6EF3E10@XXX=_sub_6EF3E10")
-	// #pragma comment(linker, "/alternatename:_sub_6EF3E20@XXX=_sub_6EF3E20")
-	// #pragma comment(linker, "/alternatename:_sub_6EF3E30@XXX=_sub_6EF3E30")
-#pragma comment(linker, "/alternatename:_sub_6EF2E00@8=_sub_6EF2E00")
-#pragma comment(linker, "/alternatename:_sub_6EF3060@16=_sub_6EF3060")
-#pragma comment(linker, "/alternatename:_sub_6EF3290@8=_sub_6EF3290")
-#pragma comment(linker, "/alternatename:_sub_6EF33F0@8=_sub_6EF33F0")
-#pragma comment(linker, "/alternatename:_sub_6EF3420@8=_sub_6EF3420")
-#pragma comment(linker, "/alternatename:_sub_6EF3470@12=_sub_6EF3470")
-#pragma comment(linker, "/alternatename:_sub_6EF34A0@12=_sub_6EF34A0")
-#pragma comment(linker, "/alternatename:_sub_6EF3530@8=_sub_6EF3530")
-#pragma comment(linker, "/alternatename:_sub_6EF3940@4=_sub_6EF3940")
-#pragma comment(linker, "/alternatename:_sub_6EF3950@4=_sub_6EF3950")
-#pragma comment(linker, "/alternatename:_sub_6EF34D0@12=_sub_6EF34D0")
-#pragma comment(linker, "/alternatename:_sub_6EF3500@12=_sub_6EF3500")
-#pragma comment(linker, "/alternatename:_sub_6EF2DB0@4=_sub_6EF2DB0")
-//#pragma comment(linker, "/alternatename:_sub_6EF2D80@XXX=_sub_6EF2D80")
+#pragma comment(linker, "/alternatename:_sub_6EF2E00@8=_sub_6EF2E00") // stdcall
+#pragma comment(linker, "/alternatename:_sub_6EF3060@16=_sub_6EF3060") // stdcall
+#pragma comment(linker, "/alternatename:_sub_6EF3290@8=_sub_6EF3290") // stdcall
+#pragma comment(linker, "/alternatename:_sub_6EF33F0@8=_sub_6EF33F0") // stdcall
+#pragma comment(linker, "/alternatename:_sub_6EF3420@8=_sub_6EF3420") // stdcall
+#pragma comment(linker, "/alternatename:_sub_6EF3470@12=_sub_6EF3470") // stdcall
+#pragma comment(linker, "/alternatename:_sub_6EF34A0@12=_sub_6EF34A0") // stdcall
+#pragma comment(linker, "/alternatename:_sub_6EF3530@8=_sub_6EF3530") // stdcall
+#pragma comment(linker, "/alternatename:_sub_6EF3940@4=_sub_6EF3940") // stdcall
+#pragma comment(linker, "/alternatename:_sub_6EF3950@4=_sub_6EF3950") // stdcall
+#pragma comment(linker, "/alternatename:_sub_6EF34D0@12=_sub_6EF34D0") // stdcall
+#pragma comment(linker, "/alternatename:_sub_6EF3500@12=_sub_6EF3500") // stdcall
+#pragma comment(linker, "/alternatename:_sub_6EF2DB0@4=_sub_6EF2DB0") // stdcall
 
 	GENRESULT __stdcall SoundStreamer_QueryInterface(SoundStreamer* _this, const C8* interface_name, void** instance);
 	U32 __stdcall SoundStreamer_AddRef(SoundStreamer* _this);
@@ -66,64 +61,10 @@ extern "C"
 	GENRESULT __stdcall SoundStreamer_Initialize(void* _this);
 	GENRESULT __thiscall SoundStreamer_init(void* _this, AGGDESC* lpDesc);
 	int __thiscall SoundStreamer_main(void* _this);
-
-	void* SoundStreamer_Vtable[] = // make sure the old type is dead
-	{
-		nullptr, // reinterpret_cast<void*>(&sub_6EF3E10), // 
-		nullptr, // reinterpret_cast<void*>(&sub_6EF3E20), // 
-		nullptr, // reinterpret_cast<void*>(&sub_6EF3E30), // 
-		nullptr, // reinterpret_cast<void*>(&sub_6EF2E00), // 
-		nullptr, // reinterpret_cast<void*>(&sub_6EF3060), // 
-		nullptr, // reinterpret_cast<void*>(&sub_6EF3290), // 
-		nullptr, // reinterpret_cast<void*>(&sub_6EF33F0), // 
-		nullptr, // reinterpret_cast<void*>(&sub_6EF3420), // 
-		nullptr, // reinterpret_cast<void*>(&sub_6EF3470), // 
-		nullptr, // reinterpret_cast<void*>(&sub_6EF34A0), // 
-		nullptr, // reinterpret_cast<void*>(&sub_6EF3530), // 
-		nullptr, // reinterpret_cast<void*>(&sub_6EF3940), // 
-		nullptr, // reinterpret_cast<void*>(&sub_6EF3950), // 
-		nullptr, // reinterpret_cast<void*>(&sub_6EF34D0), // 
-		nullptr, // reinterpret_cast<void*>(&sub_6EF3500), // 
-	};
-
-	//void sub_6EF3B80(void);
-	//void sub_6EF3DC0(void);
-	//void sub_6EF3BC0(void);
-	//void sub_6EF3BF0(void);
-	//void* DAComponentFactory_SoundStreamer_vtbl[] =
-	//{
-	//	reinterpret_cast<void*>(&sub_6EF3B80),
-	//	reinterpret_cast<void*>(&sub_6EF3DC0),
-	//	reinterpret_cast<void*>(&sub_6EF3BC0),
-	//	reinterpret_cast<void*>(&sub_6EF3BF0),
-	//};
-
-	//void sub_6EF3E70(void);
-	//void sub_6EF3E80(void);
-	//void sub_6EF3E90(void);
-	//void sub_6EF2DB0(void);
-	//void* off_6EFC1F4[] =
-	//{
-	//	reinterpret_cast<void*>(&sub_6EF3E70),
-	//	reinterpret_cast<void*>(&sub_6EF3E80),
-	//	reinterpret_cast<void*>(&sub_6EF3E90),
-	//	reinterpret_cast<void*>(&sub_6EF2DB0),
-	//};
-
-	//void sub_6EF3D00(void);
-	//void sub_6EF3DC0(void);
-	//void sub_6EF3DD0(void);
-	//void* off_6EFC240[] =
-	//{
-	//reinterpret_cast<void*>(&sub_6EF3D00),
-	//reinterpret_cast<void*>(&sub_6EF3DC0),
-	//reinterpret_cast<void*>(&sub_6EF3DD0),
-	//};
-
-	extern "C" void* data_6F010A4;
-	extern "C" void* __thiscall sub_6EF2BB0(void*);
-	extern "C" void* __cdecl sub_6EF4A65(size_t); // void *__cdecl operator new(size_t Size)
 }
+
+#define _Shutdown_SoundStreamer sub_6EF2BB0
+extern "C" void _Shutdown_SoundStreamer(SoundStreamer* pSoundStreamer);
 
 extern "C"
 {
@@ -146,7 +87,7 @@ extern "C"
 	{
 		if (global_sound_streamer)
 		{
-			NOT_IMPLEMENTED;
+			_Shutdown_SoundStreamer(global_sound_streamer);
 		}
 	}
 }
@@ -166,16 +107,15 @@ GENRESULT SoundStreamer::Initialize(void)
 
 DWORD WINAPI threadMain(LPVOID lpThreadParameter)
 {
-	int v2; // esi
+	HRESULT result = 0;
+	if (SUCCEEDED(result = CoInitialize(NULL)))
+	{
+		SoundStreamer* pSoundStreamer = reinterpret_cast<SoundStreamer*>(lpThreadParameter);
+		result = pSoundStreamer->main();
 
-	if ((unsigned int)CoInitialize(0) >= 2)
-		return 0;
-
-	SoundStreamer* pSoundStreamer = reinterpret_cast<SoundStreamer*>(lpThreadParameter);
-	pSoundStreamer->main();
-
-	CoUninitialize();
-	return v2;
+		CoUninitialize();
+	}
+	return static_cast<DWORD>(result);
 }
 
 BOOL32 SoundStreamer::Init(STREAMERDESC* desc)
@@ -312,7 +252,8 @@ SoundStreamer::SoundStreamer()
 
 SoundStreamer::~SoundStreamer()
 {
-	NOT_IMPLEMENTED;
+	// does this even do anything??????
+	// NOT_IMPLEMENTED;
 }
 
 GENRESULT SoundStreamer::init(AGGDESC* lpDesc)
