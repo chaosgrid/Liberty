@@ -219,9 +219,8 @@ DWORD SoundStreamer::GetSomethingB()
 
 BOOL32 SoundStreamer::SetSomethingC(HSTREAM hStream, DWORD arg)
 {
-	NOT_IMPLEMENTED;
-	//DWORD result = SoundStreamer_SetSomethingC(this, hStream, arg);
-	//return result;
+	DWORD result = SoundStreamer_SetSomethingC(this, hStream, arg);
+	return result;
 }
 
 BOOL32 SoundStreamer::GetSomethingC(HSTREAM hStream, DWORD* arg)
