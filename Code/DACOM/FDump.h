@@ -520,3 +520,10 @@ extern "C"
 #define CHECKPARAM(sev,exp)  BADPARAM_##sev(exp)
 
 #endif  /* USE_CHECKPARAM */
+
+#define NOT_IMPLEMENTED \
+	_Pragma("clang diagnostic push") \
+	_Pragma("clang diagnostic ignored \"-Wexceptions\"") \
+	GENERAL_NOTICE("NOT_IMPLEMENTED"); \
+	__debugbreak(); throw 0; \
+	_Pragma("clang diagnostic pop")

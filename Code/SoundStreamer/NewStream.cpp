@@ -1,10 +1,9 @@
-#include <Windows.h>
+
+
+
+#include "NewStream.h"
+
 #include <PCH.h>
-#include <mmreg.h>
-#include <mmsystem.h>
-#include <MSAcm.h>
-#include <string.h>
-#include <DACOM.h>
 #include <FDump.h>
 
 #define hACMDriver data_6F010A0
