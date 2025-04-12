@@ -16,7 +16,11 @@
 #endif
 
 #define debug_point { static int _debug_point; (void)(_debug_point++); } 
-#define NOT_IMPLEMENTED __debugbreak(); throw 0;
+#define NOT_IMPLEMENTED \
+	_Pragma("clang diagnostic push") \
+	_Pragma("clang diagnostic ignored \"-Wexceptions\"") \
+	__debugbreak(); throw 0; \
+	_Pragma("clang diagnostic pop")
 #define unused(expression) debug_point; (void)(expression)
 
 #include <Core/fatal.h>

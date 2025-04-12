@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Core/core.h>
+#include <Core/Core.h>
 
 #ifndef DACOM_DEC
 #define DACOM_DEC __declspec(dllimport)

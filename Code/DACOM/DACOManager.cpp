@@ -223,12 +223,6 @@ GENRESULT DACOManager::RegisterComponent(IComponentFactory* component, //)
 
 	++registration_cnt;
 
-	if (strcmp(interface_name, "FileSystem") == 0)
-	{
-		DAComponentFactoryBase<void, void>* x = (decltype(x))component;
-		debug_point;
-	}
-
 	const char* priority_string = "CUSTOM";
 	switch (priority)
 	{

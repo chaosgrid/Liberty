@@ -66,7 +66,7 @@ struct DACOM_NO_VTABLE IComponentFactory : public IDAComponent
 	DACOM_DEFMETHOD(CreateInstance) (DACOMDESC* descriptor, void** instance) = 0;
 };
 
-#define IID_IAggregateComponent "IAggregateComponent"
+#define IID_IAggregateComponent DACOM_MAKE_IID("IAggregateComponent")
 DACOM_INTERFACE(IAggregateComponent, IID_IAggregateComponent);
 // Abstract class from which all aggregatable classes inherit
 struct DACOM_NO_VTABLE IAggregateComponent : public IDAComponent

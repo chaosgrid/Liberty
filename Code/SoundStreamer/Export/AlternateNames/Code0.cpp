@@ -137,7 +137,7 @@
 #pragma comment(linker, "/alternatename:_sub_6EF4592=__sub_6EF4592")
 #pragma comment(linker, "/alternatename:__cfltcvt_init=_sub_6EF4593")
 #pragma comment(linker, "/alternatename:_sub_6EF4593=__sub_6EF4593")
-#pragma comment(linker, "/alternatename:_malloc=_sub_6EF45CB")
+//#pragma comment(linker, "/alternatename:_malloc=_sub_6EF45CB")
 #pragma comment(linker, "/alternatename:_sub_6EF45CB=__sub_6EF45CB")
 #pragma comment(linker, "/alternatename:__nh_malloc=_sub_6EF45DD")
 #pragma comment(linker, "/alternatename:_sub_6EF45DD=__sub_6EF45DD")

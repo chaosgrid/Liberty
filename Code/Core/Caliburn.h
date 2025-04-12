@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Core/core.h>
+#include <Core/Core.h>
 
 #include <stdio.h>
 
