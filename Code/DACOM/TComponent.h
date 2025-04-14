@@ -433,3 +433,37 @@ U32 DAComponentAggregate< Base >::Release(void)
 {
 	return outerComponent->Release();
 }
+
+//--------------------------------------------------------------------------//
+// Debug version of DAComponentAggregate
+//
+template <class Base>
+struct DADebugComponentAggregate : public DAComponentAggregate<Base>
+{
+	DADebugComponentAggregate(struct AGGDESC* desc) : DAComponentAggregate<Base>(desc)
+	{
+		
+	}
+
+	DACOM_DEFMETHOD_(U32, AddRef)(void)
+	{
+		U32 ret = DAComponentAggregate<Base>::AddRef();
+
+		GENERAL_TRACE_1(TEMPSTR("AddRef %d\n", ret));
+
+		return ret;
+	}
+
+	//
+
+	DACOM_DEFMETHOD_(U32, Release)(void)
+	{
+		U32 ret = DAComponentAggregate<Base>::Release();
+
+		GENERAL_TRACE_1(TEMPSTR("RelRef %d\n", ret));
+
+		return ret;
+	}
+
+	//
+};
