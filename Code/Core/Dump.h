@@ -35,7 +35,7 @@ template<long long address> int ___rva_func(int offset);
 
 //#define __ptr(a, offset) reinterpret_cast<void*>(reinterpret_cast<char*>(a) + offset)
 //#define __rva(address, offset) static_cast<int>((reinterpret_cast<char*>(address) + offset) - reinterpret_cast<char*>(&__ImageBase))
-#define _extern_c extern "C"
+#define _extern extern "C"
 #define _naked __attribute__((naked))
 #define _weak /*__attribute__((weak))*/
 #define _alias(symbol) __attribute__((alias(symbol)));
