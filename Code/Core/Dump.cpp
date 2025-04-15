@@ -108,7 +108,9 @@ extern "C"
 	void* __imp(const char* module_name, const char* proc_name)
 	{
 		FARPROC proc = NULL;
-		HMODULE module_handle = LoadLibraryA(module_name);
+		HMODULE module_handle = GetModuleHandleA(module_name);
+		if (module_handle == NULL)
+			module_handle = LoadLibraryA(module_name);
 		if (module_handle == NULL)
 		{
 			printf("Import> Failed to load library '%s'\n", module_name);
@@ -129,7 +131,9 @@ extern "C"
 	void* __ord(const char* module_name, uint32_t ordinal)
 	{
 		FARPROC proc = NULL;
-		HMODULE module_handle = LoadLibraryA(module_name);
+		HMODULE module_handle = GetModuleHandleA(module_name);
+		if (module_handle == NULL)
+			module_handle = LoadLibraryA(module_name);
 		if (module_handle == NULL)
 		{
 			printf("Ordinal> Failed to load library '%s'\n", module_name);
