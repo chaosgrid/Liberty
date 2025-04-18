@@ -1,0 +1,188 @@
+#pragma once
+
+#include <FLHookCore.h>
+
+#include "Unknown.hpp"
+
+#include "CObjects/CObject.hpp"
+#include "IObject/IObjectInspect.hpp"
+
+COMMON_DEC bool operator!=(const Rect&, const Rect&);
+
+COMMON_DEC void AppendMissionLogData(const FmtStr*, unsigned char*&, int&, int);
+COMMON_DEC unsigned int Arch2Good(unsigned int);
+COMMON_DEC void BaseDataList_destroy();
+COMMON_DEC BaseDataList* BaseDataList_get();
+COMMON_DEC void BaseDataList_load();
+COMMON_DEC void BaseDataList_load_market_data(const char*);
+COMMON_DEC void BuildDirectory(const char*);
+COMMON_DEC float CHATTER_MAX_DIST;
+COMMON_DEC float CHATTER_MAX_DIST_ATTEN;
+COMMON_DEC float CHATTER_START_ATTEN;
+COMMON_DEC float COLLISION_DAMAGE_FACTOR;
+COMMON_DEC int COMM_CONFLICT_PRIORITY_CUTOFF;
+COMMON_DEC float COMM_PLAYER_FAR_DIST;
+COMMON_DEC float COMM_PLAYER_FAR_DIST_ATTEN;
+COMMON_DEC class Behavior* CREATE_BEHAVIOR(int);
+COMMON_DEC void CleanUpDatabases();
+COMMON_DEC void CompoundInstanceAnalyze(long, void (*)(long, void*), void*);
+COMMON_DEC int CompoundInstanceCount(long);
+COMMON_DEC long CompoundInstanceFindFirstName(long, const char*);
+COMMON_DEC void CompoundInstanceList(long, int*, long**);
+COMMON_DEC void ComputeExplosiveImpulses(long, FLHookCore::Vector&, FLHookCore::Vector&, FLHookCore::Vector&);
+COMMON_DEC bool CostumeGenderAdjust(int*, int);
+COMMON_DEC bool Costume_is_equal(const struct Costume&, const struct Costume&);
+COMMON_DEC unsigned int CreateID(const char*);
+
+COMMON_DEC float Csys_error(const Csys&, const Csys&);
+COMMON_DEC Csys Csys_identity();
+COMMON_DEC Csys Csys_init(const FLHookCore::Vector&, const FLHookCore::Matrix&);
+COMMON_DEC Csys Csys_interpolate(Csys, Csys, float);
+
+COMMON_DEC void DAEngine_create_filesystem(const char*, struct IFileSystem**, const char*);
+COMMON_DEC void DAEngine_release_filesystem(IFileSystem**);
+COMMON_DEC Csys DALib_Engine_get_csys(long);
+COMMON_DEC void DALib_Engine_set_csys(long, const Csys&);
+
+COMMON_DEC ID_String DEATH_COMM_FUSE;
+COMMON_DEC double DaysPerSecond;
+COMMON_DEC void DebugPrint(const char*, ...);
+COMMON_DEC unsigned int DecodeType(const char*);
+COMMON_DEC FLHookCore::Matrix EulerMatrix(const FLHookCore::Vector&);
+COMMON_DEC void ExtractMissionLogData(FmtStr*, unsigned char*&, int&);
+COMMON_DEC float FIRE_FAILED_DELAY;
+COMMON_DEC ID_String FIRE_FAILED_SOUND;
+
+struct HardpointInfo;
+COMMON_DEC long FindChild(long, const char*);
+COMMON_DEC bool FindHardpoint(long, const char*, long&);
+COMMON_DEC bool FindHardpoint_OS(long, const char*, long&, HardpointInfo&);
+COMMON_DEC bool FindHardpoint_PS(long, const char*, long&, HardpointInfo&);
+COMMON_DEC void FreeCostumeDescriptions();
+COMMON_DEC void FreeSpatial(ISpatialPartition*);
+COMMON_DEC bool FrustumCull(const Geometry::Frustum&, const Universe::IZone*);
+COMMON_DEC IBehaviorManager* GetBehaviorManager(IObjRW*);
+COMMON_DEC const CostumeDescriptions* GetCostumeDescriptions();
+COMMON_DEC FLHookCore::Matrix GetDirectionMatrix(const FLHookCore::Transform&, const FLHookCore::Vector&);
+COMMON_DEC void GetFileSysPath(char*, const char*, IFileSystem*);
+COMMON_DEC const char* GetFullFilename(const char*);
+COMMON_DEC long GetRoot(long);
+COMMON_DEC CObject* GetRoot(const CObject*);
+COMMON_DEC bool GetScreenShotPath(char* const);
+COMMON_DEC float GetSphereIntersectVol(float, float, float);
+COMMON_DEC bool GetUserDataPath(char* const);
+COMMON_DEC bool GetUserLocalDataPath(char* const);
+COMMON_DEC void GiveClientRunPermission();
+COMMON_DEC void GiveServerRunPermission();
+COMMON_DEC unsigned int Good2Arch(unsigned int);
+COMMON_DEC void GoodList_destroy();
+COMMON_DEC GoodInfoList* GoodList_get();
+COMMON_DEC void GoodList_load(const char*);
+COMMON_DEC bool HardpointPosition(long, const char*, FLHookCore::Vector*, FLHookCore::Matrix*);
+COMMON_DEC bool HardpointPositionA(long, const char*, FLHookCore::Vector*, FLHookCore::Matrix*);
+COMMON_DEC void HardpointToObject(long, HardpointInfo&);
+COMMON_DEC void HardpointToWorld(long, HardpointInfo&);
+COMMON_DEC void HexToWide(const char*, unsigned short*);
+COMMON_DEC bool InitializeRichText(int);
+COMMON_DEC bool IsDescendant(long, long);
+COMMON_DEC bool IsMPServer();
+COMMON_DEC float JETTISONED_CARGO_VELOCITY;
+COMMON_DEC bool JointEnumCallback(long, long, const struct JointInfo*, void*);
+COMMON_DEC float LOOT_OWNER_SAFE_TIME;
+COMMON_DEC float LOOT_UNSEEN_LIFE_TIME;
+COMMON_DEC float LOOT_UNSEEN_RADIUS;
+COMMON_DEC bool LayoutRichText(TextRenderContext&, const RenderDisplayList&, int, RenderDisplayList&, int, int, bool, int*, bool);
+COMMON_DEC void LoadBodypartDescriptions(const char*);
+COMMON_DEC void LoadCostumeDescriptions(const char*);
+COMMON_DEC FLHookCore::Matrix LookMatrix(const FLHookCore::Vector&);
+COMMON_DEC FLHookCore::Matrix LookMatrixYup(const FLHookCore::Vector&);
+COMMON_DEC int MAX_PLAYER_AMMO;
+COMMON_DEC float MUSIC_CROSS_FADE_DELAY;
+COMMON_DEC float MUZZLE_CONE_ANGLE;
+COMMON_DEC unsigned short MakeId(const char*);
+COMMON_DEC unsigned int MakeLocationID(unsigned int, const char*);
+COMMON_DEC ISpatialPartition* NewSpatial(const char*);
+COMMON_DEC int NumHardpoints(long, bool);
+COMMON_DEC float PLAYER_ATTACHED_EQUIP_HIT_PTS_SCALE;
+COMMON_DEC float PLAYER_COLLISION_GROUP_HIT_PTS_SCALE;
+COMMON_DEC int PackMissionLogData(int, const FmtStr*, unsigned char*, int);
+COMMON_DEC _GUID* ParseGUID(const char*, _GUID*);
+COMMON_DEC double ParseNumber(const char*);
+COMMON_DEC void PetalDB_destroy();
+COMMON_DEC const PetalInterfaceDatabase* PetalDB_get();
+COMMON_DEC void PetalDB_load(const char*);
+COMMON_DEC bool PlayerTrailAvailable;
+COMMON_DEC Rect RECT_to_Rect(const struct tagRECT&);
+COMMON_DEC FLHookCore::Vector RandomVector(float);
+COMMON_DEC FLHookCore::Vector random_inside_box(float, float, float);
+COMMON_DEC FLHookCore::Vector random_inside_cylinder(float, float);
+COMMON_DEC FLHookCore::Vector random_inside_ellipsoid(float, float, float);
+COMMON_DEC FLHookCore::Vector random_inside_ring(float, float, float);
+COMMON_DEC FLHookCore::Vector random_inside_sphere(float);
+COMMON_DEC FLHookCore::Vector random_on_unit_sphere();
+COMMON_DEC FLHookCore::Vector random_sphere_constrained(const FLHookCore::Vector&, float);
+COMMON_DEC FLHookCore::Vector random_sphere_constrained_2(const FLHookCore::Vector&, float, float);
+COMMON_DEC bool ReadConstants(const char*);
+COMMON_DEC struct tagRECT Rect_to_RECT(const Rect&);
+COMMON_DEC struct ViewRect Rect_to_ViewRect(const Rect&);
+COMMON_DEC void RefreshLoadingProgress();
+COMMON_DEC void RegisterLoadingScreen(class ILoadingScreen*);
+COMMON_DEC void ReinitializeRichTextFonts();
+COMMON_DEC FLHookCore::Matrix RotateMatrix(const FLHookCore::Vector&);
+//@@@TODO COMMON_DEC unsigned int const  SMM_CHANGE_STATE;
+//@@@TODO COMMON_DEC unsigned int const  SMM_TIMEOUT;
+COMMON_DEC ID_String SND_CARGO_JETTISONED;
+//@@@TODO COMMON_DEC unsigned short const  SUBOBJ_ID_NONE;
+//@@@TODO COMMON_DEC unsigned short const  SUBOBJ_ID_POWER;
+//@@@TODO COMMON_DEC unsigned short const  SUBOBJ_ID_ROOT;
+COMMON_DEC unsigned long SafeWaitForSingleObject(void*, unsigned long);
+COMMON_DEC void SetIsMPServer(bool);
+COMMON_DEC void SetMultPlayer(bool);
+COMMON_DEC void SetStandardFont(int, const TextRenderContext::FontDesc&);
+COMMON_DEC void ShutdownRichText();
+COMMON_DEC bool SinglePlayer();
+COMMON_DEC ID_String SpaceflightLocationID;
+COMMON_DEC bool SphereCull(const Geometry::Sphere&, const Universe::IZone*);
+COMMON_DEC char* StringAlloc(const char*, bool);
+COMMON_DEC const char* StringIndex(const char*, unsigned int);
+COMMON_DEC void StringShutdown();
+COMMON_DEC unsigned long ThornGetRenderType(const struct ThornEntity*, const char*);
+COMMON_DEC bool ThornGetUserFloat(struct IScriptEngine*, int, const char*, float*);
+COMMON_DEC bool ThornGetUserInt(IScriptEngine*, int, const char*, int*);
+COMMON_DEC const char* ThornGetUserString(IScriptEngine*, int, const char*);
+COMMON_DEC void ThornScriptDestroy(IScriptEngine**);
+COMMON_DEC Csys ThornScriptGetCsys(IScriptEngine*, const char*);
+COMMON_DEC IScriptEngine* ThornScriptLoad(const char*);
+COMMON_DEC void ToggleIceCap(bool);
+COMMON_DEC double ValueNum(const char*, unsigned int);
+COMMON_DEC Rect ViewRect_to_Rect(const ViewRect&);
+COMMON_DEC float WALLA_MAX_DIST;
+COMMON_DEC float WALLA_MAX_DIST_ATTEN;
+COMMON_DEC int WALLA_PRIORITY_CUTOFF;
+COMMON_DEC float WALLA_START_ATTEN;
+COMMON_DEC void WaitForClientRunPermission();
+COMMON_DEC void WaitForServerRunPermission();
+COMMON_DEC void WideToHex(const unsigned short*, char*);
+
+COMMON_DEC int add_good_item(unsigned int, int, float, float, bool, GoodDescList*);
+COMMON_DEC bool arch_is_combinable(unsigned int);
+COMMON_DEC const unsigned short* filetime_to_wstring(struct _FILETIME const&);
+//@@@ COMMON_DEC struct GoodDesc *  find_good_item(struct GoodDescList *,unsigned int,class MetaNode<struct GoodDesc> * *);
+COMMON_DEC long get_projected_bounding_box(struct ICamera*, const FLHookCore::Vector&, float, ViewRect*, float&);
+COMMON_DEC long get_projected_bounding_sphere(ICamera*, const FLHookCore::Vector&, float, float&, float&, float&, float&);
+COMMON_DEC int lex_compare(const RenderDisplayList&, const RenderDisplayList&, bool);
+COMMON_DEC const char* malloc_strcpy(char**, const char*);
+COMMON_DEC void malloc_strfree(char**);
+COMMON_DEC const unsigned short* malloc_wstrcpy(unsigned short**, const unsigned short*);
+COMMON_DEC void malloc_wstrfree(unsigned short**);
+COMMON_DEC Rect rect_intersect(const Rect&, const Rect&);
+COMMON_DEC Rect rect_union(const Rect&, const Rect&);
+COMMON_DEC int remove_good_item(unsigned int, int, GoodDescList*);
+COMMON_DEC char* safe_strcat(char*, int, const char*);
+COMMON_DEC char* safe_strcpy(char*, int, const char*);
+COMMON_DEC unsigned short* safe_wcscpy(unsigned short*, int, const unsigned short*);
+COMMON_DEC unsigned long select_option_from_string(char*, const option_spec* const, int, const char*);
+COMMON_DEC bool strequal(const char*, const char*);
+
+inline CObject* BaseWatcherToCObject(BaseWatcher* basewatcher) { return reinterpret_cast<CObject*>(basewatcher) + 2; }
+inline IObjRW* BaseWatcherToIObjRW(BaseWatcher* basewatcher) { return reinterpret_cast<IObjRW*>(basewatcher) - 2; };
