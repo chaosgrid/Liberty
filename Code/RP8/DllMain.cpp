@@ -23,7 +23,10 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
 	BOOL Result = EntryPoint(hinstDLL, fdwReason, lpvReserved); // CRT Initialization
 
-	Register_RenderPipeline();
+	if (fdwReason == DLL_PROCESS_ATTACH)
+	{
+		Register_RenderPipeline();
+	}
 
 	return Result;
 }
