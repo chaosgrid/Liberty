@@ -17,6 +17,7 @@
 
 #define debug_point { static int _debug_point; (void)(_debug_point++); } 
 #define unused(expression) debug_point; (void)(expression)
+#define UNKNOWN unsigned int
 
 #ifdef __INTELLISENSE__
 // Shut the fuck up IntelliSense

@@ -117,6 +117,31 @@ function(dxsdk_install)
 endfunction()
 dxsdk_install()
 
+include(FetchContent)
+FetchContent_Declare(
+  directx8
+  GIT_REPOSITORY "https://github.com/edgeforce/directx8.git"
+  GIT_TAG "msdx8"
+)
+# This will clone (if needed) and add the source tree
+FetchContent_MakeAvailable(directx8)
+
+set(DIRECTX8_BIN_DIR "${directx8_SOURCE_DIR}/bin")
+set(DIRECTX8_LIB_DIR "${directx8_SOURCE_DIR}/lib")
+set(DIRECTX8_INCLUDE_ORIGINAL_DIR "${directx8_SOURCE_DIR}/include")
+
+# Need to make a new DIR with headers excluded as they conflict with modern Windows headers
+set(DIRECTX8_INCLUDE_DIR "${directx8_SOURCE_DIR}/include-new")
+ # ensure the target folder exists
+file(MAKE_DIRECTORY "${DIRECTX8_INCLUDE_DIR}")
+# copy only the three headers
+file(COPY 
+  "${DIRECTX8_INCLUDE_ORIGINAL_DIR}/d3d8.h"
+  "${DIRECTX8_INCLUDE_ORIGINAL_DIR}/d3d8caps.h"
+  "${DIRECTX8_INCLUDE_ORIGINAL_DIR}/d3d8types.h"
+  DESTINATION "${DIRECTX8_INCLUDE_DIR}"
+)
+
 # Global output directories for binaries and libraries
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
@@ -288,6 +313,8 @@ function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDI
         endif()
         if(CMAKE_VS_PLATFORM_NAME STREQUAL "Win32")
             target_link_directories(${TARGET_NAME} PRIVATE "${DXSDK_LIB_DIR}/x86")
+            target_link_directories(${TARGET_NAME} PRIVATE "${DIRECTX8_LIB_DIR}")
+            target_include_directories(${TARGET_NAME} PRIVATE "${DIRECTX8_INCLUDE_DIR}")
         elseif(CMAKE_VS_PLATFORM_NAME STREQUAL "x64")
             target_link_directories(${TARGET_NAME} PRIVATE "${DXSDK_LIB_DIR}/x64")
         else()
@@ -492,7 +519,7 @@ target_link_libraries(SoundManager Core DACOM ReadFile MSAcm32.Lib Winmm.lib)
 target_link_libraries(Shading Core)
 target_link_libraries(Server Core)
 target_link_libraries(RPCLocal Core)
-target_link_libraries(RP8 Core)
+target_link_libraries(RP8 Core DACOM d3d8.lib)
 target_link_libraries(RendComp Core)
 
 add_dependencies(FreeLancer 
