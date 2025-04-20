@@ -25,7 +25,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 
 	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
-		Register_RenderPipeline();
+		Register_DirectX8();
+		Register_NewRenderPipeline();
 	}
 
 	return Result;

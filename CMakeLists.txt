@@ -24,124 +24,6 @@ if(NOT CMAKE_VS_PLATFORM_NAME STREQUAL "Win32")
     message(FATAL_ERROR "Platform must be Win32 CMAKE_VS_PLATFORM_NAME=${CMAKE_VS_PLATFORM_NAME}" )
 endif()
 
-# Download nuget.exe if it doesn't exist
-if(NOT EXISTS ${NUGET_EXECUTABLE})
-    message(STATUS "Downloading nuget.exe...")
-    file(DOWNLOAD ${NUGET_URL} ${NUGET_EXECUTABLE} SHOW_PROGRESS)
-endif()
-
-# Specify the NuGet package details
-set(NUGET_PACKAGE_DIR "${CMAKE_BINARY_DIR}/nuget_packages")
-function(nuget_install PACKAGE_DIR package_name package_version)
-    block(SCOPE_FOR VARIABLES)
-        set(installed_package_path "${NUGET_PACKAGE_DIR}/${package_name}.${package_version}")
-        set(${PACKAGE_DIR} "${installed_package_path}")
-
-         # Check if the package is already installed
-        if(EXISTS "${installed_package_path}")
-            message(STATUS "Already installed ${package_name} version ${package_version}.")
-            return(PROPAGATE ${PACKAGE_DIR})
-        endif()
-    
-        execute_process(
-            COMMAND ${NUGET_EXECUTABLE} install ${package_name} -Version ${package_version} -OutputDirectory ${NUGET_PACKAGE_DIR}
-            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-            RESULT_VARIABLE result
-            OUTPUT_VARIABLE output
-            ERROR_VARIABLE error)
-
-        # Check for success
-        if(result EQUAL 0)
-            message(STATUS "Successfully installed ${package_name} version ${package_version}.")
-        else()
-            message(FATAL_ERROR "Failed to install ${package_name}. Error: ${error}")
-        endif()
-
-        return(PROPAGATE ${PACKAGE_DIR})
-    endblock()
-endfunction()
-
-# Specify the DxSDK executable URL
-set(DXSDK_URL "https://download.microsoft.com/download/a/e/7/ae743f1f-632b-4809-87a9-aa1bb3458e31/DXSDK_Jun10.exe")
-set(DXSDK_EXECUTABLE "${CMAKE_BINARY_DIR}/DXSDK_Jun10.exe")
-
-# Download DXSDK_Jun10.exe if it doesn't exist
-if(NOT EXISTS ${DXSDK_EXECUTABLE})
-    message(STATUS "Downloading DirectX SDK")
-    file(DOWNLOAD ${DXSDK_URL} ${DXSDK_EXECUTABLE} SHOW_PROGRESS)
-endif()
-
-# Specify the DxSDK package details
-set(DXSDK_DIR "${CMAKE_BINARY_DIR}/DXSDK")
-set(DXSDK_LIB_DIR "${DXSDK_DIR}/Lib")
-set(DXSDK_INCLUDE_DIR "${DXSDK_DIR}/Include")
-function(dxsdk_install)
-    block(SCOPE_FOR VARIABLES)
-         # Check if already installed
-        if(EXISTS "${DXSDK_LIB_DIR}")
-            if(EXISTS "${DXSDK_INCLUDE_DIR}")
-                message(STATUS "Already installed DirectX SDK.")
-                return()
-            endif()
-        endif()
-        
-        find_program(SEVENZIP_EXECUTABLE
-          NAMES 7z 7za 7z.exe 7za.exe
-          HINTS ENV PATH
-                "$ENV{ProgramFiles}/7-Zip"
-                "$ENV{ProgramFiles\(x86\)}/7-Zip")
-        message(STATUS "${SEVENZIP_EXECUTABLE}")
-
-        if(SEVENZIP_EXECUTABLE)
-          message(STATUS "Found 7-Zip at ${SEVENZIP_EXECUTABLE}")
-        else()
-          message(FATAL_ERROR "7-Zip executable not found. Please install 7-Zip and ensure it is in your PATH or in the expected Program Files directories.")
-        endif()
-
-        execute_process(
-            COMMAND ${SEVENZIP_EXECUTABLE} "x" "${DXSDK_EXECUTABLE}" "-aoa" "-o${CMAKE_BINARY_DIR}" "DXSDK/Lib" "DXSDK/Include"
-            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-            RESULT_VARIABLE result
-            OUTPUT_VARIABLE output
-            ERROR_VARIABLE error)
-
-        # Check for success
-        if(result EQUAL 0)
-            message(STATUS "Successfully installed DirectX SDK.")
-        else()
-            message(FATAL_ERROR "Failed to install DirectX SDK. Error: ${error}")
-        endif()
-
-        return()
-    endblock()
-endfunction()
-dxsdk_install()
-
-include(FetchContent)
-FetchContent_Declare(
-  directx8
-  GIT_REPOSITORY "https://github.com/edgeforce/directx8.git"
-  GIT_TAG "msdx8"
-)
-# This will clone (if needed) and add the source tree
-FetchContent_MakeAvailable(directx8)
-
-set(DIRECTX8_BIN_DIR "${directx8_SOURCE_DIR}/bin")
-set(DIRECTX8_LIB_DIR "${directx8_SOURCE_DIR}/lib")
-set(DIRECTX8_INCLUDE_ORIGINAL_DIR "${directx8_SOURCE_DIR}/include")
-
-# Need to make a new DIR with headers excluded as they conflict with modern Windows headers
-set(DIRECTX8_INCLUDE_DIR "${directx8_SOURCE_DIR}/include-new")
- # ensure the target folder exists
-file(MAKE_DIRECTORY "${DIRECTX8_INCLUDE_DIR}")
-# copy only the three headers
-file(COPY 
-  "${DIRECTX8_INCLUDE_ORIGINAL_DIR}/d3d8.h"
-  "${DIRECTX8_INCLUDE_ORIGINAL_DIR}/d3d8caps.h"
-  "${DIRECTX8_INCLUDE_ORIGINAL_DIR}/d3d8types.h"
-  DESTINATION "${DIRECTX8_INCLUDE_DIR}"
-)
-
 # Global output directories for binaries and libraries
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
@@ -313,8 +195,7 @@ function(add_liberty_project TARGET_NAME TARGET_TYPE TARGET_FOLDERS TARGET_SUBDI
         endif()
         if(CMAKE_VS_PLATFORM_NAME STREQUAL "Win32")
             target_link_directories(${TARGET_NAME} PRIVATE "${DXSDK_LIB_DIR}/x86")
-            target_link_directories(${TARGET_NAME} PRIVATE "${DIRECTX8_LIB_DIR}")
-            target_include_directories(${TARGET_NAME} PRIVATE "${DIRECTX8_INCLUDE_DIR}")
+            target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Code/RP8/DirectX")
         elseif(CMAKE_VS_PLATFORM_NAME STREQUAL "x64")
             target_link_directories(${TARGET_NAME} PRIVATE "${DXSDK_LIB_DIR}/x64")
         else()
@@ -519,7 +400,7 @@ target_link_libraries(SoundManager Core DACOM ReadFile MSAcm32.Lib Winmm.lib)
 target_link_libraries(Shading Core)
 target_link_libraries(Server Core)
 target_link_libraries(RPCLocal Core)
-target_link_libraries(RP8 Core DACOM d3d8.lib)
+target_link_libraries(RP8 Core DACOM)
 target_link_libraries(RendComp Core)
 
 add_dependencies(FreeLancer 

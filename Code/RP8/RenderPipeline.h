@@ -5,7 +5,7 @@
 
 #include <DACOM.h>
 
-#include <d3d8types.h>
+#include <d3d8.h>
 
 //--------------------------------------------------------------------------//
 //--------------------------IRenderPipeline8B Interface---------------------//
@@ -26,40 +26,68 @@ typedef struct IRenderPipeline8B* LPRENDERPIPELINE;
 
 enum RPPIPELINESTATE
 {
-	RPPIPELINESTATE_0,
-	RPPIPELINESTATE_1,
-	RPPIPELINESTATE_2,
-	RPPIPELINESTATE_3,
-	RPPIPELINESTATE_4,
-	RPPIPELINESTATE_5,
-	RPPIPELINESTATE_6,
-	RPPIPELINESTATE_7,
+	RP_TEXTURE,
+	RP_LIGHTING,
+	RP_TEXTURE_LOD,
+	RP_TEXTURE_ALLOW_8BIT,
+	RP_TEXTURE_ALLOW_32BIT,
+	RP_TEXTURE_ALLOW_DXT,
+	RP_BROKEN_MULTITEXTURE,
+	RP_VIEWSPACE_LIGHTS,
 	RP_CLEAR_COLOR,
-	RP_CLEAR_DEPTH,
+	RP_CLEAR_ZDEPTH,
 	RP_CLEAR_STENCIL,
-	RPPIPELINESTATE_11,
-	RPPIPELINESTATE_12,
-	RPPIPELINESTATE_13,
+	RP_STATE_CACHE,
+	RP_BROKEN_MOD2X,
+	RP_BROKEN_FLIP,
 	RP_MAX_PIPELINE_STATE
 };
 
 enum RPDEVICEABILITY
 {
-	RP_A_MAX_ABILITY = 0x15,
+	RP_A_ABILITY0,
+	RP_A_D3DPRASTERCAPS_ANISOTROPY,
+	RP_A_D3DPRASTERCAPS_WFOG,
+	RP_A_ABILITY3,
+	RP_A_DEVICE_GEOMETRY, // DEVICE_GEOMETRY
+	RP_A_TEXTURE_SQUARE_ONLY, // TEXTURE_SQUARE_ONLY
+	RP_A_TEXTURE_MAX_WIDTH, // TEXTURE_MAX_WIDTH
+	RP_A_TEXTURE_MAX_HEIGHT, // TEXTURE_MAX_HEIGHT
+	RP_A_TEXTURE_CUBEMAPS, // TEXTURE_CUBEMAPS
+	RP_A_DEPTH_BIAS, // DEPTH_BIAS
+	RP_A_FOG_VERTEX, // FOG_VERTEX
+	RP_A_FOG_PIXEL, // FOG_PIXEL
+	RP_A_FOG_RANGE, // FOG_RANGE
+	RP_A_FOG_W, // FOG_W
+	RP_A_RASTER_ANTIALIASEDGES, // RASTER_ANTIALIASEDGES
+	RP_A_DEVICE_SUPPORT_LEVEL, // DEVICE_SUPPORT_LEVEL
+	RP_A_TEXTURE_TRILINEAR, // TEXTURE_TRILINEAR
+	RP_A_DEVICE_BAD_MODE, // DEVICE_BAD_MODE
+	RP_A_DEVICE_BAD_4444, // DEVICE_BAD_4444
+	RP_A_DEVICE_NO_PARALLELISM,
+	RP_A_MAX_ABILITY
 };
+static_assert(RP_A_MAX_ABILITY == 20);
 
 struct RPDEVICEINFO
 {
-	char unknown0[1312]; // 0x520
+	D3DADAPTER_IDENTIFIER8 direct3d_adapter_identifier;
+	D3DDISPLAYMODE direct3d_display_mode;
+	D3DCAPS8 direct3d_caps;
+	DWORD unknown510;
+	DWORD unknown514;
+	DWORD unknown518;
+	DWORD unknown51C;
 };
+static_assert(sizeof(RPDEVICEINFO) == 0x520);
 
 struct RPDISPLAYMODEINFO
 {
 	U32 mode_num;
 	U32 width;
 	U32 height;
+	U32 refresh_rate;
 	PixelFormat render_pf;
-	UNKNOWN unknown10;
 };
 
 struct RPBUFFERSINFO
@@ -792,8 +820,10 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 
 extern "C"
 {
-	RP8_DEC IComponentFactory* CreateRenderPipelineFactory();
-	RP8_DEC void Register_RenderPipeline();
+	RP8_DEC IComponentFactory* CreateDirectX8Factory();
+	RP8_DEC IComponentFactory* CreateNewRenderPipelineFactory();
+	RP8_DEC void Register_DirectX8();
+	RP8_DEC void Register_NewRenderPipeline();
 }
 
 #endif

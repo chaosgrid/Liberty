@@ -7,9 +7,27 @@
 #include "RPTexture.h"
 #include "RPInternal.h"
 
+#include <IProfileParser_Utility.h>
+
 #include <d3d8.h>
 
 #include <Dump.h>
+
+#define uint U32
+#define st6_malloc_t decltype(&malloc)
+#define st6_free_t decltype(&free)
+#include <FLHook_st6.h>
+const st6_malloc_t st6_malloc = &malloc;
+const st6_free_t st6_free = &free;
+
+#define CHECK_STARTUP() \
+if (direct3d_adapter == -1) \
+{ \
+	GENERAL_ERROR(TEMPSTR("%s() called outside of startup/shutdown", __FUNCTION__)); \
+	return GR_GENERIC; \
+}
+
+#define CHECK_CREATE_BUFFERS() NOT_IMPLEMENTED;
 
 TRAMPOLINE(IRenderPipeline8B*, __thiscall, DirectX8_Ctor, _sub_6D01143, IRenderPipeline8B* _this);
 TRAMPOLINE(IRenderPipeline8B*, __thiscall, DirectX8_Dtor, _sub_6D01689, IRenderPipeline8B* _this);
@@ -88,14 +106,14 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_add_light, _sub_6D0CCB2, IRenderPipeli
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_remove_light, _sub_6D0CD32, IRenderPipeline8B* _this, U32 light_index);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_update_light, _sub_6D0CDDB, IRenderPipeline8B* _this, U32 light_index);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_world_n, _sub_6D0AF55, IRenderPipeline8B* _this, UNKNOWN a2, Transform* transform);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_UnknownC, _sub_6D11354, IVertexBufferManager * _this, UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_UnknownC, _sub_6D11354, IVertexBufferManager* _this, UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_Unknown10, _sub_6D1135D, IVertexBufferManager* _this);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_acquire_vertex_buffer, _sub_6D114EA, IVertexBufferManager* _this, UNKNOWN vertex_format, U32 num_verts, VertexBufferAcquire* out_result);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_release_vertex_buffer, _sub_6D11877, IVertexBufferManager* _this, VertexBufferAcquire* vbacquire);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_Unknown1C, _sub_6D118BC, IVertexBufferManager* _this);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_Unknown20, _sub_6D114C5, IVertexBufferManager* _this, UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive2, _sub_6D111E1, IRPDraw* _this, D3DPRIMITIVETYPE type, U32 min_index, U32 num_verts, U32 start_index, U32 count);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_index_buffer, _sub_6D12D4E, IRPIndexBuffer * _this, U32 count, IRP_INDEXBUFFERHANDLE * out_ibhandle, BYTE flags);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_index_buffer, _sub_6D12D4E, IRPIndexBuffer* _this, U32 count, IRP_INDEXBUFFERHANDLE* out_ibhandle, BYTE flags);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_index_buffer, _sub_6D13002, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_ib, _sub_6D131B2, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle, U32 count);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_indices, _sub_6D13847, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle, U32* offset, void* data, U32 count);
@@ -104,7 +122,7 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_ib, _sub_6D13794, IRPIndexBuffe
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_select_ib, _sub_6D13BCE, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_ib_count, _sub_6D13D23, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle, U32* out_count);
 TRAMPOLINE(BOOL32, __stdcall, DirectX8_is_ib_valid, _sub_6D13B69, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_vb, _sub_6D118C8, IRPVertexBuffer * _this, UNKNOWN format, U32 count, IRP_VERTEXBUFFERHANDLE * out_vbhandle, BYTE flags);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_vb, _sub_6D118C8, IRPVertexBuffer* _this, UNKNOWN format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, BYTE flags);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_vb, _sub_6D11DB3, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_ressize_vb, _sub_6D11F78, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, UNKNOWN format, U32 count);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_vertices, _sub_6D1228C, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, UNKNOWN a5, UNKNOWN a6);
@@ -114,19 +132,19 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_RPVertexBuffer_Unknown24, _sub_6D12B30
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_select_vb, _sub_6D12B9D, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_vb_count, _sub_6D12CDC, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, UNKNOWN* vertex_format, U32* num_verts);
 TRAMPOLINE(BOOL32, __stdcall, DirectX8_is_vb_valid, _sub_6D12B3C, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_gamma_function, _sub_6D153E6, IGammaControl * _this, IGC_COMPONENT which, float display_gamma, float bias, float slope, float black_offset);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_gamma_function, _sub_6D153E6, IGammaControl* _this, IGC_COMPONENT which, float display_gamma, float bias, float slope, float black_offset);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_gamma_ramp, _sub_6D1560C, IGammaControl* _this, IGC_COMPONENT igc_component, U16* ramp);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_gamma_ramp, _sub_6D15757, IGammaControl* _this, IGC_COMPONENT igc_component, U16* out_ramp);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_calibration_enable, _sub_6D1535D, IGammaControl* _this, bool enabled);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_calibration_enable, _sub_6D153A4, IGammaControl* _this);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_print_screen, _sub_6D13D70, IRPTexture * _this, IFileSystem * pFileSystem, const char* filepath);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_print_screen, _sub_6D13D70, IRPTexture* _this, IFileSystem* pFileSystem, const char* filepath);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_load_texture, _sub_6D148D4, IRPTexture* _this, UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_load_surface_from_file, _sub_6D1455E, IRPTexture* _this, UNKNOWN* a2_interface, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_RPTexture_Unknown18, _sub_6D152E4, IRPTexture* _this, UNKNOWN a2, UNKNOWN a3, UNKNOWN a4);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_RPTexture_Unknown18, _sub_6D152E4, IRPTexture* _this, UNKNOWN a2, UNKNOWN a3, UNKNOWN* a4);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_load_cubemap, _sub_6D14DD7, IRPTexture* _this, UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_Initialize, _sub_6D01C68, IAggregateComponent* _this);
 
-#define CLSID_DirectX8 "DirectX8"
+#define CLSID_NewRenderPipeline "NewRenderPipeline"
 
 struct CACHED_PIPELINE_STATE
 {
@@ -135,74 +153,26 @@ struct CACHED_PIPELINE_STATE
 	DWORD valid;
 };
 
-class DirectX8 : IRenderPipeline8B, IVertexBufferManager, IRPDraw, IRPIndexBuffer, IRPVertexBuffer, IGammaControl, IRPTexture, IAggregateComponent
+struct RPSTATEINFO
+{
+	const char* key_name;
+	U32 enum_value;
+	U32	ct_default_value;	// compile time default
+	U32 rt_default_value;	// runtime default
+	BYTE valid;
+
+	bool is_valid(void)
+	{
+		return valid;
+	}
+};
+
+class NewRenderPipeline : IRenderPipeline8B, IVertexBufferManager, IRPDraw, IRPIndexBuffer, IRPVertexBuffer, IGammaControl, IRPTexture, IAggregateComponent
 {
 public:
-	DWORD unknown20;
-	DWORD unknown24;
-	DWORD unknown28;
-	DWORD unknown2C;
-	DWORD unknown30;
-	DWORD unknown34;
-	DWORD unknown38;
-	DWORD unknown3C;
-	DWORD unknown40;
-	DWORD unknown44;
-	DWORD unknown48;
-	DWORD unknown4C;
-	DWORD unknown50;
-	DWORD unknown54;
-	DWORD unknown58;
-	DWORD unknown5C;
-	DWORD unknown60;
-	DWORD unknown64;
-	DWORD unknown68;
-	DWORD unknown6C;
-	DWORD unknown70;
-	DWORD unknown74;
-	DWORD unknown78;
-	DWORD unknown7C;
-	DWORD unknown80;
-	DWORD unknown84;
-	DWORD unknown88;
-	DWORD unknown8C;
-	DWORD unknown90;
-	DWORD unknown94;
-	DWORD unknown98;
-	DWORD unknown9C;
-	DWORD unknownA0;
-	DWORD unknownA4;
-	DWORD unknownA8;
-	DWORD unknownAC;
-	DWORD unknownB0;
-	DWORD unknownB4;
-	DWORD unknownB8;
-	DWORD unknownBC;
-	DWORD unknownC0;
-	DWORD unknownC4;
-	DWORD unknownC8;
-	DWORD unknownCC;
-	DWORD unknownD0;
-	DWORD unknownD4;
-	DWORD unknownD8;
-	DWORD unknownDC;
-	DWORD unknownE0;
-	DWORD unknownE4;
-	DWORD unknownE8;
-	DWORD unknownEC;
-	DWORD unknownF0;
-	DWORD unknownF4;
-	DWORD unknownF8;
-	DWORD unknownFC;
-	DWORD unknown100;
-	DWORD unknown104;
-	DWORD unknown108;
-	DWORD unknown10C;
-	DWORD unknown110;
-	DWORD unknown114;
-	DWORD unknown118;
-	DWORD unknown11C;
-	DWORD unknown120;
+	IProfileParser* profile_parser;
+	char profile_nameA[128];
+	char profile_nameB[128];
 	DWORD direct3d_behavior_flags;
 	DWORD unknown128;
 	LPDIRECT3D8 direct3d;
@@ -238,41 +208,10 @@ public:
 	DWORD unknown1A4;
 	DWORD direct3d_adapter;
 	D3DDEVTYPE direct3d_device_type;
-	DWORD unknown1B0;
-	DWORD unknown1B4;
-	DWORD unknown1B8;
-	DWORD unknown1BC;
-	DWORD unknown1C0;
-	DWORD unknown1C4;
-	DWORD unknown1C8;
-	DWORD unknown1CC;
-	DWORD unknown1D0;
-	DWORD unknown1D4;
-	DWORD unknown1D8;
-	DWORD unknown1DC;
-	DWORD unknown1E0;
-	DWORD unknown1E4;
-	DWORD unknown1E8;
-	DWORD unknown1EC;
-	DWORD unknown1F0;
-	DWORD unknown1F4;
-	DWORD unknown1F8;
-	DWORD unknown1FC;
-	DWORD unknown200;
-	DWORD unknown204;
-	DWORD unknown208;
-	DWORD unknown20C;
-	DWORD unknown210;
-	DWORD unknown214;
-	DWORD unknown218;
-	DWORD unknown21C;
-	DWORD unknown220;
-	DWORD unknown224;
-	DWORD unknown228;
-	DWORD unknown22C;
+	char configuration_database_file[128];
 	DWORD unknown230;
 	DWORD unknown234;
-	RPBUFFERSINFO unknownStruct238;
+	RPBUFFERSINFO buffers_info;
 	HWND hwnd;
 	DWORD window_x;
 	DWORD window_y;
@@ -284,16 +223,8 @@ public:
 	DWORD unknown280;
 	DWORD unknown284;
 	DWORD unknown288;
-	DWORD unknown28C;
-	DWORD unknown290;
-	DWORD unknown294;
-	DWORD unknown298;
-	DWORD unknown29C;
-	DWORD unknown2A0;
-	DWORD unknown2A4;
-	DWORD unknown2A8;
-	DWORD unknown2AC;
-	DWORD unknown2B0;
+	st6::map<U32, RPSTATEINFO> pipeline_state_info;
+	st6::map<U32, RPSTATEINFO> render_state_info;
 	DWORD unknown2B4;
 	DWORD unknown2B8;
 	DWORD unknown2BC;
@@ -335,7 +266,8 @@ public:
 	DWORD unknown34C;
 	DWORD unknown350;
 	CACHED_PIPELINE_STATE pipeline_states[14];
-	U32 device_abilities[21];
+	U32 device_abilities[20];
+	DWORD unknown44C;
 	DWORD unknown450;
 	DWORD unknown454;
 	DWORD unknown458;
@@ -2256,7 +2188,12 @@ public:
 	DWORD unknown22F4;
 	DWORD unknown22F8;
 
-	BEGIN_DACOM_MAP_INBOUND(DirectX8)
+	// New Fields
+
+	HMODULE d3d8_module;
+
+
+	BEGIN_DACOM_MAP_INBOUND(NewRenderPipeline)
 		DACOM_INTERFACE_ENTRY(IRenderPipeline8B)
 		DACOM_INTERFACE_ENTRY2(IID_IRenderPipeline8B, IRenderPipeline8B)
 		DACOM_INTERFACE_ENTRY(IVertexBufferManager)
@@ -2275,10 +2212,10 @@ public:
 		DACOM_INTERFACE_ENTRY2(IID_IAggregateComponent, IAggregateComponent)
 		END_DACOM_MAP()
 
-	DA_HEAP_DEFINE_NEW_OPERATOR(DirectX8);
+	DA_HEAP_DEFINE_NEW_OPERATOR(NewRenderPipeline);
 
-	DirectX8();
-	~DirectX8();
+	NewRenderPipeline();
+	~NewRenderPipeline();
 	GENRESULT init(AGGDESC* pDesc);
 
 	// IDAComponent methods
@@ -2415,7 +2352,7 @@ public:
 	DACOM_DEFMETHOD(print_screen)(IFileSystem* pFileSystem, const char* filepath) override;
 	DACOM_DEFMETHOD(load_texture)(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture) override;
 	DACOM_DEFMETHOD(load_surface_from_file)(UNKNOWN* a2_interface, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5) override;
-	DACOM_DEFMETHOD(RPTexture_Unknown18)(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4) override;
+	DACOM_DEFMETHOD(RPTexture_Unknown18)(UNKNOWN a2, UNKNOWN a3, UNKNOWN* a4) override;
 	DACOM_DEFMETHOD(load_cubemap)(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture) override;
 
 	// IAggregateComponent methods
@@ -2424,688 +2361,1169 @@ public:
 };
 
 // 6D01143
-DirectX8::DirectX8()
+NewRenderPipeline::NewRenderPipeline()
 {
+	d3d8_module = NULL;
 	debug_point;
 	DirectX8_Ctor(this);
 	debug_point;
 }
 
 // 6D01689
-DirectX8::~DirectX8()
+NewRenderPipeline::~NewRenderPipeline()
 {
 	debug_point;
 	DirectX8_Dtor(this);
 	debug_point;
 }
 
-GENRESULT DirectX8::init(AGGDESC* pDesc)
+GENRESULT NewRenderPipeline::init(AGGDESC* pDesc)
 {
 	GENRESULT result = DirectX8_init(this, pDesc);
 	return result;
 }
 
-GENRESULT DirectX8::startup(const char* profile_name)
+#define pf_to_d3d_table data_6D6FFA8
+_extern D3DFORMAT pf_to_d3d_table[] =
 {
-	GENRESULT result = DirectX8_startup(this, profile_name);
-	return result;
+	D3DFMT_UNKNOWN,
+	D3DFMT_P8,
+	D3DFMT_R8G8B8,
+	D3DFMT_R5G6B5,
+	D3DFMT_X1R5G5B5,
+	D3DFMT_A4R4G4B4,
+	D3DFMT_A1R5G5B5,
+	D3DFMT_A8R8G8B8,
+	D3DFMT_X8R8G8B8,
+	D3DFMT_UNKNOWN,
+	D3DFMT_DXT1,
+	D3DFMT_DXT2,
+	D3DFMT_DXT3,
+	D3DFMT_DXT4,
+	D3DFMT_DXT5,
+	D3DFORMAT('POAD'),
+	D3DFORMAT('TOAD'),
+	D3DFORMAT('AAAD'),
+	D3DFORMAT('LAAD'),
+	D3DFORMAT('1AAD'),
+	D3DFORMAT('4AAD'),
+	D3DFORMAT('8AAD'),
+};
+
+#define get_pf_to_d3d_table sub_6D5CC20
+_extern D3DFORMAT* get_pf_to_d3d_table()
+{
+	return pf_to_d3d_table;
 }
 
-GENRESULT DirectX8::shutdown(void)
+enum PFenum
 {
+	PF_MAX_VALUE = 0x16,
+};
+
+#define pf_to_d3d sub_6D5CBB0
+_extern  D3DFORMAT pf_to_d3d(PFenum pfenum)
+{
+	D3DFORMAT* pf_to_d3d_table = get_pf_to_d3d_table();
+
+	if (pfenum >= PF_MAX_VALUE)
+	{
+		GENERAL_ERROR(TEMPSTR("pf_to_d3d: unknown pfenum passed (%x)", static_cast<U32>(pfenum)));
+		return D3DFMT_UNKNOWN;
+	}
+
+	return pf_to_d3d_table[pfenum];
+}
+
+_extern _naked void sub_6D05DA0() // _sub_6D05DA0
+{
+	__DEBUG_ASM(6D05DA0);
+	// chunk 0x6D05DA0 _sub_6D05DA0
+	asm("loc_6D05DA0: push %ebp;");
+	asm("loc_6D05DA1: mov %esp,%ebp;");
+	asm("loc_6D05DA3: sub $0xB5C,%esp;");
+	asm("loc_6D05DA9: push %esi;");
+	asm("loc_6D05DAA: push %edi;");
+	asm("loc_6D05DAB: calll *_import_6D5E014;");
+	asm("loc_6D05DB1: mov %eax,-0x210(%ebp);");
+
+	//asm("loc_6D05DC7: mov 8(%ebp),%edx;");
+	//asm("loc_6D05DCA: cmpl $0,0x12C(%edx);");
+	
+
+	asm("loc_6D07766: lea -0x20C(%ebp),%ecx;");
+	asm("loc_6D0776C: push %ecx;");
+	asm("loc_6D0776D: mov 8(%ebp),%ecx;");
+	asm("loc_6D07770: add $0x28C,%ecx;");
+	asm("loc_6D07776: call _sub_6D16E50;");
+	asm("loc_6D0777B: mov 8(%ebp),%edx;");
+	asm("loc_6D0777E: mov 0x290(%edx),%eax;");
+	asm("loc_6D07784: mov %eax,-0xA8C(%ebp);");
+	asm("loc_6D0778A: mov -0xA8C(%ebp),%ecx;");
+	asm("loc_6D07790: mov %ecx,-0x214(%ebp);");
+	asm("loc_6D07796: mov -0x20C(%ebp),%edx;");
+	asm("loc_6D0779C: mov %edx,-0x90(%ebp);");
+	asm("loc_6D077A2: jmp loc_6D077C7;");
+	asm("loc_6D077A4: mov -0x90(%ebp),%eax;");
+	asm("loc_6D077AA: mov %eax,-0xA90(%ebp);");
+	asm("loc_6D077B0: lea -0x90(%ebp),%ecx;");
+	asm("loc_6D077B6: call _sub_6D1C910;");
+	asm("loc_6D077BB: mov -0xA90(%ebp),%ecx;");
+	asm("loc_6D077C1: mov %ecx,-0x884(%ebp);");
+	asm("loc_6D077C7: mov -0x90(%ebp),%edx;");
+	asm("loc_6D077CD: sub -0x214(%ebp),%edx;");
+	asm("loc_6D077D3: neg %edx;");
+	asm("loc_6D077D5: sbb %edx,%edx;");
+	asm("loc_6D077D7: inc %edx;");
+	asm("loc_6D077D8: xor %eax,%eax;");
+	asm("loc_6D077DA: mov %dl,%al;");
+	asm("loc_6D077DC: neg %eax;");
+	asm("loc_6D077DE: sbb %eax,%eax;");
+	asm("loc_6D077E0: inc %eax;");
+	asm("loc_6D077E1: xor %ecx,%ecx;");
+	asm("loc_6D077E3: mov %al,%cl;");
+	asm("loc_6D077E5: test %ecx,%ecx;");
+	asm("loc_6D077E7: je loc_6D07971;");
+	asm("loc_6D077ED: mov 8(%ebp),%edx;");
+	asm("loc_6D077F0: mov 0x20(%edx),%eax;");
+	asm("loc_6D077F3: mov %eax,-0xA94(%ebp);");
+	asm("loc_6D077F9: mov -0x90(%ebp),%ecx;");
+	asm("loc_6D077FF: mov 0x10(%ecx),%edx;");
+	asm("loc_6D07802: mov %edx,-0xAA8(%ebp);");
+	asm("loc_6D07808: movl $0,-0xA9C(%ebp);");
+	asm("loc_6D07812: movl $0xFFFFFFFF,-0xA98(%ebp);");
+	asm("loc_6D0781C: mov -0xA94(%ebp),%eax;");
+	asm("loc_6D07822: push %eax;");
+	asm("loc_6D07823: lea -0xA9C(%ebp),%ecx;");
+	asm("loc_6D07829: call _sub_6D15F20;");
+	asm("loc_6D0782E: test %eax,%eax;");
+	asm("loc_6D07830: jne loc_6D07857;");
+	asm("loc_6D07832: lea -0xA9C(%ebp),%ecx;");
+	asm("loc_6D07838: push %ecx;");
+	asm("loc_6D07839: push $_data_6D6AF68;");
+	asm("loc_6D0783E: mov -0x210(%ebp),%edx;");
+	asm("loc_6D07844: mov (%edx),%eax;");
+	asm("loc_6D07846: mov -0x210(%ebp),%ecx;");
+	asm("loc_6D0784C: push %ecx;");
+	asm("loc_6D0784D: calll *(%eax);");
+	asm("loc_6D0784F: test %eax,%eax;");
+	asm("loc_6D07851: jne loc_6D078F9;");
+	asm("loc_6D07857: push $3;");
+	asm("loc_6D07859: mov 8(%ebp),%edx;");
+	asm("loc_6D0785C: add $0xA4,%edx;");
+	asm("loc_6D07862: push %edx;");
+	asm("loc_6D07863: mov -0xA9C(%ebp),%eax;");
+	asm("loc_6D07869: mov %eax,-0xB54(%ebp);");
+	asm("loc_6D0786F: mov -0xB54(%ebp),%ecx;");
+	asm("loc_6D07875: mov (%ecx),%edx;");
+	asm("loc_6D07877: mov -0xB54(%ebp),%eax;");
+	asm("loc_6D0787D: push %eax;");
+	asm("loc_6D0787E: calll *0x14(%edx);");
+	asm("loc_6D07881: mov %eax,-0xAA0(%ebp);");
+	asm("loc_6D07887: cmpl $0,-0xAA0(%ebp);");
+	asm("loc_6D0788E: je loc_6D078F9;");
+	asm("loc_6D07890: push $0x400;");
+	asm("loc_6D07895: push $_data_6D73DC0;");
+	asm("loc_6D0789A: mov -0xAA8(%ebp),%ecx;");
+	asm("loc_6D078A0: push %ecx;");
+	asm("loc_6D078A1: mov -0xAA0(%ebp),%edx;");
+	asm("loc_6D078A7: push %edx;");
+	asm("loc_6D078A8: mov -0xA9C(%ebp),%eax;");
+	asm("loc_6D078AE: mov %eax,-0xB58(%ebp);");
+	asm("loc_6D078B4: mov -0xB58(%ebp),%ecx;");
+	asm("loc_6D078BA: mov (%ecx),%edx;");
+	asm("loc_6D078BC: mov -0xB58(%ebp),%eax;");
+	asm("loc_6D078C2: push %eax;");
+	asm("loc_6D078C3: calll *0x20(%edx);");
+	asm("loc_6D078C6: test %eax,%eax;");
+	asm("loc_6D078C8: je loc_6D078D4;");
+	asm("loc_6D078CA: movl $0,-0xA98(%ebp);");
+	asm("loc_6D078D4: mov -0xAA0(%ebp),%ecx;");
+	asm("loc_6D078DA: push %ecx;");
+	asm("loc_6D078DB: mov -0xA9C(%ebp),%edx;");
+	asm("loc_6D078E1: mov %edx,-0xB5C(%ebp);");
+	asm("loc_6D078E7: mov -0xB5C(%ebp),%eax;");
+	asm("loc_6D078ED: mov (%eax),%ecx;");
+	asm("loc_6D078EF: mov -0xB5C(%ebp),%edx;");
+	asm("loc_6D078F5: push %edx;");
+	asm("loc_6D078F6: calll *0x18(%ecx);");
+	asm("loc_6D078F9: mov -0xA98(%ebp),%eax;");
+	asm("loc_6D078FF: mov %eax,-0xAA4(%ebp);");
+	asm("loc_6D07905: lea -0xA9C(%ebp),%ecx;");
+	asm("loc_6D0790B: call _sub_6D167A0;");
+	asm("loc_6D07910: cmpl $0,-0xAA4(%ebp);");
+	asm("loc_6D07917: jl loc_6D0796C;");
+	asm("loc_6D07919: mov -0x90(%ebp),%ecx;");
+	asm("loc_6D0791F: movb $1,0x20(%ecx);");
+	asm("loc_6D07923: mov 8(%ebp),%edx;");
+	asm("loc_6D07926: mov 0x20(%edx),%eax;");
+	asm("loc_6D07929: mov %eax,-0xAAC(%ebp);");
+	asm("loc_6D0792F: mov -0x90(%ebp),%ecx;");
+	asm("loc_6D07935: add $0x1C,%ecx;");
+	asm("loc_6D07938: push %ecx;");
+	asm("loc_6D07939: mov -0x90(%ebp),%edx;");
+	asm("loc_6D0793F: mov 0x18(%edx),%eax;");
+	asm("loc_6D07942: push %eax;");
+	asm("loc_6D07943: mov -0x90(%ebp),%ecx;");
+	asm("loc_6D07949: mov 0x10(%ecx),%edx;");
+	asm("loc_6D0794C: push %edx;");
+	asm("loc_6D0794D: mov 8(%ebp),%eax;");
+	asm("loc_6D07950: add $0xA4,%eax;");
+	asm("loc_6D07955: push %eax;");
+	asm("loc_6D07956: mov -0xAAC(%ebp),%ecx;");
+	asm("loc_6D0795C: push %ecx;");
+	asm("loc_6D0795D: mov -0x210(%ebp),%edx;");
+	asm("loc_6D07963: push %edx;");
+	asm("loc_6D07964: call _sub_6D16930;");
+	asm("loc_6D07969: add $0x18,%esp;");
+	asm("loc_6D0796C: jmp loc_6D077A4;");
+	asm("loc_6D07971: lea -0x228(%ebp),%eax;");
+	asm("loc_6D07977: push %eax;");
+	asm("loc_6D07978: mov 8(%ebp),%ecx;");
+	asm("loc_6D0797B: add $0x2A0,%ecx;");
+	asm("loc_6D07981: call _sub_6D16E50;");
+	asm("loc_6D07986: mov 8(%ebp),%ecx;");
+	asm("loc_6D07989: mov 0x2A4(%ecx),%edx;");
+	asm("loc_6D0798F: mov %edx,-0xAB0(%ebp);");
+	asm("loc_6D07995: mov -0xAB0(%ebp),%eax;");
+	asm("loc_6D0799B: mov %eax,-0x344(%ebp);");
+	asm("loc_6D079A1: mov -0x228(%ebp),%ecx;");
+	asm("loc_6D079A7: mov %ecx,-0x8C(%ebp);");
+	asm("loc_6D079AD: jmp loc_6D079C3;");
+	asm("loc_6D079AF: push $0;");
+	asm("loc_6D079B1: lea -0x888(%ebp),%edx;");
+	asm("loc_6D079B7: push %edx;");
+	asm("loc_6D079B8: lea -0x8C(%ebp),%ecx;");
+	asm("loc_6D079BE: call _sub_6D16210;");
+	asm("loc_6D079C3: mov -0x8C(%ebp),%eax;");
+	asm("loc_6D079C9: sub -0x344(%ebp),%eax;");
+	asm("loc_6D079CF: neg %eax;");
+	asm("loc_6D079D1: sbb %eax,%eax;");
+	asm("loc_6D079D3: inc %eax;");
+	asm("loc_6D079D4: xor %ecx,%ecx;");
+	asm("loc_6D079D6: mov %al,%cl;");
+	asm("loc_6D079D8: neg %ecx;");
+	asm("loc_6D079DA: sbb %ecx,%ecx;");
+	asm("loc_6D079DC: inc %ecx;");
+	asm("loc_6D079DD: xor %edx,%edx;");
+	asm("loc_6D079DF: mov %cl,%dl;");
+	asm("loc_6D079E1: test %edx,%edx;");
+	asm("loc_6D079E3: je loc_6D07A48;");
+	asm("loc_6D079E5: mov -0x8C(%ebp),%eax;");
+	asm("loc_6D079EB: mov 0x20(%eax),%cl;");
+	asm("loc_6D079EE: mov %cl,-0xAB1(%ebp);");
+	asm("loc_6D079F4: movzbl -0xAB1(%ebp),%edx;");
+	asm("loc_6D079FB: test %edx,%edx;");
+	asm("loc_6D079FD: je loc_6D07A43;");
+	asm("loc_6D079FF: mov 8(%ebp),%eax;");
+	asm("loc_6D07A02: mov 0x20(%eax),%ecx;");
+	asm("loc_6D07A05: mov %ecx,-0xAB8(%ebp);");
+	asm("loc_6D07A0B: mov -0x8C(%ebp),%edx;");
+	asm("loc_6D07A11: add $0x1C,%edx;");
+	asm("loc_6D07A14: push %edx;");
+	asm("loc_6D07A15: mov -0x8C(%ebp),%eax;");
+	asm("loc_6D07A1B: mov 0x18(%eax),%ecx;");
+	asm("loc_6D07A1E: push %ecx;");
+	asm("loc_6D07A1F: mov -0x8C(%ebp),%edx;");
+	asm("loc_6D07A25: mov 0x10(%edx),%eax;");
+	asm("loc_6D07A28: push %eax;");
+	asm("loc_6D07A29: mov 0xC(%ebp),%ecx;");
+	asm("loc_6D07A2C: push %ecx;");
+	asm("loc_6D07A2D: mov -0xAB8(%ebp),%edx;");
+	asm("loc_6D07A33: push %edx;");
+	asm("loc_6D07A34: mov -0x210(%ebp),%eax;");
+	asm("loc_6D07A3A: push %eax;");
+	asm("loc_6D07A3B: call _sub_6D16930;");
+	asm("loc_6D07A40: add $0x18,%esp;");
+	asm("loc_6D07A43: jmp loc_6D079AF;");
+
+	asm("loc_6D07A48: nop;");
+
+	asm("loc_6D07A9E: xor %eax,%eax;");
+	asm("loc_6D07AA0: pop %edi;");
+	asm("loc_6D07AA1: pop %esi;");
+	asm("loc_6D07AA2: mov %ebp,%esp;");
+	asm("loc_6D07AA4: pop %ebp;");
+	asm("loc_6D07AA5: ret $8;");
+	asm("int3;"); // unreachable
+}
+
+GENRESULT NewRenderPipeline::startup(const char* profile_name)
+{
+	if (!profile_name)
+		profile_name = this->profile_nameA;
+	memcpy(profile_nameB, profile_nameA, sizeof(profile_name));
+	strcpy(configuration_database_file, "FLConfigDatabase.txt");
+
+	if (d3d8_module == NULL)
+		d3d8_module = LoadLibraryA("d3d8.dll");
+
+	IDirect3D8* (WINAPI * pDirect3DCreate8)(UINT SDKVersion) = reinterpret_cast<decltype(pDirect3DCreate8)>(GetProcAddress(d3d8_module, "Direct3DCreate8"));
+	ASSERT(pDirect3DCreate8 != NULL);
+
+	direct3d = pDirect3DCreate8(D3D_SDK_VERSION);
+	if (!direct3d)
+	{
+		GENERAL_ERROR("NewRenderPipeline: startup: couldnt create directx8 device");
+	}
+
+	direct3d_adapter = 0;
+	direct3d_device_type = D3DDEVTYPE_HAL;
+	direct3d_behavior_flags = 0;
+
+	bool fpu_preserve = false; // IProfileParser | FPU_PRESERVE
+	if (fpu_preserve)
+		this->direct3d_behavior_flags |= D3DCREATE_FPU_PRESERVE;
+
+	bool multithreaded = false; // IProfileParser | MULTITHREADED
+	if (fpu_preserve)
+		this->direct3d_behavior_flags |= D3DCREATE_MULTITHREADED;
+
+	bool puredevice = false; // IProfileParser | PUREDEVICE
+	if (puredevice)
+		this->direct3d_behavior_flags |= D3DCREATE_PUREDEVICE;
+
+	/*int vertex_processing_method = 2;*/ // IProfileParser | SOFTWARE_VERTEXPROCESSING/MIXED_VERTEXPROCESSING/HARDWARE_VERTEXPROCESSING
+	this->direct3d_behavior_flags |= D3DCREATE_HARDWARE_VERTEXPROCESSING;
+
+	pipeline_states[RP_TEXTURE].unknown4 = true;
+	pipeline_states[RP_LIGHTING].unknown4 = true;
+	pipeline_states[RP_TEXTURE_LOD].unknown4 = true;
+	pipeline_states[RP_TEXTURE_ALLOW_8BIT].unknown4 = true;
+	pipeline_states[RP_TEXTURE_ALLOW_32BIT].unknown4 = true;
+	pipeline_states[RP_TEXTURE_ALLOW_DXT].unknown4 = true;
+	pipeline_states[RP_BROKEN_MULTITEXTURE].unknown4 = true;
+	pipeline_states[RP_VIEWSPACE_LIGHTS].unknown4 = true;
+	pipeline_states[RP_CLEAR_COLOR].unknown4 = true;
+	pipeline_states[RP_CLEAR_ZDEPTH].unknown4 = true;
+	pipeline_states[RP_CLEAR_STENCIL].unknown4 = true;
+	pipeline_states[RP_STATE_CACHE].unknown4 = true;
+	pipeline_states[RP_BROKEN_MOD2X].unknown4 = true;
+	pipeline_states[RP_BROKEN_FLIP].unknown4 = true;
+
+	set_pipeline_state(RP_TEXTURE, 1);
+	set_pipeline_state(RP_LIGHTING, 1);
+	set_pipeline_state(RP_TEXTURE_LOD, 1);
+	set_pipeline_state(RP_TEXTURE_ALLOW_8BIT, 0);
+	set_pipeline_state(RP_TEXTURE_ALLOW_32BIT, 1);
+	set_pipeline_state(RP_TEXTURE_ALLOW_DXT, 1);
+	set_pipeline_state(RP_BROKEN_MULTITEXTURE, 7);
+	set_pipeline_state(RP_VIEWSPACE_LIGHTS, 1);
+	set_pipeline_state(RP_CLEAR_COLOR, 0);
+	set_pipeline_state(RP_CLEAR_ZDEPTH, coerce_cast<U32>(1.0f));
+	set_pipeline_state(RP_CLEAR_STENCIL, 0xFFFFFFFFu);
+	set_pipeline_state(RP_STATE_CACHE, 1);
+	set_pipeline_state(RP_BROKEN_MOD2X, 0);
+	set_pipeline_state(RP_BROKEN_FLIP, 0);
+
+	device_abilities[RP_A_ABILITY0] = 0;
+	device_abilities[RP_A_D3DPRASTERCAPS_ANISOTROPY] = 1;
+	device_abilities[RP_A_D3DPRASTERCAPS_WFOG] = 1;
+	device_abilities[RP_A_ABILITY3] = 0xC0000000u;
+	device_abilities[RP_A_DEVICE_GEOMETRY] = 1;
+	device_abilities[RP_A_TEXTURE_SQUARE_ONLY] = 0;
+	device_abilities[RP_A_TEXTURE_MAX_WIDTH] = 16384;
+	device_abilities[RP_A_TEXTURE_MAX_HEIGHT] = 16384;
+	device_abilities[RP_A_TEXTURE_CUBEMAPS] = 1;
+	device_abilities[RP_A_DEPTH_BIAS] = 1;
+	device_abilities[RP_A_FOG_VERTEX] = 1;
+	device_abilities[RP_A_FOG_PIXEL] = 1;
+	device_abilities[RP_A_FOG_RANGE] = 1;
+	device_abilities[RP_A_FOG_W] = 1;
+	device_abilities[RP_A_RASTER_ANTIALIASEDGES] = 0;
+	device_abilities[RP_A_DEVICE_SUPPORT_LEVEL] = 0; // Force Supported
+	device_abilities[RP_A_TEXTURE_TRILINEAR] = 1;
+	device_abilities[RP_A_DEVICE_BAD_MODE] = 0;
+	device_abilities[RP_A_DEVICE_BAD_4444] = 0;
+	device_abilities[RP_A_DEVICE_NO_PARALLELISM] = 0;
+
+	this->unknown168 = 0xC0000000u;
+
+	ICOManager* DACOM = DACOM_Acquire();
+	unknown128 = 0;
+	if (opt_get_u32(DACOM, profile_parser, profile_name, "LOCKABLE_BACKBUFFER", 0, 0) != 0)
+	{
+		unknown128 |= 1;
+	}
+	if (opt_get_u32(DACOM, profile_parser, profile_name, "USE_SYSLOCK", 0, 0) != 0)
+	{
+		unknown128 |= 2;
+	}
+	if (opt_get_u32(DACOM, profile_parser, profile_name, "HANDLE_SWAPLOSS", 0, 0) != 0)
+	{
+		unknown128 |= 4;
+	}
+
+	for (auto& rs : pipeline_state_info)
+	{
+		if (SUCCEEDED(opt_has_key(DACOM, profile_parser, profile_name, rs.second.key_name)))
+		{
+			rs.second.valid = true;
+			auto previous_value = rs.second.rt_default_value;
+			opt_get_u32(DACOM, profile_parser, profile_name, rs.second.key_name, rs.second.ct_default_value, &rs.second.rt_default_value);
+			if (previous_value != rs.second.rt_default_value)
+				GENERAL_TRACE_1(TEMPSTR("Config Pipeline State Changed: %s %u -> %u", rs.second.key_name, previous_value, rs.second.ct_default_value));
+		}
+	}
+
+	for (auto& rs : render_state_info)
+	{
+		if (rs.second.valid)
+		{
+			auto previous_value = rs.second.rt_default_value;
+			opt_get_u32(DACOM, profile_parser, profile_name, rs.second.key_name, rs.second.ct_default_value, &rs.second.rt_default_value);
+			if (previous_value != rs.second.rt_default_value)
+				GENERAL_TRACE_1(TEMPSTR("Config Render State Changed: %s %u -> %u", rs.second.key_name, previous_value, rs.second.ct_default_value));
+		}
+	}
+
+	return GR_OK;
+}
+
+GENRESULT NewRenderPipeline::shutdown(void)
+{
+	FreeLibrary(d3d8_module);
 	GENRESULT result = DirectX8_shutdown(this);
 	return result;
 }
 
-GENRESULT DirectX8::set_pipeline_state(RPPIPELINESTATE state, U32 value)
+GENRESULT NewRenderPipeline::set_pipeline_state(RPPIPELINESTATE state, U32 value)
 {
-	GENRESULT result = DirectX8_set_pipeline_state(this, state, value);
+	CHECK_STARTUP();
+	ASSERT(state < RP_MAX_PIPELINE_STATE);
+
+	CACHED_PIPELINE_STATE& pipeline_state = pipeline_states[state];
+	if ((!pipeline_state.valid || pipeline_state.value != value) && pipeline_state.unknown4)
+	{
+		pipeline_state.valid = 1;
+		pipeline_state.value = value;
+	}
+	return GR_OK;
+}
+
+GENRESULT NewRenderPipeline::get_pipeline_state(RPPIPELINESTATE state, U32* value)
+{
+	CHECK_STARTUP();
+	ASSERT(state < RP_MAX_PIPELINE_STATE);
+
+	CACHED_PIPELINE_STATE& pipeline_state = pipeline_states[state];
+	*value = pipeline_state.value;
+	return GR_OK;
+}
+
+GENRESULT NewRenderPipeline::get_device_info(RPDEVICEINFO* info)
+{
+	CHECK_STARTUP();
+
+	GENRESULT result = GR_GENERIC;
+	if (unknown19C)
+	{
+		DWORD count = unknown1A0 - unknown19C;
+		if (direct3d_adapter < count)
+		{
+			*info = unknown19C[direct3d_adapter];
+			result = GR_OK;
+		}
+	}
 	return result;
 }
 
-GENRESULT DirectX8::get_pipeline_state(RPPIPELINESTATE state, U32* value)
+GENRESULT NewRenderPipeline::query_device_ability(RPDEVICEABILITY ability, U32* out_answer)
 {
-	GENRESULT result = DirectX8_get_pipeline_state(this, state, value);
-	return result;
+	CHECK_STARTUP();
+	ASSERT(ability < RP_A_MAX_ABILITY);
+	ASSERT(out_answer != NULL);
+
+	*out_answer = this->device_abilities[ability];
+	return GR_OK;
 }
 
-GENRESULT DirectX8::get_device_info(RPDEVICEINFO* info)
+GENRESULT NewRenderPipeline::get_num_display_modes(U32* count)
 {
-	GENRESULT result = DirectX8_get_device_info(this, info);
-	return result;
+	CHECK_STARTUP();
+
+	*count = direct3d->GetAdapterModeCount(this->direct3d_adapter);
+	return GR_OK;
 }
 
-GENRESULT DirectX8::query_device_ability(RPDEVICEABILITY ability, U32* out_answer)
+#define D3DFMT_TO_PIXEL_FORMAT sub_6D5CC30
+_extern int __cdecl D3DFMT_TO_PIXEL_FORMAT(int a1);
+GENRESULT NewRenderPipeline::get_display_mode(RPDISPLAYMODEINFO* mode, U32 mode_num)
 {
-	GENRESULT result = DirectX8_query_device_ability(this, ability, out_answer);
-	return result;
+	CHECK_STARTUP();
+
+	D3DDISPLAYMODE mode_1; // [esp+2018h] [ebp-10h] BYREF
+	HRESULT v8 = this->direct3d->EnumAdapterModes(this->direct3d_adapter, mode_num, &mode_1);
+	if (v8 >= 0)
+	{
+		mode->mode_num = mode_num;
+		mode->width = mode_1.Width;
+		mode->height = mode_1.Height;
+		mode->refresh_rate = mode_1.RefreshRate;
+		mode->render_pf = D3DFMT_TO_PIXEL_FORMAT(mode_1.Format);
+		if (this->device_abilities[17] && mode->width >= this->device_abilities[17])
+		{
+			return GR_DATA_NOT_FOUND;
+		}
+		else
+		{
+			return GR_OK;
+		}
+	}
+
+	return GENRESULT(v8);
 }
 
-GENRESULT DirectX8::get_num_display_modes(U32* count)
-{
-	GENRESULT result = DirectX8_get_num_display_modes(this, count);
-	return result;
-}
-
-GENRESULT DirectX8::get_display_mode(RPDISPLAYMODEINFO* mode, U32 mode_num)
-{
-	GENRESULT result = DirectX8_get_display_mode(this, mode, mode_num);
-	return result;
-}
-
-GENRESULT DirectX8::select_mode(void* unknown_params, U32* adapter)
+GENRESULT NewRenderPipeline::select_mode(void* unknown_params, U32* adapter)
 {
 	GENRESULT result = DirectX8_select_mode(this, unknown_params, adapter);
 	return result;
 }
 
-GENRESULT DirectX8::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinfo, RPBUFFERSINFO* out_buffersinfo)
+GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinfo, RPBUFFERSINFO* out_buffersinfo)
 {
 	GENRESULT result = DirectX8_create_buffers(this, hwnd, buffersinfo, out_buffersinfo);
 	return result;
 }
 
-GENRESULT DirectX8::get_buffers(U32* adapter, RPBUFFERSINFO* out_buffersinfo)
+GENRESULT NewRenderPipeline::get_buffers(U32* adapter, RPBUFFERSINFO* out_buffersinfo)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_get_buffers(this, adapter, out_buffersinfo);
 	return result;
 }
 
-GENRESULT DirectX8::destroy_buffers(void)
+GENRESULT NewRenderPipeline::destroy_buffers(void)
 {
 	GENRESULT result = DirectX8_destroy_buffers(this);
 	return result;
 }
 
-GENRESULT DirectX8::clear_buffers(U32 rp_clear_flags, RECT* viewport_sub_rect)
+GENRESULT NewRenderPipeline::clear_buffers(U32 rp_clear_flags, RECT* viewport_sub_rect)
 {
 	GENRESULT result = DirectX8_clear_buffers(this, rp_clear_flags, viewport_sub_rect);
 	return result;
 }
 
-GENRESULT DirectX8::swap_buffers(void)
+GENRESULT NewRenderPipeline::swap_buffers(void)
 {
 	GENRESULT result = DirectX8_swap_buffers(this);
 	return result;
 }
 
-GENRESULT DirectX8::lock_buffer(RPLOCKDATA* lockData)
+GENRESULT NewRenderPipeline::lock_buffer(RPLOCKDATA* lockData)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_lock_buffer(this, lockData);
 	return result;
 }
 
-GENRESULT DirectX8::unlock_buffer(void)
+GENRESULT NewRenderPipeline::unlock_buffer(void)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_unlock_buffer(this);
 	return result;
 }
 
-GENRESULT DirectX8::get_buffer_interface(const char* iid, void** out_iif)
+GENRESULT NewRenderPipeline::get_buffer_interface(const char* iid, void** out_iif)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_get_buffer_interface(this, iid, out_iif);
 	return result;
 }
 
-GENRESULT DirectX8::get_device_stats(RPDEVICESTATS* stat)
+GENRESULT NewRenderPipeline::get_device_stats(RPDEVICESTATS* stat)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_get_device_stats(this, stat);
 	return result;
 }
 
-GENRESULT DirectX8::set_viewport(int x, int y, int w, int h)
+GENRESULT NewRenderPipeline::set_viewport(int x, int y, int w, int h)
 {
 	GENRESULT result = DirectX8_set_viewport(this, x, y, w, h);
 	return result;
 }
 
-GENRESULT DirectX8::get_viewport(int* x, int* y, int* w, int* h)
+GENRESULT NewRenderPipeline::get_viewport(int* x, int* y, int* w, int* h)
 {
 	GENRESULT result = DirectX8_get_viewport(this, x, y, w, h);
 	return result;
 }
 
-GENRESULT DirectX8::set_depth_range(float lower_z_bound, float upper_z_bound)
+GENRESULT NewRenderPipeline::set_depth_range(float lower_z_bound, float upper_z_bound)
 {
 	GENRESULT result = DirectX8_set_depth_range(this, lower_z_bound, upper_z_bound);
 	return result;
 }
 
-GENRESULT DirectX8::get_depth_range(float* lower_z_bound, float* upper_z_bound)
+GENRESULT NewRenderPipeline::get_depth_range(float* lower_z_bound, float* upper_z_bound)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_get_depth_range(this, lower_z_bound, upper_z_bound);
 	return result;
 }
 
-GENRESULT DirectX8::set_window(HWND hwnd, int x, int y, int w, int h)
+GENRESULT NewRenderPipeline::set_window(HWND hwnd, int x, int y, int w, int h)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_set_window(this, hwnd, x, y, w, h);
 	return result;
 }
 
-GENRESULT DirectX8::get_window(HWND* out_hwnd, int* out_x, int* out_y, int* out_w, int* out_h)
+GENRESULT NewRenderPipeline::get_window(HWND* out_hwnd, int* out_x, int* out_y, int* out_w, int* out_h)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_get_window(this, out_hwnd, out_x, out_y, out_w, out_h);
 	return result;
 }
 
-GENRESULT DirectX8::set_world(const Transform* world)
+GENRESULT NewRenderPipeline::set_world(const Transform* world)
 {
+	//NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_set_world(this, world);
 	return result;
 }
 
-GENRESULT DirectX8::get_world(Transform* world)
+GENRESULT NewRenderPipeline::get_world(Transform* world)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_get_world(this, world);
 	return result;
 }
 
-GENRESULT DirectX8::set_view(const Transform* view)
+GENRESULT NewRenderPipeline::set_view(const Transform* view)
 {
+	//NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_set_view(this, view);
 	return result;
 }
 
-GENRESULT DirectX8::get_view(Transform* modelview)
+GENRESULT NewRenderPipeline::get_view(Transform* modelview)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_get_view(this, modelview);
 	return result;
 }
 
-GENRESULT DirectX8::set_modelview(const Transform* modelview)
+GENRESULT NewRenderPipeline::set_modelview(const Transform* modelview)
 {
 	GENRESULT result = DirectX8_set_modelview(this, modelview);
 	return result;
 }
 
-GENRESULT DirectX8::get_modelview(Transform* modelview)
+GENRESULT NewRenderPipeline::get_modelview(Transform* modelview)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_get_modelview(this, modelview);
 	return result;
 }
 
-GENRESULT DirectX8::set_projection(const Transform* projection)
+GENRESULT NewRenderPipeline::set_projection(const Transform* projection)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_set_projection(this, projection);
 	return result;
 }
 
-GENRESULT DirectX8::get_projection(Transform* projection)
+GENRESULT NewRenderPipeline::get_projection(Transform* projection)
 {
 	GENRESULT result = DirectX8_get_projection(this, projection);
 	return result;
 }
 
-GENRESULT DirectX8::set_lookat(float eyex, float eyey, float eyez, float centerx, float centery, float centerz, float upx, float upy, float upz)
+GENRESULT NewRenderPipeline::set_lookat(float eyex, float eyey, float eyez, float centerx, float centery, float centerz, float upx, float upy, float upz)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_set_lookat(this, eyex, eyey, eyez, centerx, centery, centerz, upx, upy, upz);
 	return result;
 }
 
-GENRESULT DirectX8::set_ortho(float left, float right, float bottom, float top, float nearval, float farval)
+GENRESULT NewRenderPipeline::set_ortho(float left, float right, float bottom, float top, float nearval, float farval)
 {
 	GENRESULT result = DirectX8_set_ortho(this, left, right, bottom, top, nearval, farval);
 	return result;
 }
 
-GENRESULT DirectX8::set_perspective(float fovy, float aspect, float znear, float zfar)
+GENRESULT NewRenderPipeline::set_perspective(float fovy, float aspect, float znear, float zfar)
 {
 	GENRESULT result = DirectX8_set_perspective(this, fovy, aspect, znear, zfar);
 	return result;
 }
 
-GENRESULT DirectX8::set_light(U32 light_index, const _D3DLIGHT8* light_values)
+GENRESULT NewRenderPipeline::set_light(U32 light_index, const _D3DLIGHT8* light_values)
 {
 	GENRESULT result = DirectX8_set_light(this, light_index, light_values);
 	return result;
 }
 
-GENRESULT DirectX8::destroy_light(U32 light_index)
+GENRESULT NewRenderPipeline::destroy_light(U32 light_index)
 {
 	GENRESULT result = DirectX8_destroy_light(this, light_index);
 	return result;
 }
 
-GENRESULT DirectX8::get_light(U32 light_index, _D3DLIGHT8* out_light_values)
+GENRESULT NewRenderPipeline::get_light(U32 light_index, _D3DLIGHT8* out_light_values)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_get_light(this, light_index, out_light_values);
 	return result;
 }
 
-GENRESULT DirectX8::set_light_enable(U32 light_index, U32 enable)
+GENRESULT NewRenderPipeline::set_light_enable(U32 light_index, U32 enable)
 {
 	GENRESULT result = DirectX8_set_light_enable(this, light_index, enable);
 	return result;
 }
 
-GENRESULT DirectX8::get_light_enable(U32 light_index, U32* out_enable)
+GENRESULT NewRenderPipeline::get_light_enable(U32 light_index, U32* out_enable)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_get_light_enable(this, light_index, out_enable);
 	return result;
 }
 
-GENRESULT DirectX8::set_material(D3DMATERIAL8* material_values)
+GENRESULT NewRenderPipeline::set_material(D3DMATERIAL8* material_values)
 {
 	GENRESULT result = DirectX8_set_material(this, material_values);
 	return result;
 }
 
-GENRESULT DirectX8::get_material(D3DMATERIAL8* out_material_values)
+GENRESULT NewRenderPipeline::get_material(D3DMATERIAL8* out_material_values)
 {
 	GENRESULT result = DirectX8_get_material(this, out_material_values);
 	return result;
 }
 
-GENRESULT DirectX8::create_texture(int width, int height, const PixelFormat* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture)
+GENRESULT NewRenderPipeline::create_texture(int width, int height, const PixelFormat* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture)
 {
 	GENRESULT result = DirectX8_create_texture(this, width, height, desiredformat, num_lod, irp_ctf_flags, out_htexture);
 	return result;
 }
 
-GENRESULT DirectX8::destroy_texture(U32 htexture)
+GENRESULT NewRenderPipeline::destroy_texture(U32 htexture)
 {
 	GENRESULT result = DirectX8_destroy_texture(this, htexture);
 	return result;
 }
 
-GENRESULT DirectX8::is_texture(U32 htexture)
+GENRESULT NewRenderPipeline::is_texture(U32 htexture)
 {
 	GENRESULT result = DirectX8_is_texture(this, htexture);
 	return result;
 }
 
-GENRESULT DirectX8::lock_texture(U32 htexture, int level, RPLOCKDATA* lockData)
+GENRESULT NewRenderPipeline::lock_texture(U32 htexture, int level, RPLOCKDATA* lockData)
 {
 	GENRESULT result = DirectX8_lock_texture(this, htexture, level, lockData);
 	return result;
 }
 
-GENRESULT DirectX8::unlock_texture(U32 htexture, int level)
+GENRESULT NewRenderPipeline::unlock_texture(U32 htexture, int level)
 {
 	GENRESULT result = DirectX8_unlock_texture(this, htexture, level);
 	return result;
 }
 
-GENRESULT DirectX8::get_texture_format(U32 htexture, PixelFormat* out_pf)
+GENRESULT NewRenderPipeline::get_texture_format(U32 htexture, PixelFormat* out_pf)
 {
 	GENRESULT result = DirectX8_get_texture_format(this, htexture, out_pf);
 	return result;
 }
 
-GENRESULT DirectX8::get_texture_dim(U32 htexture, U32* out_width, U32* out_height, U32* out_num_lod)
+GENRESULT NewRenderPipeline::get_texture_dim(U32 htexture, U32* out_width, U32* out_height, U32* out_num_lod)
 {
 	GENRESULT result = DirectX8_get_texture_dim(this, htexture, out_width, out_height, out_num_lod);
 	return result;
 }
 
-GENRESULT DirectX8::get_texture_interface(U32 htexture, const char* iid, void** out_iif)
+GENRESULT NewRenderPipeline::get_texture_interface(U32 htexture, const char* iid, void** out_iif)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_get_texture_interface(this, htexture, iid, out_iif);
 	return result;
 }
 
-GENRESULT DirectX8::set_texture_level_data(U32 htexture, int level, int src_width, int src_height, int src_stride, const PixelFormat* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette)
+GENRESULT NewRenderPipeline::set_texture_level_data(U32 htexture, int level, int src_width, int src_height, int src_stride, const PixelFormat* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette)
 {
 	GENRESULT result = DirectX8_set_texture_level_data(this, htexture, level, src_width, src_height, src_stride, src_format, src_pixel, src_alpha, src_palette);
 	return result;
 }
 
-GENRESULT DirectX8::blit_texture(U32 hDest, U32 destLevel, RECT destRect, U32 hSrc, U32 srcLevel, RECT srcRect)
+GENRESULT NewRenderPipeline::blit_texture(U32 hDest, U32 destLevel, RECT destRect, U32 hSrc, U32 srcLevel, RECT srcRect)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_blit_texture(this, hDest, destLevel, destRect, hSrc, srcLevel, srcRect);
 	return result;
 }
 
-GENRESULT DirectX8::set_render_target(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4)
+GENRESULT NewRenderPipeline::set_render_target(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_set_render_target(this, a2, a3, a4);
 	return result;
 }
 
-GENRESULT DirectX8::get_render_target(void* a2)
+GENRESULT NewRenderPipeline::get_render_target(void* a2)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_get_render_target(this, a2);
 	return result;
 }
 
-GENRESULT DirectX8::begin_scene(void)
+GENRESULT NewRenderPipeline::begin_scene(void)
 {
 	GENRESULT result = DirectX8_begin_scene(this);
 	return result;
 }
 
-GENRESULT DirectX8::end_scene(void)
+GENRESULT NewRenderPipeline::end_scene(void)
 {
 	GENRESULT result = DirectX8_end_scene(this);
 	return result;
 }
 
-GENRESULT DirectX8::reset_render_states_to_defaults(void)
+GENRESULT NewRenderPipeline::reset_render_states_to_defaults(void)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_reset_render_states_to_defaults(this);
 	return result;
 }
 
-GENRESULT DirectX8::set_render_state(D3DRENDERSTATETYPE state, U32 value)
+GENRESULT NewRenderPipeline::set_render_state(D3DRENDERSTATETYPE state, U32 value)
 {
 	GENRESULT result = DirectX8_set_render_state(this, state, value);
 	return result;
 }
 
-GENRESULT DirectX8::get_render_state(D3DRENDERSTATETYPE state, U32* value)
+GENRESULT NewRenderPipeline::get_render_state(D3DRENDERSTATETYPE state, U32* value)
 {
 	GENRESULT result = DirectX8_get_render_state(this, state, value);
 	return result;
 }
 
-GENRESULT DirectX8::set_texture_stage_state(U32 stage, D3DTEXTURESTAGESTATETYPE state, U32 value)
+GENRESULT NewRenderPipeline::set_texture_stage_state(U32 stage, D3DTEXTURESTAGESTATETYPE state, U32 value)
 {
 	GENRESULT result = DirectX8_set_texture_stage_state(this, stage, state, value);
 	return result;
 }
 
-GENRESULT DirectX8::get_texture_stage_state(U32 stage, D3DTEXTURESTAGESTATETYPE state, U32* value)
+GENRESULT NewRenderPipeline::get_texture_stage_state(U32 stage, D3DTEXTURESTAGESTATETYPE state, U32* value)
 {
 	GENRESULT result = DirectX8_get_texture_stage_state(this, stage, state, value);
 	return result;
 }
 
-GENRESULT DirectX8::set_texture_stage_transform(U32 stage, Matrix4* mat4)
+GENRESULT NewRenderPipeline::set_texture_stage_transform(U32 stage, Matrix4* mat4)
 {
 	GENRESULT result = DirectX8_set_texture_stage_transform(this, stage, mat4);
 	return result;
 }
 
-GENRESULT DirectX8::get_texture_stage_transform(U32 stage, Matrix4* mat4)
+GENRESULT NewRenderPipeline::get_texture_stage_transform(U32 stage, Matrix4* mat4)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_get_texture_stage_transform(this, stage, mat4);
 	return result;
 }
 
-GENRESULT DirectX8::set_texture_stage_texture(U32 stage, U32 htexture)
+GENRESULT NewRenderPipeline::set_texture_stage_texture(U32 stage, U32 htexture)
 {
 	GENRESULT result = DirectX8_set_texture_stage_texture(this, stage, htexture);
 	return result;
 }
 
-GENRESULT DirectX8::get_texture_stage_texture(U32 stage, U32* htexture)
+GENRESULT NewRenderPipeline::get_texture_stage_texture(U32 stage, U32* htexture)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_get_texture_stage_texture(this, stage, htexture);
 	return result;
 }
 
-GENRESULT DirectX8::verify_state(void)
+GENRESULT NewRenderPipeline::verify_state(void)
 {
 	GENRESULT result = DirectX8_verify_state(this);
 	return result;
 }
 
-GENRESULT DirectX8::draw_primitive(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, U32 flags)
+GENRESULT NewRenderPipeline::draw_primitive(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, U32 flags)
 {
 	GENRESULT result = DirectX8_draw_primitive(this, type, vertex_format, verts, num_verts, flags);
 	return result;
 }
 
-GENRESULT DirectX8::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, const U16* indices, int num_indices, U32 flags)
+GENRESULT NewRenderPipeline::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, const U16* indices, int num_indices, U32 flags)
 {
 	GENRESULT result = DirectX8_draw_indexed_primitive(this, type, vertex_format, verts, num_verts, indices, num_indices, flags);
 	return result;
 }
 
-GENRESULT DirectX8::draw_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, U32 flags)
+GENRESULT NewRenderPipeline::draw_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, U32 flags)
 {
 	GENRESULT result = DirectX8_draw_primitive_vb(this, type, vbhandle, start_vert, num_verts, flags);
 	return result;
 }
 
-GENRESULT DirectX8::draw_indexed_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, const U16* indices, int num_indices, U32 flags)
+GENRESULT NewRenderPipeline::draw_indexed_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, const U16* indices, int num_indices, U32 flags)
 {
 	GENRESULT result = DirectX8_draw_indexed_primitive_vb(this, type, vbhandle, start_vert, num_verts, indices, num_indices, flags);
 	return result;
 }
 
-GENRESULT DirectX8::add_light(U32 light_index)
+GENRESULT NewRenderPipeline::add_light(U32 light_index)
 {
+	//	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_add_light(this, light_index);
 	return result;
 }
 
-GENRESULT DirectX8::remove_light(U32 light_index)
+GENRESULT NewRenderPipeline::remove_light(U32 light_index)
 {
 	GENRESULT result = DirectX8_remove_light(this, light_index);
 	return result;
 }
 
-GENRESULT DirectX8::update_light(U32 light_index)
+GENRESULT NewRenderPipeline::update_light(U32 light_index)
 {
+	//NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_update_light(this, light_index);
 	return result;
 }
 
-GENRESULT DirectX8::set_world_n(UNKNOWN a2, Transform* transform)
+GENRESULT NewRenderPipeline::set_world_n(UNKNOWN a2, Transform* transform)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_set_world_n(this, a2, transform);
 	return result;
 }
 
-GENRESULT DirectX8::VertexBufferManager_UnknownC(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5)
+GENRESULT NewRenderPipeline::VertexBufferManager_UnknownC(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5)
 {
 	GENRESULT result = DirectX8_VertexBufferManager_UnknownC(this, a2, a3, a4, a5);
 	return result;
 }
 
-GENRESULT DirectX8::VertexBufferManager_Unknown10()
+GENRESULT NewRenderPipeline::VertexBufferManager_Unknown10()
 {
 	GENRESULT result = DirectX8_VertexBufferManager_Unknown10(this);
 	return result;
 }
 
-GENRESULT DirectX8::acquire_vertex_buffer(UNKNOWN vertex_format, U32 num_verts, VertexBufferAcquire* out_result)
+GENRESULT NewRenderPipeline::acquire_vertex_buffer(UNKNOWN vertex_format, U32 num_verts, VertexBufferAcquire* out_result)
 {
 	GENRESULT result = DirectX8_acquire_vertex_buffer(this, vertex_format, num_verts, out_result);
 	return result;
 }
 
-GENRESULT DirectX8::release_vertex_buffer(VertexBufferAcquire* vbacquire)
+GENRESULT NewRenderPipeline::release_vertex_buffer(VertexBufferAcquire* vbacquire)
 {
 	GENRESULT result = DirectX8_release_vertex_buffer(this, vbacquire);
 	return result;
 }
 
-GENRESULT DirectX8::VertexBufferManager_Unknown1C()
+GENRESULT NewRenderPipeline::VertexBufferManager_Unknown1C()
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_VertexBufferManager_Unknown1C(this);
 	return result;
 }
 
-GENRESULT DirectX8::VertexBufferManager_Unknown20(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5, UNKNOWN a6)
+GENRESULT NewRenderPipeline::VertexBufferManager_Unknown20(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5, UNKNOWN a6)
 {
 	GENRESULT result = DirectX8_VertexBufferManager_Unknown20(this, a2, a3, a4, a5, a6);
 	return result;
 }
 
-GENRESULT DirectX8::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 min_index, U32 num_verts, U32 start_index, U32 count)
+GENRESULT NewRenderPipeline::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 min_index, U32 num_verts, U32 start_index, U32 count)
 {
 	GENRESULT result = DirectX8_draw_indexed_primitive2(this, type, min_index, num_verts, start_index, count);
 	return result;
 }
 
-GENRESULT DirectX8::create_index_buffer(U32 count, IRP_INDEXBUFFERHANDLE* out_ibhandle, BYTE flags)
+GENRESULT NewRenderPipeline::create_index_buffer(U32 count, IRP_INDEXBUFFERHANDLE* out_ibhandle, BYTE flags)
 {
 	GENRESULT result = DirectX8_create_index_buffer(this, count, out_ibhandle, flags);
 	return result;
 }
 
-GENRESULT DirectX8::destroy_index_buffer(IRP_INDEXBUFFERHANDLE ibhandle)
+GENRESULT NewRenderPipeline::destroy_index_buffer(IRP_INDEXBUFFERHANDLE ibhandle)
 {
 	GENRESULT result = DirectX8_destroy_index_buffer(this, ibhandle);
 	return result;
 }
 
-GENRESULT DirectX8::create_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32 count)
+GENRESULT NewRenderPipeline::create_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32 count)
 {
 	GENRESULT result = DirectX8_create_ib(this, ibhandle, count);
 	return result;
 }
 
-GENRESULT DirectX8::copy_indices(IRP_INDEXBUFFERHANDLE ibhandle, U32* offset, void* data, U32 count)
+GENRESULT NewRenderPipeline::copy_indices(IRP_INDEXBUFFERHANDLE ibhandle, U32* offset, void* data, U32 count)
 {
 	GENRESULT result = DirectX8_copy_indices(this, ibhandle, offset, data, count);
 	return result;
 }
 
-GENRESULT DirectX8::lock_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32* offset, void** locked_data, U32 count)
+GENRESULT NewRenderPipeline::lock_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32* offset, void** locked_data, U32 count)
 {
 	GENRESULT result = DirectX8_lock_ib(this, ibhandle, offset, locked_data, count);
 	return result;
 }
 
-GENRESULT DirectX8::unlock_ib(IRP_INDEXBUFFERHANDLE ibhandle)
+GENRESULT NewRenderPipeline::unlock_ib(IRP_INDEXBUFFERHANDLE ibhandle)
 {
 	GENRESULT result = DirectX8_unlock_ib(this, ibhandle);
 	return result;
 }
 
-GENRESULT DirectX8::select_ib(IRP_INDEXBUFFERHANDLE ibhandle, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5)
+GENRESULT NewRenderPipeline::select_ib(IRP_INDEXBUFFERHANDLE ibhandle, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5)
 {
 	GENRESULT result = DirectX8_select_ib(this, ibhandle, a3, a4, a5);
 	return result;
 }
 
-GENRESULT DirectX8::get_ib_count(IRP_INDEXBUFFERHANDLE ibhandle, U32* out_count)
+GENRESULT NewRenderPipeline::get_ib_count(IRP_INDEXBUFFERHANDLE ibhandle, U32* out_count)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_get_ib_count(this, ibhandle, out_count);
 	return result;
 }
 
-BOOL32 DirectX8::is_ib_valid(IRP_INDEXBUFFERHANDLE ibhandle)
+BOOL32 NewRenderPipeline::is_ib_valid(IRP_INDEXBUFFERHANDLE ibhandle)
 {
 	BOOL32 result = DirectX8_is_ib_valid(this, ibhandle);
 	return result;
 }
 
-GENRESULT DirectX8::create_vb(UNKNOWN format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, BYTE flags)
+GENRESULT NewRenderPipeline::create_vb(UNKNOWN format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, BYTE flags)
 {
 	GENRESULT result = DirectX8_create_vb(this, format, count, out_vbhandle, flags);
 	return result;
 }
 
-GENRESULT DirectX8::destroy_vb(IRP_VERTEXBUFFERHANDLE vbhandle)
+GENRESULT NewRenderPipeline::destroy_vb(IRP_VERTEXBUFFERHANDLE vbhandle)
 {
 	GENRESULT result = DirectX8_destroy_vb(this, vbhandle);
 	return result;
 }
 
-GENRESULT DirectX8::ressize_vb(IRP_VERTEXBUFFERHANDLE vbhandle, UNKNOWN format, U32 count)
+GENRESULT NewRenderPipeline::ressize_vb(IRP_VERTEXBUFFERHANDLE vbhandle, UNKNOWN format, U32 count)
 {
 	GENRESULT result = DirectX8_ressize_vb(this, vbhandle, format, count);
 	return result;
 }
 
-GENRESULT DirectX8::copy_vertices(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, UNKNOWN a5, UNKNOWN a6)
+GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, UNKNOWN a5, UNKNOWN a6)
 {
 	GENRESULT result = DirectX8_copy_vertices(this, vbhandle, offset, a4, a5, a6);
 	return result;
 }
 
-GENRESULT DirectX8::lock_vb(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, void** locked_data, U32 count)
+GENRESULT NewRenderPipeline::lock_vb(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, void** locked_data, U32 count)
 {
 	GENRESULT result = DirectX8_lock_vb(this, vbhandle, offset, locked_data, count);
 	return result;
 }
 
-GENRESULT DirectX8::unlock_vb(IRP_VERTEXBUFFERHANDLE vbhandle)
+GENRESULT NewRenderPipeline::unlock_vb(IRP_VERTEXBUFFERHANDLE vbhandle)
 {
 	GENRESULT result = DirectX8_unlock_vb(this, vbhandle);
 	return result;
 }
 
-GENRESULT DirectX8::RPVertexBuffer_Unknown24(UNKNOWN a2)
+GENRESULT NewRenderPipeline::RPVertexBuffer_Unknown24(UNKNOWN a2)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_RPVertexBuffer_Unknown24(this, a2);
 	return result;
 }
 
-GENRESULT DirectX8::select_vb(IRP_VERTEXBUFFERHANDLE vbhandle)
+GENRESULT NewRenderPipeline::select_vb(IRP_VERTEXBUFFERHANDLE vbhandle)
 {
 	GENRESULT result = DirectX8_select_vb(this, vbhandle);
 	return result;
 }
 
-GENRESULT DirectX8::get_vb_count(IRP_VERTEXBUFFERHANDLE vbhandle, UNKNOWN* vertex_format, U32* num_verts)
+GENRESULT NewRenderPipeline::get_vb_count(IRP_VERTEXBUFFERHANDLE vbhandle, UNKNOWN* vertex_format, U32* num_verts)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_get_vb_count(this, vbhandle, vertex_format, num_verts);
 	return result;
 }
 
-BOOL32 DirectX8::is_vb_valid(IRP_VERTEXBUFFERHANDLE vbhandle)
+BOOL32 NewRenderPipeline::is_vb_valid(IRP_VERTEXBUFFERHANDLE vbhandle)
 {
 	BOOL32 result = DirectX8_is_vb_valid(this, vbhandle);
 	return result;
 }
 
-GENRESULT DirectX8::set_gamma_function(IGC_COMPONENT which, float display_gamma, float bias, float slope, float black_offset)
+GENRESULT NewRenderPipeline::set_gamma_function(IGC_COMPONENT which, float display_gamma, float bias, float slope, float black_offset)
 {
 	GENRESULT result = DirectX8_set_gamma_function(this, which, display_gamma, bias, slope, black_offset);
 	return result;
 }
 
-GENRESULT DirectX8::set_gamma_ramp(IGC_COMPONENT igc_component, U16* ramp)
+GENRESULT NewRenderPipeline::set_gamma_ramp(IGC_COMPONENT igc_component, U16* ramp)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_set_gamma_ramp(this, igc_component, ramp);
 	return result;
 }
 
-GENRESULT DirectX8::get_gamma_ramp(IGC_COMPONENT igc_component, U16* out_ramp)
+GENRESULT NewRenderPipeline::get_gamma_ramp(IGC_COMPONENT igc_component, U16* out_ramp)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_get_gamma_ramp(this, igc_component, out_ramp);
 	return result;
 }
 
-GENRESULT DirectX8::set_calibration_enable(bool enabled)
+GENRESULT NewRenderPipeline::set_calibration_enable(bool enabled)
 {
 	GENRESULT result = DirectX8_set_calibration_enable(this, enabled);
 	return result;
 }
 
-GENRESULT DirectX8::get_calibration_enable(void)
+GENRESULT NewRenderPipeline::get_calibration_enable(void)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_get_calibration_enable(this);
 	return result;
 }
 
-GENRESULT DirectX8::print_screen(IFileSystem* pFileSystem, const char* filepath)
+GENRESULT NewRenderPipeline::print_screen(IFileSystem* pFileSystem, const char* filepath)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_print_screen(this, pFileSystem, filepath);
 	return result;
 }
 
-GENRESULT DirectX8::load_texture(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture)
+GENRESULT NewRenderPipeline::load_texture(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_load_texture(this, a2_interface, filepath, out_texture);
 	return result;
 }
 
-GENRESULT DirectX8::load_surface_from_file(UNKNOWN* a2_interface, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5)
+GENRESULT NewRenderPipeline::load_surface_from_file(UNKNOWN* a2_interface, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5)
 {
+	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_load_surface_from_file(this, a2_interface, a3, a4, a5);
 	return result;
 }
 
-GENRESULT DirectX8::RPTexture_Unknown18(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4)
+GENRESULT NewRenderPipeline::RPTexture_Unknown18(UNKNOWN a2, UNKNOWN a3, UNKNOWN* a4)
 {
 	GENRESULT result = DirectX8_RPTexture_Unknown18(this, a2, a3, a4);
 	return result;
 }
 
-GENRESULT DirectX8::load_cubemap(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture)
+GENRESULT NewRenderPipeline::load_cubemap(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture)
 {
 	GENRESULT result = DirectX8_load_cubemap(this, a2_interface, filepath, out_texture);
 	return result;
 }
 
-GENRESULT DirectX8::Initialize(void)
+GENRESULT NewRenderPipeline::Initialize(void)
 {
 	GENRESULT result = DirectX8_Initialize(this);
 	return result;
@@ -3113,19 +3531,19 @@ GENRESULT DirectX8::Initialize(void)
 
 extern "C"
 {
-	IComponentFactory* CreateRenderPipelineFactory()
+	IComponentFactory* CreateNewRenderPipelineFactory()
 	{
-		return new DAComponentFactory2<DAComponentAggregate<DirectX8>, AGGDESC>(CLSID_DirectX8);
+		return new DAComponentFactory2<DAComponentAggregate<NewRenderPipeline>, AGGDESC>(CLSID_NewRenderPipeline);
 	}
 
-	void Register_RenderPipeline()
+	void Register_NewRenderPipeline()
 	{
 		GENRESULT result = GR_GENERIC;
 		if (ICOManager* DACOM = DACOM_Acquire())
 		{
-			if (IComponentFactory* pFactory = CreateRenderPipelineFactory())
+			if (IComponentFactory* pFactory = CreateNewRenderPipelineFactory())
 			{
-				result = DACOM->RegisterComponent(pFactory, CLSID_DirectX8, DACOM_LOW_PRIORITY);
+				result = DACOM->RegisterComponent(pFactory, CLSID_NewRenderPipeline, DACOM_LOW_PRIORITY);
 				pFactory->Release();
 			}
 		}

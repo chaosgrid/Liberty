@@ -24,6 +24,12 @@
 #define __thiscall __fastcall
 #endif
 
+template<typename Output, typename Input>
+Output coerce_cast(Input const& value)
+{
+	return *reinterpret_cast<Output const*>(&value);
+}
+
 #include <Core/fatal.h>
 #include <Core/typedefs.h>
 #include <Core/genresult.h>
