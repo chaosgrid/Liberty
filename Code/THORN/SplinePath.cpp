@@ -467,7 +467,7 @@ DWORD CROrientationSplinePath::vPersistStringC()
 template<typename SplinePath>
 static void Register_SplinePath(ICOManager* DACOM, const char* pCLSID)
 {
-	if (IComponentFactory* pComponentFactory = new DAComponentFactory2<DADebugComponentAggregate<SplinePath>, AGGDESC>(pCLSID))
+	if (IComponentFactory* pComponentFactory = new DAComponentFactory2<DAComponentAggregate<SplinePath>, AGGDESC>(pCLSID))
 	{
 		if (FAILED(DACOM->RegisterComponent(pComponentFactory, pCLSID, DACOM_LOW_PRIORITY + 1)))
 		{

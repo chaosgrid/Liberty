@@ -591,7 +591,7 @@ const char* FreeFormPCurve::GetDescription()
 template<typename ParamCurve>
 static void Register_ParamCurve(ICOManager* DACOM, const char* pCLSID)
 {
-	if (IComponentFactory* pComponentFactory = new DAComponentFactory<DADebugComponent<ParamCurve>, CURVEDESC>(pCLSID))
+	if (IComponentFactory* pComponentFactory = new DAComponentFactory<DAComponent<ParamCurve>, CURVEDESC>(pCLSID))
 	{
 		if (FAILED(DACOM->RegisterComponent(pComponentFactory, pCLSID, DACOM_LOW_PRIORITY + 1)))
 		{
