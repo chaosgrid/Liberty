@@ -29,18 +29,152 @@ if (direct3d_adapter == -1) \
 
 #define CHECK_CREATE_BUFFERS() NOT_IMPLEMENTED;
 
+#define HRESULT_GET_ERROR_STRING(...) (explode(), (const char*)0)
+
+#define pf_to_d3d_table data_6D6FFA8
+_extern D3DFORMAT pf_to_d3d_table[] =
+{
+	D3DFMT_UNKNOWN,
+	D3DFMT_P8,
+	D3DFMT_R8G8B8,
+	D3DFMT_R5G6B5,
+	D3DFMT_X1R5G5B5,
+	D3DFMT_A4R4G4B4,
+	D3DFMT_A1R5G5B5,
+	D3DFMT_A8R8G8B8,
+	D3DFMT_X8R8G8B8,
+	D3DFMT_UNKNOWN,
+	D3DFMT_DXT1,
+	D3DFMT_DXT2,
+	D3DFMT_DXT3,
+	D3DFMT_DXT4,
+	D3DFMT_DXT5,
+	D3DFORMAT('POAD'),
+	D3DFORMAT('TOAD'),
+	D3DFORMAT('AAAD'),
+	D3DFORMAT('LAAD'),
+	D3DFORMAT('1AAD'),
+	D3DFORMAT('4AAD'),
+	D3DFORMAT('8AAD'),
+};
+
+#define get_pf_to_d3d_table sub_6D5CC20
+_extern D3DFORMAT* get_pf_to_d3d_table()
+{
+	return pf_to_d3d_table;
+}
+
+#define pf_to_d3d sub_6D5CBB0
+_extern D3DFORMAT pf_to_d3d(PFenum pfenum)
+{
+	D3DFORMAT* pf_to_d3d_table = get_pf_to_d3d_table();
+
+	if (pfenum >= PF_MAX_VALUE)
+	{
+		GENERAL_ERROR(TEMPSTR("pf_to_d3d: unknown pfenum passed (%x)", static_cast<U32>(pfenum)));
+		return D3DFMT_UNKNOWN;
+	}
+
+	return pf_to_d3d_table[pfenum];
+}
+
+#define d3d_to_pf sub_6D5CC30
+_extern PFenum d3d_to_pf(D3DFORMAT d3d_format)
+{
+	D3DFORMAT* pf_to_d3d_table = get_pf_to_d3d_table();
+	for (U32 index = 0; index < PF_MAX_VALUE; index++)
+	{
+		if (pf_to_d3d_table[index] == d3d_format)
+		{
+			PFenum result = static_cast<PFenum>(index);
+			return result;
+		}
+	}
+	return PF_UNKNOWN;
+}
+
+#define pf_to_pixel_format_table data_6D70000
+_extern PixelFormat pf_to_pixel_format_table[];
+#define pf_to_pixel_format sub_6D5CC70
+_extern PixelFormat* __cdecl pf_to_pixel_format(PFenum pixel_format)
+{
+	if (pixel_format <= 14)
+		return &pf_to_pixel_format_table[pixel_format];
+	else
+		return pf_to_pixel_format_table;
+}
+
+#define validate_depth_stencil_format sub_6D159A6
+_extern bool validate_depth_stencil_format(LPDIRECT3D8 direct3d, D3DFORMAT depth_stencil_format, D3DFORMAT adapter_format, D3DFORMAT render_target_format)
+{
+	HRESULT check_device_format_result = direct3d->CheckDeviceFormat(0, D3DDEVTYPE_HAL, adapter_format, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, depth_stencil_format);
+	HRESULT check_depth_stencil_match_result = direct3d->CheckDepthStencilMatch(0, D3DDEVTYPE_HAL, adapter_format, render_target_format, depth_stencil_format);
+	bool result = SUCCEEDED(check_device_format_result) && SUCCEEDED(check_depth_stencil_match_result);
+	return result;
+}
+
+#define dword_6D64040 data_6D64040
+_extern DWORD dword_6D64040[];
+#define sub_6D159FF sub_6D159FF
+_extern D3DFORMAT __cdecl sub_6D159FF(
+	LPDIRECT3D8 direct3d,
+	D3DFORMAT adapter_format,
+	D3DFORMAT render_target_format,
+	DWORD* a4,
+	DWORD* a5)
+{
+	int v7; // [esp+8h] [ebp-18h]
+	int v8; // [esp+Ch] [ebp-14h]
+	int v9; // [esp+10h] [ebp-10h]
+	int v10; // [esp+14h] [ebp-Ch]
+	DWORD* v11; // [esp+18h] [ebp-8h]
+	DWORD* i; // [esp+1Ch] [ebp-4h]
+
+	v9 = 100;
+	v10 = 100;
+	v11 = 0;
+	for (i = dword_6D64040; *i; i += 3)
+	{
+		v7 = *a4 - i[1];
+		v8 = *a5 - i[2];
+		if (v8 >= 0
+			&& v7 >= 0
+			&& (!v11 || v8 <= v9)
+			&& validate_depth_stencil_format(direct3d, (D3DFORMAT)*i, adapter_format, render_target_format)
+			&& (!v11 || v8 < v9 || v7 < v10))
+		{
+			v11 = i;
+			v9 = v8;
+			v10 = v7;
+		}
+	}
+	if (!v11)
+		return D3DFMT_UNKNOWN;
+	*a4 = v11[1];
+	*a5 = v11[2];
+	D3DFORMAT result = (D3DFORMAT)*v11;
+	 return result;
+}
+
+#define update_device_capabilities sub_6D020AB
+_extern void __thiscall update_device_capabilities(/*RenderPipeline*/void* _this, D3DCAPS8* direct3d_caps)
+{
+	// nuked
+	debug_point;
+}
+
+struct NewRenderPipeline;
+
+_extern int __cdecl sub_6D15B0D(int a1);
+_extern int __cdecl sub_6D15B45(int a1);
+_extern void __thiscall sub_6D0376F(NewRenderPipeline* _this);
+_extern void __thiscall sub_6D038BA(NewRenderPipeline* _this);
+_extern void __thiscall sub_6D03C94(NewRenderPipeline* _this);
+_extern void __thiscall sub_6D047DF(NewRenderPipeline* _this);
+_extern void __thiscall sub_6D2CE6A(void* _this);
+
 TRAMPOLINE(IRenderPipeline8B*, __thiscall, DirectX8_Ctor, _sub_6D01143, IRenderPipeline8B* _this);
 TRAMPOLINE(IRenderPipeline8B*, __thiscall, DirectX8_Dtor, _sub_6D01689, IRenderPipeline8B* _this);
-TRAMPOLINE(GENRESULT, __thiscall, DirectX8_init, _sub_6D01A06, IRenderPipeline8B* _this, AGGDESC* pDesc);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_startup, _sub_6D05DA0, IRenderPipeline8B* _this, const char* profile_name);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_shutdown, _sub_6D07AA8, IRenderPipeline8B* _this);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_pipeline_state, _sub_6D081C2, IRenderPipeline8B* _this, RPPIPELINESTATE state, U32 value);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_pipeline_state, _sub_6D0823E, IRenderPipeline8B* _this, RPPIPELINESTATE state, U32* value);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_device_info, _sub_6D082D1, IRenderPipeline8B* _this, RPDEVICEINFO* info);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_query_device_ability, _sub_6D083D2, IRenderPipeline8B* _this, RPDEVICEABILITY ability, U32* out_answer);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_num_display_modes, _sub_6D08461, IRenderPipeline8B* _this, U32* count);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_display_mode, _sub_6D084F2, IRenderPipeline8B* _this, RPDISPLAYMODEINFO* mode, U32 mode_num);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_select_mode, _sub_6D0869D, IRenderPipeline8B* _this, void* unknown_params, U32* adapter);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_buffers, _sub_6D08811, IRenderPipeline8B* _this, HWND hwnd, RPBUFFERSINFO* buffersinfo, RPBUFFERSINFO* out_buffersinfo);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_buffers, _sub_6D098F3, IRenderPipeline8B* _this, U32* adapter, RPBUFFERSINFO* out_buffersinfo);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_buffers, _sub_6D09982, IRenderPipeline8B* _this);
@@ -74,15 +208,15 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_light_enable, _sub_6D0D0D7, IRende
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_light_enable, _sub_6D0D157, IRenderPipeline8B* _this, U32 light_index, U32* out_enable);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_material, _sub_6D0D1DC, IRenderPipeline8B* _this, D3DMATERIAL8* material_values);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_material, _sub_6D0D310, IRenderPipeline8B* _this, D3DMATERIAL8* out_material_values);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_texture, _sub_6D0D628, IRenderPipeline8B* _this, int width, int height, const PixelFormat* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_texture, _sub_6D0D628, IRenderPipeline8B* _this, int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_texture, _sub_6D0D997, IRenderPipeline8B* _this, U32 htexture);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_is_texture, _sub_6D0DC51, IRenderPipeline8B* _this, U32 htexture);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_lock_texture, _sub_6D0DCE3, IRenderPipeline8B* _this, U32 htexture, int level, RPLOCKDATA* lockData);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_texture, _sub_6D0E1AF, IRenderPipeline8B* _this, U32 htexture, int level);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_format, _sub_6D0E3D9, IRenderPipeline8B* _this, U32 htexture, PixelFormat* out_pf);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_format, _sub_6D0E3D9, IRenderPipeline8B* _this, U32 htexture, PFenum* out_pf);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_dim, _sub_6D0E6D4, IRenderPipeline8B* _this, U32 htexture, U32* out_width, U32* out_height, U32* out_num_lod);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_interface, _sub_6D0EA0B, IRenderPipeline8B* _this, U32 htexture, const char* iid, void** out_iif);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_level_data, _sub_6D0EA78, IRenderPipeline8B* _this, U32 htexture, int level, int src_width, int src_height, int src_stride, const PixelFormat* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_level_data, _sub_6D0EA78, IRenderPipeline8B* _this, U32 htexture, int level, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_blit_texture, _sub_6D0F1BC, IRenderPipeline8B* _this, U32 hDest, U32 destLevel, RECT destRect, U32 hSrc, U32 srcLevel, RECT srcRect);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_render_target, _sub_6D0F698, IRenderPipeline8B* _this, UNKNOWN a2, UNKNOWN a3, UNKNOWN a4);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_render_target, _sub_6D0F70F, IRenderPipeline8B* _this, void* a2);
@@ -171,7 +305,7 @@ class NewRenderPipeline : IRenderPipeline8B, IVertexBufferManager, IRPDraw, IRPI
 {
 public:
 	IProfileParser* profile_parser;
-	char profile_nameA[128];
+	char profile_name[128];
 	char profile_nameB[128];
 	DWORD direct3d_behavior_flags;
 	DWORD unknown128;
@@ -182,10 +316,11 @@ public:
 	IRP_VERTEXBUFFERHANDLE unknown13C_vbhandle;
 	RPIndexBufferInternal* unknown140;
 	DWORD unknown144;
-	BYTE unknown148;
-	BYTE unknown149;
-	BYTE unknown14A;
-	BYTE unknown14B;
+	DWORD unknown148;
+	//BYTE unknown148;
+	//BYTE unknown149;
+	//BYTE unknown14A;
+	//BYTE unknown14B;
 	RPIndexBufferInternal index_buffer_internal;
 	DWORD unknown168;
 	DWORD unknown16C;
@@ -202,15 +337,12 @@ public:
 	DWORD unknown18C;
 	DWORD unknown190;
 	DWORD unknown194;
-	DWORD unknown198;
-	RPDEVICEINFO* unknown19C;
-	RPDEVICEINFO* unknown1A0;
-	DWORD unknown1A4;
+	st6::vector<RPDEVICEINFO> unknown198;
 	DWORD direct3d_adapter;
 	D3DDEVTYPE direct3d_device_type;
 	char configuration_database_file[128];
 	DWORD unknown230;
-	DWORD unknown234;
+	PFenum pf_unknown234;
 	RPBUFFERSINFO buffers_info;
 	HWND hwnd;
 	DWORD window_x;
@@ -2168,7 +2300,10 @@ public:
 	DWORD unknown21F4;
 	DWORD unknown21F8;
 	D3DMATRIX Mview;
-	DWORD unknown223C;
+	BYTE unknown223C;
+	BYTE unknown223D;
+	BYTE unknown223E;
+	BYTE unknown223F;
 	D3DMATRIX Mworld;
 	BYTE unknown2280_set_to_zero_in_set_world;
 	BYTE unknown2281;
@@ -2176,6 +2311,9 @@ public:
 	BYTE unknown2283;
 	D3DMATRIX Mprojection;
 	BYTE unknown22C4;
+	BYTE unknown22C5;
+	BYTE unknown22C6;
+	BYTE unknown22C7;
 	D3DVIEWPORT8 direct3d_viewport;
 	BYTE unknown22E0_set_to_zero_after_viewport;
 	BYTE unknown22E1_set_to_zero_after_viewport;
@@ -2234,7 +2372,7 @@ public:
 	DACOM_DEFMETHOD(query_device_ability)(RPDEVICEABILITY ability, U32* out_answer) override;
 	DACOM_DEFMETHOD(get_num_display_modes)(U32* count) override;
 	DACOM_DEFMETHOD(get_display_mode)(RPDISPLAYMODEINFO* mode, U32 mode_num) override;
-	DACOM_DEFMETHOD(select_mode)(void* unknown_params, U32* adapter) override;
+	DACOM_DEFMETHOD(select_mode)(RPBUFFERSINFO* mode, U32* adapter) override;
 	DACOM_DEFMETHOD(create_buffers)(HWND hwnd, RPBUFFERSINFO* buffersinfo, RPBUFFERSINFO* out_buffersinfo) override;
 	DACOM_DEFMETHOD(get_buffers)(U32* adapter, RPBUFFERSINFO* out_buffersinfo) override;
 	DACOM_DEFMETHOD(destroy_buffers)(void) override;
@@ -2268,15 +2406,15 @@ public:
 	DACOM_DEFMETHOD(get_light_enable)(U32 light_index, U32* out_enable) override;
 	DACOM_DEFMETHOD(set_material)(D3DMATERIAL8* material_values) override;
 	DACOM_DEFMETHOD(get_material)(D3DMATERIAL8* out_material_values) override;
-	DACOM_DEFMETHOD(create_texture)(int width, int height, const PixelFormat* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture) override;
+	DACOM_DEFMETHOD(create_texture)(int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture) override;
 	DACOM_DEFMETHOD(destroy_texture)(U32 htexture) override;
 	DACOM_DEFMETHOD(is_texture)(U32 htexture) override;
 	DACOM_DEFMETHOD(lock_texture)(U32 htexture, int level, RPLOCKDATA* lockData) override;
 	DACOM_DEFMETHOD(unlock_texture)(U32 htexture, int level) override;
-	DACOM_DEFMETHOD(get_texture_format)(U32 htexture, PixelFormat* out_pf) override;
+	DACOM_DEFMETHOD(get_texture_format)(U32 htexture, PFenum* out_pf) override;
 	DACOM_DEFMETHOD(get_texture_dim)(U32 htexture, U32* out_width, U32* out_height, U32* out_num_lod) override;
 	DACOM_DEFMETHOD(get_texture_interface)(U32 htexture, const char* iid, void** out_iif) override;
-	DACOM_DEFMETHOD(set_texture_level_data)(U32 htexture, int level, int src_width, int src_height, int src_stride, const PixelFormat* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette) override;
+	DACOM_DEFMETHOD(set_texture_level_data)(U32 htexture, int level, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette) override;
 	DACOM_DEFMETHOD(blit_texture)(U32 hDest, U32 destLevel, RECT destRect, U32 hSrc, U32 srcLevel, RECT srcRect) override;
 	DACOM_DEFMETHOD(set_render_target)(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4) override;
 	DACOM_DEFMETHOD(get_render_target)(void* a2) override;
@@ -2360,6 +2498,8 @@ public:
 	DACOM_DEFMETHOD(Initialize) (void) override;
 };
 
+
+
 // 6D01143
 NewRenderPipeline::NewRenderPipeline()
 {
@@ -2377,282 +2517,27 @@ NewRenderPipeline::~NewRenderPipeline()
 	debug_point;
 }
 
-GENRESULT NewRenderPipeline::init(AGGDESC* pDesc)
+GENRESULT NewRenderPipeline::init(AGGDESC* descriptor)
 {
-	GENRESULT result = DirectX8_init(this, pDesc);
-	return result;
-}
-
-#define pf_to_d3d_table data_6D6FFA8
-_extern D3DFORMAT pf_to_d3d_table[] =
-{
-	D3DFMT_UNKNOWN,
-	D3DFMT_P8,
-	D3DFMT_R8G8B8,
-	D3DFMT_R5G6B5,
-	D3DFMT_X1R5G5B5,
-	D3DFMT_A4R4G4B4,
-	D3DFMT_A1R5G5B5,
-	D3DFMT_A8R8G8B8,
-	D3DFMT_X8R8G8B8,
-	D3DFMT_UNKNOWN,
-	D3DFMT_DXT1,
-	D3DFMT_DXT2,
-	D3DFMT_DXT3,
-	D3DFMT_DXT4,
-	D3DFMT_DXT5,
-	D3DFORMAT('POAD'),
-	D3DFORMAT('TOAD'),
-	D3DFORMAT('AAAD'),
-	D3DFORMAT('LAAD'),
-	D3DFORMAT('1AAD'),
-	D3DFORMAT('4AAD'),
-	D3DFORMAT('8AAD'),
-};
-
-#define get_pf_to_d3d_table sub_6D5CC20
-_extern D3DFORMAT* get_pf_to_d3d_table()
-{
-	return pf_to_d3d_table;
-}
-
-enum PFenum
-{
-	PF_MAX_VALUE = 0x16,
-};
-
-#define pf_to_d3d sub_6D5CBB0
-_extern  D3DFORMAT pf_to_d3d(PFenum pfenum)
-{
-	D3DFORMAT* pf_to_d3d_table = get_pf_to_d3d_table();
-
-	if (pfenum >= PF_MAX_VALUE)
+	if (descriptor->description && strlen(descriptor->description))
 	{
-		GENERAL_ERROR(TEMPSTR("pf_to_d3d: unknown pfenum passed (%x)", static_cast<U32>(pfenum)));
-		return D3DFMT_UNKNOWN;
+		strcpy_s(profile_name, descriptor->description);
+	}
+	else
+	{
+		strcpy_s(profile_name, "RenderPipeline");
 	}
 
-	return pf_to_d3d_table[pfenum];
-}
+	GENERAL_NOTICE(profile_name);
 
-_extern _naked void sub_6D05DA0() // _sub_6D05DA0
-{
-	__DEBUG_ASM(6D05DA0);
-	// chunk 0x6D05DA0 _sub_6D05DA0
-	asm("loc_6D05DA0: push %ebp;");
-	asm("loc_6D05DA1: mov %esp,%ebp;");
-	asm("loc_6D05DA3: sub $0xB5C,%esp;");
-	asm("loc_6D05DA9: push %esi;");
-	asm("loc_6D05DAA: push %edi;");
-	asm("loc_6D05DAB: calll *_import_6D5E014;");
-	asm("loc_6D05DB1: mov %eax,-0x210(%ebp);");
-
-	//asm("loc_6D05DC7: mov 8(%ebp),%edx;");
-	//asm("loc_6D05DCA: cmpl $0,0x12C(%edx);");
-	
-
-	asm("loc_6D07766: lea -0x20C(%ebp),%ecx;");
-	asm("loc_6D0776C: push %ecx;");
-	asm("loc_6D0776D: mov 8(%ebp),%ecx;");
-	asm("loc_6D07770: add $0x28C,%ecx;");
-	asm("loc_6D07776: call _sub_6D16E50;");
-	asm("loc_6D0777B: mov 8(%ebp),%edx;");
-	asm("loc_6D0777E: mov 0x290(%edx),%eax;");
-	asm("loc_6D07784: mov %eax,-0xA8C(%ebp);");
-	asm("loc_6D0778A: mov -0xA8C(%ebp),%ecx;");
-	asm("loc_6D07790: mov %ecx,-0x214(%ebp);");
-	asm("loc_6D07796: mov -0x20C(%ebp),%edx;");
-	asm("loc_6D0779C: mov %edx,-0x90(%ebp);");
-	asm("loc_6D077A2: jmp loc_6D077C7;");
-	asm("loc_6D077A4: mov -0x90(%ebp),%eax;");
-	asm("loc_6D077AA: mov %eax,-0xA90(%ebp);");
-	asm("loc_6D077B0: lea -0x90(%ebp),%ecx;");
-	asm("loc_6D077B6: call _sub_6D1C910;");
-	asm("loc_6D077BB: mov -0xA90(%ebp),%ecx;");
-	asm("loc_6D077C1: mov %ecx,-0x884(%ebp);");
-	asm("loc_6D077C7: mov -0x90(%ebp),%edx;");
-	asm("loc_6D077CD: sub -0x214(%ebp),%edx;");
-	asm("loc_6D077D3: neg %edx;");
-	asm("loc_6D077D5: sbb %edx,%edx;");
-	asm("loc_6D077D7: inc %edx;");
-	asm("loc_6D077D8: xor %eax,%eax;");
-	asm("loc_6D077DA: mov %dl,%al;");
-	asm("loc_6D077DC: neg %eax;");
-	asm("loc_6D077DE: sbb %eax,%eax;");
-	asm("loc_6D077E0: inc %eax;");
-	asm("loc_6D077E1: xor %ecx,%ecx;");
-	asm("loc_6D077E3: mov %al,%cl;");
-	asm("loc_6D077E5: test %ecx,%ecx;");
-	asm("loc_6D077E7: je loc_6D07971;");
-	asm("loc_6D077ED: mov 8(%ebp),%edx;");
-	asm("loc_6D077F0: mov 0x20(%edx),%eax;");
-	asm("loc_6D077F3: mov %eax,-0xA94(%ebp);");
-	asm("loc_6D077F9: mov -0x90(%ebp),%ecx;");
-	asm("loc_6D077FF: mov 0x10(%ecx),%edx;");
-	asm("loc_6D07802: mov %edx,-0xAA8(%ebp);");
-	asm("loc_6D07808: movl $0,-0xA9C(%ebp);");
-	asm("loc_6D07812: movl $0xFFFFFFFF,-0xA98(%ebp);");
-	asm("loc_6D0781C: mov -0xA94(%ebp),%eax;");
-	asm("loc_6D07822: push %eax;");
-	asm("loc_6D07823: lea -0xA9C(%ebp),%ecx;");
-	asm("loc_6D07829: call _sub_6D15F20;");
-	asm("loc_6D0782E: test %eax,%eax;");
-	asm("loc_6D07830: jne loc_6D07857;");
-	asm("loc_6D07832: lea -0xA9C(%ebp),%ecx;");
-	asm("loc_6D07838: push %ecx;");
-	asm("loc_6D07839: push $_data_6D6AF68;");
-	asm("loc_6D0783E: mov -0x210(%ebp),%edx;");
-	asm("loc_6D07844: mov (%edx),%eax;");
-	asm("loc_6D07846: mov -0x210(%ebp),%ecx;");
-	asm("loc_6D0784C: push %ecx;");
-	asm("loc_6D0784D: calll *(%eax);");
-	asm("loc_6D0784F: test %eax,%eax;");
-	asm("loc_6D07851: jne loc_6D078F9;");
-	asm("loc_6D07857: push $3;");
-	asm("loc_6D07859: mov 8(%ebp),%edx;");
-	asm("loc_6D0785C: add $0xA4,%edx;");
-	asm("loc_6D07862: push %edx;");
-	asm("loc_6D07863: mov -0xA9C(%ebp),%eax;");
-	asm("loc_6D07869: mov %eax,-0xB54(%ebp);");
-	asm("loc_6D0786F: mov -0xB54(%ebp),%ecx;");
-	asm("loc_6D07875: mov (%ecx),%edx;");
-	asm("loc_6D07877: mov -0xB54(%ebp),%eax;");
-	asm("loc_6D0787D: push %eax;");
-	asm("loc_6D0787E: calll *0x14(%edx);");
-	asm("loc_6D07881: mov %eax,-0xAA0(%ebp);");
-	asm("loc_6D07887: cmpl $0,-0xAA0(%ebp);");
-	asm("loc_6D0788E: je loc_6D078F9;");
-	asm("loc_6D07890: push $0x400;");
-	asm("loc_6D07895: push $_data_6D73DC0;");
-	asm("loc_6D0789A: mov -0xAA8(%ebp),%ecx;");
-	asm("loc_6D078A0: push %ecx;");
-	asm("loc_6D078A1: mov -0xAA0(%ebp),%edx;");
-	asm("loc_6D078A7: push %edx;");
-	asm("loc_6D078A8: mov -0xA9C(%ebp),%eax;");
-	asm("loc_6D078AE: mov %eax,-0xB58(%ebp);");
-	asm("loc_6D078B4: mov -0xB58(%ebp),%ecx;");
-	asm("loc_6D078BA: mov (%ecx),%edx;");
-	asm("loc_6D078BC: mov -0xB58(%ebp),%eax;");
-	asm("loc_6D078C2: push %eax;");
-	asm("loc_6D078C3: calll *0x20(%edx);");
-	asm("loc_6D078C6: test %eax,%eax;");
-	asm("loc_6D078C8: je loc_6D078D4;");
-	asm("loc_6D078CA: movl $0,-0xA98(%ebp);");
-	asm("loc_6D078D4: mov -0xAA0(%ebp),%ecx;");
-	asm("loc_6D078DA: push %ecx;");
-	asm("loc_6D078DB: mov -0xA9C(%ebp),%edx;");
-	asm("loc_6D078E1: mov %edx,-0xB5C(%ebp);");
-	asm("loc_6D078E7: mov -0xB5C(%ebp),%eax;");
-	asm("loc_6D078ED: mov (%eax),%ecx;");
-	asm("loc_6D078EF: mov -0xB5C(%ebp),%edx;");
-	asm("loc_6D078F5: push %edx;");
-	asm("loc_6D078F6: calll *0x18(%ecx);");
-	asm("loc_6D078F9: mov -0xA98(%ebp),%eax;");
-	asm("loc_6D078FF: mov %eax,-0xAA4(%ebp);");
-	asm("loc_6D07905: lea -0xA9C(%ebp),%ecx;");
-	asm("loc_6D0790B: call _sub_6D167A0;");
-	asm("loc_6D07910: cmpl $0,-0xAA4(%ebp);");
-	asm("loc_6D07917: jl loc_6D0796C;");
-	asm("loc_6D07919: mov -0x90(%ebp),%ecx;");
-	asm("loc_6D0791F: movb $1,0x20(%ecx);");
-	asm("loc_6D07923: mov 8(%ebp),%edx;");
-	asm("loc_6D07926: mov 0x20(%edx),%eax;");
-	asm("loc_6D07929: mov %eax,-0xAAC(%ebp);");
-	asm("loc_6D0792F: mov -0x90(%ebp),%ecx;");
-	asm("loc_6D07935: add $0x1C,%ecx;");
-	asm("loc_6D07938: push %ecx;");
-	asm("loc_6D07939: mov -0x90(%ebp),%edx;");
-	asm("loc_6D0793F: mov 0x18(%edx),%eax;");
-	asm("loc_6D07942: push %eax;");
-	asm("loc_6D07943: mov -0x90(%ebp),%ecx;");
-	asm("loc_6D07949: mov 0x10(%ecx),%edx;");
-	asm("loc_6D0794C: push %edx;");
-	asm("loc_6D0794D: mov 8(%ebp),%eax;");
-	asm("loc_6D07950: add $0xA4,%eax;");
-	asm("loc_6D07955: push %eax;");
-	asm("loc_6D07956: mov -0xAAC(%ebp),%ecx;");
-	asm("loc_6D0795C: push %ecx;");
-	asm("loc_6D0795D: mov -0x210(%ebp),%edx;");
-	asm("loc_6D07963: push %edx;");
-	asm("loc_6D07964: call _sub_6D16930;");
-	asm("loc_6D07969: add $0x18,%esp;");
-	asm("loc_6D0796C: jmp loc_6D077A4;");
-	asm("loc_6D07971: lea -0x228(%ebp),%eax;");
-	asm("loc_6D07977: push %eax;");
-	asm("loc_6D07978: mov 8(%ebp),%ecx;");
-	asm("loc_6D0797B: add $0x2A0,%ecx;");
-	asm("loc_6D07981: call _sub_6D16E50;");
-	asm("loc_6D07986: mov 8(%ebp),%ecx;");
-	asm("loc_6D07989: mov 0x2A4(%ecx),%edx;");
-	asm("loc_6D0798F: mov %edx,-0xAB0(%ebp);");
-	asm("loc_6D07995: mov -0xAB0(%ebp),%eax;");
-	asm("loc_6D0799B: mov %eax,-0x344(%ebp);");
-	asm("loc_6D079A1: mov -0x228(%ebp),%ecx;");
-	asm("loc_6D079A7: mov %ecx,-0x8C(%ebp);");
-	asm("loc_6D079AD: jmp loc_6D079C3;");
-	asm("loc_6D079AF: push $0;");
-	asm("loc_6D079B1: lea -0x888(%ebp),%edx;");
-	asm("loc_6D079B7: push %edx;");
-	asm("loc_6D079B8: lea -0x8C(%ebp),%ecx;");
-	asm("loc_6D079BE: call _sub_6D16210;");
-	asm("loc_6D079C3: mov -0x8C(%ebp),%eax;");
-	asm("loc_6D079C9: sub -0x344(%ebp),%eax;");
-	asm("loc_6D079CF: neg %eax;");
-	asm("loc_6D079D1: sbb %eax,%eax;");
-	asm("loc_6D079D3: inc %eax;");
-	asm("loc_6D079D4: xor %ecx,%ecx;");
-	asm("loc_6D079D6: mov %al,%cl;");
-	asm("loc_6D079D8: neg %ecx;");
-	asm("loc_6D079DA: sbb %ecx,%ecx;");
-	asm("loc_6D079DC: inc %ecx;");
-	asm("loc_6D079DD: xor %edx,%edx;");
-	asm("loc_6D079DF: mov %cl,%dl;");
-	asm("loc_6D079E1: test %edx,%edx;");
-	asm("loc_6D079E3: je loc_6D07A48;");
-	asm("loc_6D079E5: mov -0x8C(%ebp),%eax;");
-	asm("loc_6D079EB: mov 0x20(%eax),%cl;");
-	asm("loc_6D079EE: mov %cl,-0xAB1(%ebp);");
-	asm("loc_6D079F4: movzbl -0xAB1(%ebp),%edx;");
-	asm("loc_6D079FB: test %edx,%edx;");
-	asm("loc_6D079FD: je loc_6D07A43;");
-	asm("loc_6D079FF: mov 8(%ebp),%eax;");
-	asm("loc_6D07A02: mov 0x20(%eax),%ecx;");
-	asm("loc_6D07A05: mov %ecx,-0xAB8(%ebp);");
-	asm("loc_6D07A0B: mov -0x8C(%ebp),%edx;");
-	asm("loc_6D07A11: add $0x1C,%edx;");
-	asm("loc_6D07A14: push %edx;");
-	asm("loc_6D07A15: mov -0x8C(%ebp),%eax;");
-	asm("loc_6D07A1B: mov 0x18(%eax),%ecx;");
-	asm("loc_6D07A1E: push %ecx;");
-	asm("loc_6D07A1F: mov -0x8C(%ebp),%edx;");
-	asm("loc_6D07A25: mov 0x10(%edx),%eax;");
-	asm("loc_6D07A28: push %eax;");
-	asm("loc_6D07A29: mov 0xC(%ebp),%ecx;");
-	asm("loc_6D07A2C: push %ecx;");
-	asm("loc_6D07A2D: mov -0xAB8(%ebp),%edx;");
-	asm("loc_6D07A33: push %edx;");
-	asm("loc_6D07A34: mov -0x210(%ebp),%eax;");
-	asm("loc_6D07A3A: push %eax;");
-	asm("loc_6D07A3B: call _sub_6D16930;");
-	asm("loc_6D07A40: add $0x18,%esp;");
-	asm("loc_6D07A43: jmp loc_6D079AF;");
-
-	asm("loc_6D07A48: nop;");
-
-	asm("loc_6D07A9E: xor %eax,%eax;");
-	asm("loc_6D07AA0: pop %edi;");
-	asm("loc_6D07AA1: pop %esi;");
-	asm("loc_6D07AA2: mov %ebp,%esp;");
-	asm("loc_6D07AA4: pop %ebp;");
-	asm("loc_6D07AA5: ret $8;");
-	asm("int3;"); // unreachable
+	return GR_OK;
 }
 
 GENRESULT NewRenderPipeline::startup(const char* profile_name)
 {
 	if (!profile_name)
-		profile_name = this->profile_nameA;
-	memcpy(profile_nameB, profile_nameA, sizeof(profile_name));
+		profile_name = this->profile_name;
+	memcpy(profile_nameB, profile_name, sizeof(profile_name));
 	strcpy(configuration_database_file, "FLConfigDatabase.txt");
 
 	if (d3d8_module == NULL)
@@ -2782,9 +2667,32 @@ GENRESULT NewRenderPipeline::startup(const char* profile_name)
 
 GENRESULT NewRenderPipeline::shutdown(void)
 {
+	destroy_buffers();
+
+	ASSERT(unknown198.size() == 0); // nuked
+
+	if (direct3d_device)
+	{
+		U32 refcount = direct3d_device->Release();
+		if (refcount > 0)
+		{
+			GENERAL_WARNING(TEMPSTR("direct3d_device released with %u references", refcount));
+		}
+		direct3d_device = 0;
+	}
+	if (direct3d)
+	{
+		U32 refcount = direct3d->Release();
+		if (refcount > 0)
+		{
+			GENERAL_WARNING(TEMPSTR("direct3d released with %u references", refcount));
+		}
+		direct3d = 0;
+	}
+
 	FreeLibrary(d3d8_module);
-	GENRESULT result = DirectX8_shutdown(this);
-	return result;
+
+	return GR_OK;
 }
 
 GENRESULT NewRenderPipeline::set_pipeline_state(RPPIPELINESTATE state, U32 value)
@@ -2816,15 +2724,12 @@ GENRESULT NewRenderPipeline::get_device_info(RPDEVICEINFO* info)
 	CHECK_STARTUP();
 
 	GENRESULT result = GR_GENERIC;
-	if (unknown19C)
+	if (direct3d_adapter < unknown198.size())
 	{
-		DWORD count = unknown1A0 - unknown19C;
-		if (direct3d_adapter < count)
-		{
-			*info = unknown19C[direct3d_adapter];
-			result = GR_OK;
-		}
+		*info = unknown198[direct3d_adapter];
+		result = GR_OK;
 	}
+
 	return result;
 }
 
@@ -2846,8 +2751,6 @@ GENRESULT NewRenderPipeline::get_num_display_modes(U32* count)
 	return GR_OK;
 }
 
-#define D3DFMT_TO_PIXEL_FORMAT sub_6D5CC30
-_extern int __cdecl D3DFMT_TO_PIXEL_FORMAT(int a1);
 GENRESULT NewRenderPipeline::get_display_mode(RPDISPLAYMODEINFO* mode, U32 mode_num)
 {
 	CHECK_STARTUP();
@@ -2860,7 +2763,7 @@ GENRESULT NewRenderPipeline::get_display_mode(RPDISPLAYMODEINFO* mode, U32 mode_
 		mode->width = mode_1.Width;
 		mode->height = mode_1.Height;
 		mode->refresh_rate = mode_1.RefreshRate;
-		mode->render_pf = D3DFMT_TO_PIXEL_FORMAT(mode_1.Format);
+		mode->render_pf = d3d_to_pf(mode_1.Format);
 		if (this->device_abilities[17] && mode->width >= this->device_abilities[17])
 		{
 			return GR_DATA_NOT_FOUND;
@@ -2874,16 +2777,290 @@ GENRESULT NewRenderPipeline::get_display_mode(RPDISPLAYMODEINFO* mode, U32 mode_
 	return GENRESULT(v8);
 }
 
-GENRESULT NewRenderPipeline::select_mode(void* unknown_params, U32* adapter)
+GENRESULT NewRenderPipeline::select_mode(RPBUFFERSINFO* mode, U32* adapter)
 {
-	GENRESULT result = DirectX8_select_mode(this, unknown_params, adapter);
+	CHECK_STARTUP();
+
+	GENRESULT result = GR_GENERIC;
+
+	U32 mode_count = direct3d->GetAdapterModeCount(direct3d_adapter);
+	for (U32 mode_index = 0; mode_index < mode_count; ++mode_index)
+	{
+		D3DDISPLAYMODE current_mode;
+		if (SUCCEEDED(direct3d->EnumAdapterModes(direct3d_adapter, mode_index, &current_mode)))
+		{
+			PFenum pixel_format = d3d_to_pf(current_mode.Format);
+			if (current_mode.Width == mode->width &&
+				current_mode.Height == mode->height &&
+				pf_to_pixel_format(pixel_format)->d3d == mode->format &&
+				(device_abilities[RP_A_DEVICE_BAD_MODE] == 0 || current_mode.Width < device_abilities[RP_A_DEVICE_BAD_MODE]))
+			{
+				*adapter = static_cast<U32>(mode_index);
+				result = GR_OK;
+				break;
+			}
+		}
+	}
+
 	return result;
 }
 
 GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinfo, RPBUFFERSINFO* out_buffersinfo)
 {
-	GENRESULT result = DirectX8_create_buffers(this, hwnd, buffersinfo, out_buffersinfo);
-	return result;
+	debug_point;
+
+	// Local variables
+	char* v5; char* v6; char* v7; char* v8; char* v9; char* v10; char* v11; char* v12; char* v13;
+	char* v15; char* v20; char* v22; char* v26; char* v27; char* v28; char* v34; char* v35; char* v36;
+	char v23[8192]; char v41[8192]; char v44[8192]; char v46[8192]; char v48[8192]; char v50[8192]; char v53[8192]; char v55[8192]; char v57[8192]; char Buffer[8192];
+	IDirect3DDevice8* direct3d_device, * direct3d_device_1, * direct3d_device_2;
+	U32 height, width, i, adapter;
+	HWND hwnd_ancestor;
+	D3DCAPS8 direct3d_caps;
+	D3DDISPLAYMODE adapter_display_mode;
+	D3DPRESENT_PARAMETERS present_parameters;
+	_D3DFORMAT v64;
+	PixelFormat* v65;
+	PFenum pf_unknown234, pixel_format, v51, v77;
+	D3DFORMAT v31, v32, Format, v37, d3d, render_target_format, v84;
+	_D3DSWAPEFFECT swapEffect;
+	int v19, v43, v45, v47, v49, v52, v54, v56, v58, v60, v63, v73;
+	DWORD value, v30, a5, a4;
+	unsigned int v79, v86;
+	HRESULT v67, v69, v72, v80, hr, create_index_buffer_result;
+	int index_buffer_length;
+	RPBUFFERSINFO selected_mode;
+	GENRESULT v71;
+
+	CHECK_STARTUP();
+
+	if (this->direct3d_device) {
+		v72 = this->direct3d_device->TestCooperativeLevel();
+		if (v72 == D3DERR_DEVICELOST)
+			return GR_GENERIC;
+	}
+
+	this->destroy_buffers();
+
+	render_target_format = D3DFMT_UNKNOWN;
+	adapter = UINT_MAX;
+	hr = this->direct3d->GetAdapterDisplayMode(this->direct3d_adapter, &adapter_display_mode);
+	if (FAILED(hr)) {
+		GENERAL_ERROR(TEMPSTR("create_buffers_select_mode: %s", HRESULT_GET_ERROR_STRING(hr)));
+		return (GENRESULT)hr;
+	}
+
+	if (buffersinfo->unknown25_fullscreen) {
+		adapter = buffersinfo->adapter;
+		if (!(adapter & 0x80000000)) {
+			v67 = this->direct3d->EnumAdapterModes(this->direct3d_adapter, adapter, &adapter_display_mode);
+			if (FAILED(v67)) {
+				GENERAL_ERROR(TEMPSTR("create_buffers_select_mode: %s", HRESULT_GET_ERROR_STRING(v67)));
+				return (GENRESULT)v67;
+			}
+		}
+		else {
+			memcpy(&selected_mode, buffersinfo, sizeof(selected_mode));
+			if (buffersinfo->format == (D3DFMT_FORCE_DWORD | 0x80000000)) {
+				d3d = adapter_display_mode.Format;
+				selected_mode.format = pf_to_pixel_format(d3d_to_pf(d3d))->d3d;
+			}
+			v71 = this->select_mode(&selected_mode, &adapter);
+			if (v71 < GR_OK) {
+				GENERAL_ERROR(TEMPSTR("create_buffers_select_mode: %s", HRESULT_GET_ERROR_STRING(v71)));
+				return (GENRESULT)v71;
+			}
+			v69 = this->direct3d->EnumAdapterModes(this->direct3d_adapter, adapter, &adapter_display_mode);
+			if (FAILED(v69)) {
+				GENERAL_ERROR(TEMPSTR("create_buffers_select_mode: %s", HRESULT_GET_ERROR_STRING(v69)));
+				return (GENRESULT)v69;
+			}
+			render_target_format = adapter_display_mode.Format;
+		}
+	}
+
+	Format = adapter_display_mode.Format;
+	v77 = d3d_to_pf(Format);
+
+	if (render_target_format == D3DFMT_UNKNOWN) {
+		if (buffersinfo->format == (D3DFMT_FORCE_DWORD | 0x80000000)
+			|| pf_to_pixel_format(v77)->d3d == buffersinfo->format) {
+			render_target_format = Format;
+		}
+		else {
+			for (i = 0; i < 9; ++i) {
+				v65 = pf_to_pixel_format((PFenum)i);
+				if (v65->d3d == buffersinfo->format) {
+					v32 = pf_to_d3d(v65->pf);
+					v63 = this->direct3d->CheckDeviceFormat(
+						this->direct3d_adapter,
+						this->direct3d_device_type,
+						Format,
+						D3DUSAGE_RENDERTARGET,
+						D3DRTYPE_SURFACE,
+						v32);
+					if (SUCCEEDED(v63)) {
+						render_target_format = v32;
+						break;
+					}
+				}
+			}
+		}
+	}
+	if (render_target_format == D3DFMT_UNKNOWN)
+		return GR_GENERIC;
+
+	a4 = buffersinfo->unknown14_auto_depth_stencil_format1;
+	if (a4 == UINT_MAX)
+		a4 = pf_to_pixel_format(d3d_to_pf(render_target_format))->d3d;
+	a5 = buffersinfo->unknown18_auto_depth_stencil_format2;
+	v84 = sub_6D159FF(this->direct3d, Format, render_target_format, &a4, &a5);
+	if (v84 == D3DFMT_UNKNOWN)
+		return GR_GENERIC;
+
+	v73 = !buffersinfo->unknown25_fullscreen;
+	v79 = 1;
+	v86 = 0;
+	swapEffect = D3DSWAPEFFECT_COPY;
+
+	if (buffersinfo->unknown25_fullscreen) {
+		if (!buffersinfo->unknown24 || this->pipeline_states[13].value != 0) {
+			swapEffect = buffersinfo->unknown1C ? D3DSWAPEFFECT_COPY_VSYNC : D3DSWAPEFFECT_COPY;
+		}
+		else {
+			v79 = buffersinfo->unknown20_buffer_count_plus_one - 1;
+			swapEffect = D3DSWAPEFFECT_FLIP;
+		}
+		switch (buffersinfo->unknown1C) {
+		case 0: v86 = 0x80000000; break;
+		case 1: v86 = 1; break;
+		case 2: v86 = 2; break;
+		case 3: v86 = 4; break;
+		case 4: v86 = 8; break;
+		}
+	}
+	else if (buffersinfo->unknown24 && this->pipeline_states[13].value == 0) {
+		swapEffect = buffersinfo->unknown1C ? D3DSWAPEFFECT_COPY_VSYNC : D3DSWAPEFFECT_COPY;
+	}
+
+	present_parameters.BackBufferWidth = buffersinfo->width;
+	present_parameters.BackBufferHeight = buffersinfo->height;
+	present_parameters.BackBufferFormat = render_target_format;
+	present_parameters.BackBufferCount = v79;
+	present_parameters.MultiSampleType = D3DMULTISAMPLE_NONE;
+	present_parameters.SwapEffect = swapEffect;
+	present_parameters.hDeviceWindow = hwnd;
+	present_parameters.Windowed = v73;
+	present_parameters.EnableAutoDepthStencil = TRUE;
+	present_parameters.AutoDepthStencilFormat = v84;
+	present_parameters.Flags = (this->unknown128 & 1) != 0;
+	present_parameters.FullScreen_RefreshRateInHz = 0;
+	present_parameters.FullScreen_PresentationInterval = v86;
+
+	if (this->direct3d_device) {
+		hr = this->direct3d_device->Reset(&present_parameters);
+		if (FAILED(hr)) {
+			GENERAL_ERROR(TEMPSTR("create_device: %s", HRESULT_GET_ERROR_STRING(hr)));
+			return (GENRESULT)hr;
+		}
+	}
+	else {
+		hwnd_ancestor = GetAncestor(hwnd, GA_ROOT);
+		do {
+			hr = this->direct3d->CreateDevice(
+				this->direct3d_adapter,
+				this->direct3d_device_type,
+				hwnd_ancestor,
+				this->direct3d_behavior_flags,
+				&present_parameters,
+				&this->direct3d_device);
+			if (SUCCEEDED(hr) || !(this->direct3d_behavior_flags & D3DCREATE_HARDWARE_VERTEXPROCESSING))
+				break;
+			this->direct3d_behavior_flags = (this->direct3d_behavior_flags & ~D3DCREATE_HARDWARE_VERTEXPROCESSING)
+				| D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+		} while (true);
+		if (FAILED(hr)) {
+			GENERAL_ERROR(TEMPSTR("create_device: %s", HRESULT_GET_ERROR_STRING(hr)));
+			return (GENRESULT)hr;
+		}
+		hr = this->direct3d_device->GetDeviceCaps(&direct3d_caps);
+		if (FAILED(hr)) {
+			GENERAL_ERROR(TEMPSTR("create_device_caps: %s", HRESULT_GET_ERROR_STRING(hr)));
+			return (GENRESULT)hr;
+		}
+		update_device_capabilities(this, &direct3d_caps);
+	}
+
+	// Index buffer setup
+	if (this->index_buffer_internal.direct3d_index_buffer) {
+		if (this->index_buffer_internal.locked_data_ptr) {
+			this->index_buffer_internal.direct3d_index_buffer->Unlock();
+			this->index_buffer_internal.locked_data_ptr = nullptr;
+		}
+		this->index_buffer_internal.direct3d_index_buffer->Release();
+		this->index_buffer_internal.direct3d_index_buffer = nullptr;
+	}
+	this->index_buffer_internal.element_count = 0x4000;
+	this->index_buffer_internal.unknown14 = 0;
+	index_buffer_length = 0x8000;
+	create_index_buffer_result = this->direct3d_device->CreateIndexBuffer(
+		index_buffer_length,
+		this->index_buffer_internal.unknown0_flags_or_usage,
+		D3DFMT_INDEX16,
+		D3DPOOL_DEFAULT,
+		&this->index_buffer_internal.direct3d_index_buffer);
+	if (FAILED(create_index_buffer_result)) {
+		GENERAL_ERROR(TEMPSTR("couldn't create ib (err:%x) %d bytes", create_index_buffer_result, index_buffer_length));
+		return (GENRESULT)create_index_buffer_result;
+	}
+	hr = create_index_buffer_result;
+
+	// Final state setup
+	this->unknown184_is_locked |= 1;
+	this->unknown230 = v77;
+	this->pf_unknown234 = d3d_to_pf(present_parameters.BackBufferFormat);
+	this->hwnd = hwnd;
+	this->buffers_info.adapter = adapter;
+	this->buffers_info.width = buffersinfo->width;
+	this->buffers_info.height = buffersinfo->height;
+	this->buffers_info.format = pf_to_pixel_format(this->pf_unknown234)->d3d;
+	this->buffers_info.unknown14_auto_depth_stencil_format1 = sub_6D15B0D(present_parameters.AutoDepthStencilFormat);
+	this->buffers_info.unknown18_auto_depth_stencil_format2 = sub_6D15B45(present_parameters.AutoDepthStencilFormat);
+	this->buffers_info.unknown1C = buffersinfo->unknown1C;
+	this->buffers_info.unknown20_buffer_count_plus_one = present_parameters.BackBufferCount + 1;
+	this->buffers_info.unknown24 = (present_parameters.SwapEffect & 2) != 0;
+	this->buffers_info.unknown25_fullscreen = !present_parameters.Windowed;
+	if (out_buffersinfo)
+		memcpy(out_buffersinfo, &this->buffers_info, sizeof(RPBUFFERSINFO));
+	sub_6D0376F(this);
+	sub_6D038BA(this);
+	sub_6D03C94(this);
+	sub_6D047DF(this);
+
+	this->unknown22E0_set_to_zero_after_viewport = 0;
+	this->unknown22E1_set_to_zero_after_viewport = 0;
+	width = this->buffers_info.width;
+	height = this->buffers_info.height;
+	this->direct3d_viewport.X = 0;
+	this->direct3d_viewport.Y = 0;
+	this->direct3d_viewport.Width = width;
+	this->direct3d_viewport.Height = height;
+	this->direct3d_viewport.MinZ = 0.0f;
+	this->direct3d_viewport.MaxZ = 1.0f;
+	v19 = this->direct3d_device->SetViewport(&this->direct3d_viewport);
+	if (FAILED(v19)) {
+		GENERAL_ERROR(TEMPSTR("set_viewport: %s", HRESULT_GET_ERROR_STRING(v19)));
+		return (GENRESULT)v19;
+	}
+
+	sub_6D2CE6A(&this->unknown21F4);
+	this->unknown138 = 0;
+	this->unknown13C_vbhandle = 0;
+	this->unknown140 = 0;
+	this->unknown144 = -1;
+	this->unknown148 = 0;
+
+	return (GENRESULT)hr;
 }
 
 GENRESULT NewRenderPipeline::get_buffers(U32* adapter, RPBUFFERSINFO* out_buffersinfo)
@@ -3095,7 +3272,7 @@ GENRESULT NewRenderPipeline::get_material(D3DMATERIAL8* out_material_values)
 	return result;
 }
 
-GENRESULT NewRenderPipeline::create_texture(int width, int height, const PixelFormat* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture)
+GENRESULT NewRenderPipeline::create_texture(int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture)
 {
 	GENRESULT result = DirectX8_create_texture(this, width, height, desiredformat, num_lod, irp_ctf_flags, out_htexture);
 	return result;
@@ -3125,7 +3302,7 @@ GENRESULT NewRenderPipeline::unlock_texture(U32 htexture, int level)
 	return result;
 }
 
-GENRESULT NewRenderPipeline::get_texture_format(U32 htexture, PixelFormat* out_pf)
+GENRESULT NewRenderPipeline::get_texture_format(U32 htexture, PFenum* out_pf)
 {
 	GENRESULT result = DirectX8_get_texture_format(this, htexture, out_pf);
 	return result;
@@ -3144,7 +3321,7 @@ GENRESULT NewRenderPipeline::get_texture_interface(U32 htexture, const char* iid
 	return result;
 }
 
-GENRESULT NewRenderPipeline::set_texture_level_data(U32 htexture, int level, int src_width, int src_height, int src_stride, const PixelFormat* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette)
+GENRESULT NewRenderPipeline::set_texture_level_data(U32 htexture, int level, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette)
 {
 	GENRESULT result = DirectX8_set_texture_level_data(this, htexture, level, src_width, src_height, src_stride, src_format, src_pixel, src_alpha, src_palette);
 	return result;

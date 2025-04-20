@@ -21,8 +21,34 @@ struct Transform;
 
 typedef struct IRenderPipeline8B* LPRENDERPIPELINE;
 
-// Are these correct?
-#define PixelFormat UNKNOWN
+enum PFenum
+{
+	PF_UNKNOWN = 0,
+	PF_MAX_VALUE = 0x16,
+};
+
+struct PixelFormat
+{
+	PFenum pf;
+	D3DFORMAT d3d;
+	DWORD unknown8;
+	DWORD unknownC;
+	DWORD unknown10;
+	DWORD unknown14;
+	DWORD unknown18;
+	DWORD unknown1C;
+	DWORD unknown20;
+	DWORD unknown24;
+	DWORD unknown28;
+	DWORD unknown2C;
+	DWORD unknown30;
+	DWORD unknown34;
+	DWORD unknown38;
+	DWORD unknown3C;
+	DWORD unknown40;
+	DWORD unknown44;
+	DWORD unknown48;
+};
 
 enum RPPIPELINESTATE
 {
@@ -87,16 +113,16 @@ struct RPDISPLAYMODEINFO
 	U32 width;
 	U32 height;
 	U32 refresh_rate;
-	PixelFormat render_pf;
+	PFenum render_pf;
 };
 
 struct RPBUFFERSINFO
 {
 	DWORD adapter;
-	DWORD unknown4;
-	DWORD back_buffer_width;
-	DWORD back_buffer_height;
-	DWORD unknown10;
+	U32 refresh_rate;
+	U32 width;
+	U32 height;
+	D3DFORMAT format;
 	DWORD unknown14_auto_depth_stencil_format1;
 	DWORD unknown18_auto_depth_stencil_format2;
 	DWORD unknown1C;
@@ -134,7 +160,7 @@ struct RPLOCKDATA
 	U32 height;
 	U32 pitch;
 	void* pixels;
-	PixelFormat pf;
+	PFenum pf;
 };
 
 #define IID_IRenderPipeline8B DACOM_MAKE_IID("IRenderPipeline8B")
@@ -242,7 +268,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	//
 	DACOM_DEFMETHOD(get_display_mode)(RPDISPLAYMODEINFO* mode, U32 mode_num) = 0;
 
-	DACOM_DEFMETHOD(select_mode)(void* unknown_params, U32* adapter) = 0;
+	DACOM_DEFMETHOD(select_mode)(RPBUFFERSINFO* mode, U32* adapter) = 0;
 
 	// create_buffers
 	//
@@ -567,7 +593,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(create_texture)(int width, int height, const PixelFormat* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture) = 0;
+	DACOM_DEFMETHOD(create_texture)(int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture) = 0;
 
 	// destroy_texture
 	//
@@ -617,7 +643,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(get_texture_format)(U32 htexture, PixelFormat* out_pf) = 0;
+	DACOM_DEFMETHOD(get_texture_format)(U32 htexture, PFenum* out_pf) = 0;
 
 	// get_texture_dim
 	//
@@ -657,7 +683,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(set_texture_level_data)(U32 htexture, int level, int src_width, int src_height, int src_stride, const PixelFormat* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette) = 0;
+	DACOM_DEFMETHOD(set_texture_level_data)(U32 htexture, int level, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette) = 0;
 
 	// blit_texture
 	//

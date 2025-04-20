@@ -27,7 +27,7 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_device_info, _sub_6D082D1, IRender
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_query_device_ability, _sub_6D083D2, IRenderPipeline8B* _this, RPDEVICEABILITY ability, U32* out_answer);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_num_display_modes, _sub_6D08461, IRenderPipeline8B* _this, U32* count);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_display_mode, _sub_6D084F2, IRenderPipeline8B* _this, RPDISPLAYMODEINFO* mode, U32 mode_num);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_select_mode, _sub_6D0869D, IRenderPipeline8B* _this, void* unknown_params, U32* adapter);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_select_mode, _sub_6D0869D, IRenderPipeline8B* _this, RPBUFFERSINFO* mode, U32* adapter);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_buffers, _sub_6D08811, IRenderPipeline8B* _this, HWND hwnd, RPBUFFERSINFO* buffersinfo, RPBUFFERSINFO* out_buffersinfo);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_buffers, _sub_6D098F3, IRenderPipeline8B* _this, U32* adapter, RPBUFFERSINFO* out_buffersinfo);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_buffers, _sub_6D09982, IRenderPipeline8B* _this);
@@ -61,15 +61,15 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_light_enable, _sub_6D0D0D7, IRende
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_light_enable, _sub_6D0D157, IRenderPipeline8B* _this, U32 light_index, U32* out_enable);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_material, _sub_6D0D1DC, IRenderPipeline8B* _this, D3DMATERIAL8* material_values);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_material, _sub_6D0D310, IRenderPipeline8B* _this, D3DMATERIAL8* out_material_values);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_texture, _sub_6D0D628, IRenderPipeline8B* _this, int width, int height, const PixelFormat* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_texture, _sub_6D0D628, IRenderPipeline8B* _this, int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_texture, _sub_6D0D997, IRenderPipeline8B* _this, U32 htexture);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_is_texture, _sub_6D0DC51, IRenderPipeline8B* _this, U32 htexture);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_lock_texture, _sub_6D0DCE3, IRenderPipeline8B* _this, U32 htexture, int level, RPLOCKDATA* lockData);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_texture, _sub_6D0E1AF, IRenderPipeline8B* _this, U32 htexture, int level);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_format, _sub_6D0E3D9, IRenderPipeline8B* _this, U32 htexture, PixelFormat* out_pf);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_format, _sub_6D0E3D9, IRenderPipeline8B* _this, U32 htexture, PFenum* out_pf);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_dim, _sub_6D0E6D4, IRenderPipeline8B* _this, U32 htexture, U32* out_width, U32* out_height, U32* out_num_lod);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_interface, _sub_6D0EA0B, IRenderPipeline8B* _this, U32 htexture, const char* iid, void** out_iif);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_level_data, _sub_6D0EA78, IRenderPipeline8B* _this, U32 htexture, int level, int src_width, int src_height, int src_stride, const PixelFormat* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_level_data, _sub_6D0EA78, IRenderPipeline8B* _this, U32 htexture, int level, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_blit_texture, _sub_6D0F1BC, IRenderPipeline8B* _this, U32 hDest, U32 destLevel, RECT destRect, U32 hSrc, U32 srcLevel, RECT srcRect);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_render_target, _sub_6D0F698, IRenderPipeline8B* _this, UNKNOWN a2, UNKNOWN a3, UNKNOWN a4);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_render_target, _sub_6D0F70F, IRenderPipeline8B* _this, void* a2);
@@ -189,10 +189,7 @@ public:
 	DWORD unknown18C;
 	DWORD unknown190;
 	DWORD unknown194;
-	DWORD unknown198;
-	RPDEVICEINFO* unknown19C;
-	RPDEVICEINFO* unknown1A0;
-	DWORD unknown1A4;
+	st6::vector<RPDEVICEINFO> unknown198;
 	DWORD direct3d_adapter;
 	D3DDEVTYPE direct3d_device_type;
 	char configuration_database_file[128];
@@ -2155,7 +2152,10 @@ public:
 	DWORD unknown21F4;
 	DWORD unknown21F8;
 	D3DMATRIX Mview;
-	DWORD unknown223C;
+	BYTE unknown223C;
+	BYTE unknown223D;
+	BYTE unknown223E;
+	BYTE unknown223F;
 	D3DMATRIX Mworld;
 	BYTE unknown2280_set_to_zero_in_set_world;
 	BYTE unknown2281;
@@ -2163,6 +2163,9 @@ public:
 	BYTE unknown2283;
 	D3DMATRIX Mprojection;
 	BYTE unknown22C4;
+	BYTE unknown22C5;
+	BYTE unknown22C6;
+	BYTE unknown22C7;
 	D3DVIEWPORT8 direct3d_viewport;
 	BYTE unknown22E0_set_to_zero_after_viewport;
 	BYTE unknown22E1_set_to_zero_after_viewport;
@@ -2216,7 +2219,7 @@ public:
 	DACOM_DEFMETHOD(query_device_ability)(RPDEVICEABILITY ability, U32* out_answer) override;
 	DACOM_DEFMETHOD(get_num_display_modes)(U32* count) override;
 	DACOM_DEFMETHOD(get_display_mode)(RPDISPLAYMODEINFO* mode, U32 mode_num) override;
-	DACOM_DEFMETHOD(select_mode)(void* unknown_params, U32* adapter) override;
+	DACOM_DEFMETHOD(select_mode)(RPBUFFERSINFO* mode, U32* adapter) override;
 	DACOM_DEFMETHOD(create_buffers)(HWND hwnd, RPBUFFERSINFO* buffersinfo, RPBUFFERSINFO* out_buffersinfo) override;
 	DACOM_DEFMETHOD(get_buffers)(U32* adapter, RPBUFFERSINFO* out_buffersinfo) override;
 	DACOM_DEFMETHOD(destroy_buffers)(void) override;
@@ -2250,15 +2253,15 @@ public:
 	DACOM_DEFMETHOD(get_light_enable)(U32 light_index, U32* out_enable) override;
 	DACOM_DEFMETHOD(set_material)(D3DMATERIAL8* material_values) override;
 	DACOM_DEFMETHOD(get_material)(D3DMATERIAL8* out_material_values) override;
-	DACOM_DEFMETHOD(create_texture)(int width, int height, const PixelFormat* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture) override;
+	DACOM_DEFMETHOD(create_texture)(int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture) override;
 	DACOM_DEFMETHOD(destroy_texture)(U32 htexture) override;
 	DACOM_DEFMETHOD(is_texture)(U32 htexture) override;
 	DACOM_DEFMETHOD(lock_texture)(U32 htexture, int level, RPLOCKDATA* lockData) override;
 	DACOM_DEFMETHOD(unlock_texture)(U32 htexture, int level) override;
-	DACOM_DEFMETHOD(get_texture_format)(U32 htexture, PixelFormat* out_pf) override;
+	DACOM_DEFMETHOD(get_texture_format)(U32 htexture, PFenum* out_pf) override;
 	DACOM_DEFMETHOD(get_texture_dim)(U32 htexture, U32* out_width, U32* out_height, U32* out_num_lod) override;
 	DACOM_DEFMETHOD(get_texture_interface)(U32 htexture, const char* iid, void** out_iif) override;
-	DACOM_DEFMETHOD(set_texture_level_data)(U32 htexture, int level, int src_width, int src_height, int src_stride, const PixelFormat* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette) override;
+	DACOM_DEFMETHOD(set_texture_level_data)(U32 htexture, int level, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette) override;
 	DACOM_DEFMETHOD(blit_texture)(U32 hDest, U32 destLevel, RECT destRect, U32 hSrc, U32 srcLevel, RECT srcRect) override;
 	DACOM_DEFMETHOD(set_render_target)(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4) override;
 	DACOM_DEFMETHOD(get_render_target)(void* a2) override;
@@ -2413,9 +2416,9 @@ GENRESULT DirectX8::get_display_mode(RPDISPLAYMODEINFO* mode, U32 mode_num)
 	return result;
 }
 
-GENRESULT DirectX8::select_mode(void* unknown_params, U32* adapter)
+GENRESULT DirectX8::select_mode(RPBUFFERSINFO* mode, U32* adapter)
 {
-	GENRESULT result = DirectX8_select_mode(this, unknown_params, adapter);
+	GENRESULT result = DirectX8_select_mode(this, mode, adapter);
 	return result;
 }
 
@@ -2617,7 +2620,7 @@ GENRESULT DirectX8::get_material(D3DMATERIAL8* out_material_values)
 	return result;
 }
 
-GENRESULT DirectX8::create_texture(int width, int height, const PixelFormat* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture)
+GENRESULT DirectX8::create_texture(int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture)
 {
 	GENRESULT result = DirectX8_create_texture(this, width, height, desiredformat, num_lod, irp_ctf_flags, out_htexture);
 	return result;
@@ -2647,7 +2650,7 @@ GENRESULT DirectX8::unlock_texture(U32 htexture, int level)
 	return result;
 }
 
-GENRESULT DirectX8::get_texture_format(U32 htexture, PixelFormat* out_pf)
+GENRESULT DirectX8::get_texture_format(U32 htexture, PFenum* out_pf)
 {
 	GENRESULT result = DirectX8_get_texture_format(this, htexture, out_pf);
 	return result;
@@ -2665,7 +2668,7 @@ GENRESULT DirectX8::get_texture_interface(U32 htexture, const char* iid, void** 
 	return result;
 }
 
-GENRESULT DirectX8::set_texture_level_data(U32 htexture, int level, int src_width, int src_height, int src_stride, const PixelFormat* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette)
+GENRESULT DirectX8::set_texture_level_data(U32 htexture, int level, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette)
 {
 	GENRESULT result = DirectX8_set_texture_level_data(this, htexture, level, src_width, src_height, src_stride, src_format, src_pixel, src_alpha, src_palette);
 	return result;
