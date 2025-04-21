@@ -163,7 +163,7 @@ _extern void __thiscall update_device_capabilities(/*RenderPipeline*/void* _this
 	debug_point;
 }
 
-struct NewRenderPipeline;
+class NewRenderPipeline;
 
 _extern int __cdecl sub_6D15B0D(int a1);
 _extern int __cdecl sub_6D15B45(int a1);
@@ -2356,9 +2356,9 @@ public:
 
 	// IDAComponent methods
 
-	DACOM_DEFMETHOD(QueryInterface)(const C8* interface_name, void** instance) = 0;
-	DACOM_DEFMETHOD_(U32, AddRef)(void) = 0;
-	DACOM_DEFMETHOD_(U32, Release)(void) = 0;
+	DACOM_DEFMETHOD(QueryInterface)(const C8* interface_name, void** instance) override = 0;
+	DACOM_DEFMETHOD_(U32, AddRef)(void) override = 0;
+	DACOM_DEFMETHOD_(U32, Release)(void) override = 0;
 
 	// IRenderPipeline8B methods
 
@@ -2535,7 +2535,7 @@ GENRESULT NewRenderPipeline::startup(const char* profile_name)
 {
 	if (!profile_name)
 		profile_name = this->profile_name;
-	memcpy(profile_nameB, profile_name, sizeof(profile_name));
+	memcpy(profile_nameB, this->profile_name, sizeof(this->profile_name));
 	strcpy(configuration_database_file, "FLConfigDatabase.txt");
 
 	if (d3d8_module == NULL)
@@ -2559,7 +2559,7 @@ GENRESULT NewRenderPipeline::startup(const char* profile_name)
 		this->direct3d_behavior_flags |= D3DCREATE_FPU_PRESERVE;
 
 	bool multithreaded = false; // IProfileParser | MULTITHREADED
-	if (fpu_preserve)
+	if (multithreaded)
 		this->direct3d_behavior_flags |= D3DCREATE_MULTITHREADED;
 
 	bool puredevice = false; // IProfileParser | PUREDEVICE
@@ -2808,24 +2808,20 @@ GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinf
 	debug_point;
 
 	// Local variables
-	char* v5; char* v6; char* v7; char* v8; char* v9; char* v10; char* v11; char* v12; char* v13;
-	char* v15; char* v20; char* v22; char* v26; char* v27; char* v28; char* v34; char* v35; char* v36;
-	char v23[8192]; char v41[8192]; char v44[8192]; char v46[8192]; char v48[8192]; char v50[8192]; char v53[8192]; char v55[8192]; char v57[8192]; char Buffer[8192];
-	IDirect3DDevice8* direct3d_device, * direct3d_device_1, * direct3d_device_2;
+	
 	U32 i, adapter;
 	HWND hwnd_ancestor;
 	D3DCAPS8 direct3d_caps;
 	D3DDISPLAYMODE adapter_display_mode;
 	D3DPRESENT_PARAMETERS present_parameters;
-	_D3DFORMAT v64;
 	PixelFormat* v65;
-	PFenum pf_unknown234, pixel_format, v51, v77;
-	D3DFORMAT v31, v32, Format, v37, d3d, render_target_format, v84;
+	PFenum v77;
+	D3DFORMAT v32, Format, d3d, render_target_format, v84;
 	_D3DSWAPEFFECT swapEffect;
-	int v19, v43, v45, v47, v49, v52, v54, v56, v58, v60, v63, v73;
-	DWORD value, v30, a5, a4;
+	int v63, v73;
+	DWORD a5, a4;
 	unsigned int v79, v86;
-	HRESULT v67, v69, v72, v80, hr, create_index_buffer_result;
+	HRESULT v67, v69, v72, hr, create_index_buffer_result;
 	int index_buffer_length;
 	RPBUFFERSINFO selected_mode;
 	GENRESULT v71;
@@ -2860,7 +2856,8 @@ GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinf
 		}
 		else {
 			memcpy(&selected_mode, buffersinfo, sizeof(selected_mode));
-			if (buffersinfo->format == (D3DFMT_FORCE_DWORD | 0x80000000)) {
+			if (buffersinfo->format == D3DFORMAT(D3DFMT_FORCE_DWORD | 0x80000000)) // #TODO what is this?
+			{
 				d3d = adapter_display_mode.Format;
 				selected_mode.format = pf_to_pixel_format(d3d_to_pf(d3d))->d3d;
 			}
@@ -2882,7 +2879,7 @@ GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinf
 	v77 = d3d_to_pf(Format);
 
 	if (render_target_format == D3DFMT_UNKNOWN) {
-		if (buffersinfo->format == (D3DFMT_FORCE_DWORD | 0x80000000)
+		if (buffersinfo->format == D3DFORMAT(D3DFMT_FORCE_DWORD | 0x80000000) // #TODO what is this?
 			|| pf_to_pixel_format(v77)->d3d == buffersinfo->format) {
 			render_target_format = Format;
 		}
@@ -3113,12 +3110,8 @@ GENRESULT NewRenderPipeline::set_viewport(int x, int y, int w, int h)
 
 	GENRESULT result = GR_GENERIC;
 
-	char* v6; // eax
-	char* v7; // [esp+0h] [ebp-201Ch]
 	IDirect3DDevice8* direct3d_device; // [esp+4h] [ebp-2018h]
 	D3DVIEWPORT8* p_direct3d_viewport; // [esp+8h] [ebp-2014h]
-	char Buffer[8192]; // [esp+14h] [ebp-2008h] BYREF
-	int v12; // [esp+2014h] [ebp-8h]
 	HRESULT hr; // [esp+2018h] [ebp-4h] MAPDST
 
 	if (this->direct3d_device)

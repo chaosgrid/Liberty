@@ -7,13 +7,13 @@
 #ifndef Options_Utility_h
 #define Options_Utility_h
 
-#include <windows.h>
+#include <Windows.h>
 
 #include "IProfileParser.h"
 #include "Vector.h"
 #include "TSmartPointer.h"
-#include "fdump.h"
-#include "tempstr.h"
+#include "FDump.h"
+#include "TempStr.h"
 
 //
 
@@ -41,16 +41,16 @@ inline U32 opt_get_u32( ICOManager *DACOM, IProfileParser *_IPP, const char *sec
 				{
 					buffer [early_termination] = NULL;
 				}
-				if( stricmp( buffer, "true" ) == 0 ) {
+				if( _stricmp( buffer, "true" ) == 0 ) {
 					*out_value = 1;
 				}
-				else if( stricmp( buffer, "yes" ) == 0 ) {
+				else if(_stricmp( buffer, "yes" ) == 0 ) {
 					*out_value = 1;
 				}
-				else if( stricmp( buffer, "false" ) == 0 ) {
+				else if(_stricmp( buffer, "false" ) == 0 ) {
 					*out_value = 0;
 				}
-				else if( stricmp( buffer, "no" ) == 0 ) {
+				else if(_stricmp( buffer, "no" ) == 0 ) {
 					*out_value = 0;
 				}
 				else if( strchr( buffer, 'x' ) || strchr( buffer, 'X' ) ) {

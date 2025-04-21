@@ -1,5 +1,6 @@
 #include <Windows.h>
 #include <PCH.h>
+#include <Core.h>
 
 extern "C" __declspec(dllexport) void Liberty() {}
 
@@ -15,6 +16,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	return Result;
 }
 
+CLANG_DIAGNOSTIC_PUSH();
+CLANG_DIAGNOSTIC_IGNORED("-Wunused-const-variable");
 extern "C"
 {
 	// .rdata:063A2684 0000000B C Freelancer 
@@ -28,3 +31,4 @@ extern "C"
 	// .rdata:063A3C28 00000025 C MicrosoftFreelancerServerCanRunEvent 
 	char const data_63A3C28[] = "LibertyServerCanRunEvent";
 }
+CLANG_DIAGNOSTIC_POP();

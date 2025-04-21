@@ -4,7 +4,7 @@
 
 /* ---------- headers */
 
-/* ---------- public code */
+/* ---------- inline code */
 
 #ifndef mangled_assert
 

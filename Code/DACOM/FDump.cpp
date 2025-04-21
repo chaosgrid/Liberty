@@ -86,7 +86,7 @@ extern "C"
 	typedef int(__cdecl* DA_ERROR_HANDLER) (ErrorCode code, const C8* fmt, ...);
 	DACOM_DEC DA_ERROR_HANDLER FDUMP = CUSTOM_DA_ERROR_HANDLER;
 	DACOM_DEC DA_ERROR_HANDLER _FDUMP = CUSTOM_DA_ERROR_HANDLER;
-	DACOM_DEC void explode() 
+	void explode() 
 	{ 
 		if (!IsDebuggerPresent())
 		{

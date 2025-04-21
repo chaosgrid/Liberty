@@ -521,10 +521,10 @@ extern "C"
 
 #endif  /* USE_CHECKPARAM */
 
-extern "C" void explode();
+DACOM_DEC extern "C" void explode();
 #define NOT_IMPLEMENTED \
 	_Pragma("clang diagnostic push") \
 	_Pragma("clang diagnostic ignored \"-Wexceptions\"") \
 	GENERAL_NOTICE("NOT_IMPLEMENTED"); \
-	__debugbreak(); explode(); \
+	__debugbreak(); explode(); __assume(0); \
 	_Pragma("clang diagnostic pop")

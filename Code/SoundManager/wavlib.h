@@ -8,7 +8,7 @@
 // Include files
 //
 
-#include <filesys.h>
+#include <FileSys.h>
 
 //
 // Class and structure definitions
@@ -35,7 +35,7 @@ struct SoundFile
 	unsigned int  loop_end;     // end of the loop region, in samples (inclusive of the last sample in the region, <= num_samples)
 	unsigned int  num_samples;  // the count of samples in the file
 	unsigned int  length;       // length of the data in bytes == num_samples * format.bytes_per_sample
-	void *        samples;      // sample data, length bytes long.
+	char*        samples;      // sample data, length bytes long.
 };
 
 //

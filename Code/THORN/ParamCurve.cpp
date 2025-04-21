@@ -85,15 +85,15 @@ struct ParamCurveBase : IParamCurve
 	// .rdata:06F5A2C0                 dd offset sub_6F2F800   ; C
 
 	// IParamCurve
-	virtual double unknownParamCurveA(float a2) = 0;
+	virtual double unknownParamCurveA(float a2) override = 0;
 	virtual void unknownParamCurveB(DWORD a2, float a3, float a4, DWORD a5, DWORD a6) override;
 	virtual bool unknownParamCurveC(int a2, float a3, int a4, int a5, int a6) override;
 	virtual bool unknownParamCurveD(float a2, float a3, __int64 a4) override;
 	virtual bool unknownParamCurveE(unsigned int a2) override;
 	virtual int unknownParamCurveF() override;
 	virtual int unknownParamCurveG(int a2) override;
-	virtual const char* GetName() = 0;
-	virtual const char* GetDescription() = 0;
+	virtual const char* GetName() override = 0;
+	virtual const char* GetDescription() override = 0;
 	virtual double unknownParamCurveJ(int index, int count) override;
 	virtual void unknownParamCurveK() override;
 

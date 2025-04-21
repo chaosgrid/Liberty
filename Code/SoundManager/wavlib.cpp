@@ -44,17 +44,15 @@
 // Include files
 //
 
-#include <windows.h>
-#include <tsmartpointer.h>
 #include "wavlib.h"
-#include "FDump.h"
-#include "tempstr.h"
+
+#include <TSmartPointer.h>
+#include <FDump.h>
+#include <TempStr.h>
+
+#include <Windows.h>
 #include <mmreg.h>
-
-
-
 #include <mmsystem.h>
-#include <mmreg.h>
 #include <msacm.h>
 
 
@@ -440,7 +438,7 @@ bool SaveWAV (IFileSystem *fs, SoundFile &data)
 	// We assume here that the given file system is a file.
 
 	COMPTR<IFileSystem> pFile = fs;
-	DWORD startPos = pFile->GetFilePosition (0);
+	// DWORD startPos = pFile->GetFilePosition (0);
 
 	// Build the chunk structures, calculating their sizes.
 

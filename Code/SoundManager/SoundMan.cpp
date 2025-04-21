@@ -12,13 +12,14 @@
 #include <windows.h>
 #include <objbase.h>
 #include <initguid.h>         
-#include "dacom.h"
-#include "tcomponent.h"
-#include "soundman.h"
+#include <DACOM.h>
+#include <TComponent.h>
+#include <FDump.h>
+#include <TempStr.h>
+
+#include "SoundMan.h"
 #include "wavlib.h"
-#include "FDump.h"
-#include "EAX.h"
-#include "tempstr.h"
+#include "EAX.H"
 
 
 #define A3D_SUPPORTED 0
@@ -32,9 +33,9 @@
 DWORD g_bufferFlags = DSBCAPS_CTRLVOLUME | DSBCAPS_CTRL3D | DSBCAPS_LOCDEFER;
 
 // default value for audio device if none is specified in the ini file
-const char *ID_NullGuid = "{00000000-0000-0000-0000-000000000000}";
+const char* ID_NullGuid = "{00000000-0000-0000-0000-000000000000}";
 // possible DSound speaker settings - the app and ini file can specify this by index
-const U32 speakerSettings[SM_SPEAKER_NUM_SETTINGS] = {	DSSPEAKER_MONO,
+const U32 speakerSettings[SM_SPEAKER_NUM_SETTINGS] = { DSSPEAKER_MONO,
 														DSSPEAKER_HEADPHONE,
 														DSSPEAKER_STEREO,
 														DSSPEAKER_COMBINED(DSSPEAKER_STEREO, DSSPEAKER_GEOMETRY_MIN),
@@ -45,7 +46,7 @@ const U32 speakerSettings[SM_SPEAKER_NUM_SETTINGS] = {	DSSPEAKER_MONO,
 														DSSPEAKER_SURROUND,
 														DSSPEAKER_5POINT1 };
 
-LPGUID ConvertStringToGUID( char *string, LPGUID guid );
+LPGUID ConvertStringToGUID(char* string, LPGUID guid);
 
 #ifdef _DEBUG
 bool debugStopProcessingSounds = false;
@@ -60,7 +61,7 @@ GenericDSoundBuffer::GenericDSoundBuffer(LPWAVEFORMATEX fmt)
 	pBuffer = NULL;
 	memset(&desc, 0, sizeof(DSBUFFERDESC));
 	desc.dwSize = sizeof(DSBUFFERDESC);
-	desc.dwFlags = DSBCAPS_CTRL3D ;
+	desc.dwFlags = DSBCAPS_CTRL3D;
 	desc.dwBufferBytes = DSBSIZE_MIN;
 	desc.lpwfxFormat = fmt;
 }
@@ -89,14 +90,14 @@ SoundInstance::SoundInstance()
 	m_cachedDistanceSquared = 0;
 	m_cachedMax = 0;
 	m_cachedMaxSquared = 0;
-	m_cachedPositionV.set(0,0,0);
-	m_cachedSoundPanV.set(0,0,0);
+	m_cachedPositionV.set(0, 0, 0);
+	m_cachedSoundPanV.set(0, 0, 0);
 	m_archetype = NULL;
 	m_loopEventHandle = NULL;
 	m_loopStartOffset = 0;
 }
 
-SoundInstance::SoundInstance(ISoundSource * source)
+SoundInstance::SoundInstance(ISoundSource* source)
 {
 	soundSource = NULL;
 	m_lpSoundBuffer = NULL;
@@ -107,8 +108,8 @@ SoundInstance::SoundInstance(ISoundSource * source)
 	m_cachedDistanceSquared = 0;
 	m_cachedMax = 0;
 	m_cachedMaxSquared = 0;
-	m_cachedPositionV.set(0,0,0);
-	m_cachedSoundPanV.set(0,0,0);
+	m_cachedPositionV.set(0, 0, 0);
+	m_cachedSoundPanV.set(0, 0, 0);
 	m_archetype = NULL;
 	m_loopEventHandle = NULL;
 	m_loopStartOffset = 0;
@@ -120,14 +121,14 @@ SoundInstance::SoundInstance(ISoundSource * source)
 	}
 }
 
-SoundInstance::SoundInstance(const SoundInstance &rhs)
+SoundInstance::SoundInstance(const SoundInstance& rhs)
 {
 	soundSource = NULL;
 	m_lpSoundBuffer = NULL;
 	*this = rhs;
 }
 
-void SoundInstance::operator=(const SoundInstance &rhs)
+void SoundInstance::operator=(const SoundInstance& rhs)
 {
 	free();  // release any references and stop any buffer associated with this instance
 
@@ -150,9 +151,9 @@ void SoundInstance::operator=(const SoundInstance &rhs)
 	m_archetype = rhs.m_archetype;
 	m_loopEventHandle = rhs.m_loopEventHandle;
 	m_loopStartOffset = rhs.m_loopStartOffset;
-}	
+}
 
-inline void SoundInstance::copy_instance_data(const SoundInstance & rhs)
+inline void SoundInstance::copy_instance_data(const SoundInstance& rhs)
 {
 	// copies some of the data from another instance
 	// *** NOTE: does not copy the soundsource, buffer, start_time, or archetype
@@ -169,7 +170,7 @@ inline void SoundInstance::copy_instance_data(const SoundInstance & rhs)
 	m_cachedSoundPanV = rhs.m_cachedSoundPanV;
 }
 
-SoundInstance::~SoundInstance() 
+SoundInstance::~SoundInstance()
 {
 	free();
 }
@@ -178,7 +179,7 @@ inline void SoundInstance::free()
 {
 	if (m_lpSoundBuffer)
 	{
-		m_lpSoundBuffer->Release();			
+		m_lpSoundBuffer->Release();
 		m_lpSoundBuffer = NULL;
 		if (m_internal_flags & SMI_BUFFER_IN_HARDWARE)
 		{
@@ -191,7 +192,7 @@ inline void SoundInstance::free()
 	}
 	if (soundSource)
 	{
-		soundSource->Release(); 
+		soundSource->Release();
 		soundSource = NULL;
 	}
 }
@@ -210,7 +211,7 @@ SoundArchetype::SoundArchetype()
 	m_baseAttenuation = 0;	// no attenuation - full volume
 	m_msDuration = 0;
 	m_bufferFlags = 0;
-}	
+}
 
 SoundArchetype::~SoundArchetype()
 {
@@ -221,7 +222,7 @@ SoundArchetype::~SoundArchetype()
 	}
 	if (m_soundFile.samples)
 	{
-		delete [] m_soundFile.samples;
+		delete[] m_soundFile.samples;
 		m_soundFile.samples = NULL;
 	}
 	if (m_lpHardwareBuffer)
@@ -232,36 +233,36 @@ SoundArchetype::~SoundArchetype()
 }
 
 // set the sound data of an archetype from a file
-GENRESULT SoundArchetype::set_sound_data_from_file(IFileSystem *sourceFile, LPDIRECTSOUND lpds, U32 options)
+GENRESULT SoundArchetype::set_sound_data_from_file(IFileSystem* sourceFile, LPDIRECTSOUND lpds, U32 options)
 {
 	SoundFile soundFile;
 	char buffer[128];
 	sourceFile->GetFileName(buffer, 128);
 	// load the wave file (using wavlib.lib)
-	if ( LoadWAV (sourceFile, soundFile))
+	if (LoadWAV(sourceFile, soundFile))
 		// set the the data for the arhchetype
-		if SUCCEEDED(set_sound_data(&soundFile.format ,soundFile.length, soundFile.loop_start, soundFile.loop_end, soundFile.samples, lpds, options)) 
+		if SUCCEEDED(set_sound_data(&soundFile.format, soundFile.length, soundFile.loop_start, soundFile.loop_end, soundFile.samples, lpds, options))
 		{
-			delete [] soundFile.samples;
+			delete[] soundFile.samples;
 			return GR_OK;
 		}
 		else
 		{	// wave loaded, but archetype was not created or properly initialized
 			char buffer[128];
 			sourceFile->GetFileName(buffer, 128);
-			GENERAL_WARNING(TEMPSTR("SoundMgr:Couldn't set sound data for wav file <%s>.\n",buffer));
+			GENERAL_WARNING(TEMPSTR("SoundMgr:Couldn't set sound data for wav file <%s>.\n", buffer));
 		}
 	else
 	{	// Load failed
 		char buffer[128];
 		sourceFile->GetFileName(buffer, 128);
-		GENERAL_WARNING(TEMPSTR("SoundMgr:Couldn't load wav file <%s>.\n",buffer));
+		GENERAL_WARNING(TEMPSTR("SoundMgr:Couldn't load wav file <%s>.\n", buffer));
 	}
 	return GR_GENERIC;
 }
 
 // set the sound data of an archetype from an already loaded soundfile
-GENRESULT SoundArchetype::set_sound_data(const SoundFormat * sourceData, U32 length, U32 loop_start, U32 loop_end, void *sample_buffer, LPDIRECTSOUND lpds, U32 options)
+GENRESULT SoundArchetype::set_sound_data(const SoundFormat* sourceData, U32 length, U32 loop_start, U32 loop_end, void* sample_buffer, LPDIRECTSOUND lpds, U32 options)
 {
 	m_bufferFlags = options;
 	// set the soundfile data for the archetype
@@ -273,21 +274,21 @@ GENRESULT SoundArchetype::set_sound_data(const SoundFormat * sourceData, U32 len
 	m_soundFile.num_samples = length / m_soundFile.format.bytes_per_sample;
 	memcpy(m_soundFile.samples, sample_buffer, m_soundFile.length);
 	// create a dsound buffer for the archetype
-    m_dsWaveFormat.wFormatTag = WAVE_FORMAT_PCM; 
-    m_dsWaveFormat.nChannels = m_soundFile.format.num_channels; 
-    m_dsWaveFormat.nSamplesPerSec = m_soundFile.format.samples_per_sec; 
-    m_dsWaveFormat.wBitsPerSample = (m_soundFile.format.bytes_per_sample * 8) / m_dsWaveFormat.nChannels; 
-    m_dsWaveFormat.nBlockAlign = (m_dsWaveFormat.wBitsPerSample * m_dsWaveFormat.nChannels * 0.125); 
-    m_dsWaveFormat.nAvgBytesPerSec = (m_dsWaveFormat.nBlockAlign * m_dsWaveFormat.nSamplesPerSec); 
-    m_dsWaveFormat.cbSize = 0; 
+	m_dsWaveFormat.wFormatTag = WAVE_FORMAT_PCM;
+	m_dsWaveFormat.nChannels = m_soundFile.format.num_channels;
+	m_dsWaveFormat.nSamplesPerSec = m_soundFile.format.samples_per_sec;
+	m_dsWaveFormat.wBitsPerSample = (m_soundFile.format.bytes_per_sample * 8) / m_dsWaveFormat.nChannels;
+	m_dsWaveFormat.nBlockAlign = (m_dsWaveFormat.wBitsPerSample * m_dsWaveFormat.nChannels * 0.125);
+	m_dsWaveFormat.nAvgBytesPerSec = (m_dsWaveFormat.nBlockAlign * m_dsWaveFormat.nSamplesPerSec);
+	m_dsWaveFormat.cbSize = 0;
 	m_msDuration = 1000 * m_soundFile.length / m_soundFile.format.bytes_per_sample / m_soundFile.format.samples_per_sec;
 
-    DSBUFFERDESC dsbdesc; 
-    memset(&dsbdesc, 0, sizeof(DSBUFFERDESC)); 
-    dsbdesc.dwSize = sizeof(DSBUFFERDESC); 
-    dsbdesc.dwBufferBytes = m_soundFile.length; 
-    dsbdesc.lpwfxFormat = &m_dsWaveFormat; 
-	
+	DSBUFFERDESC dsbdesc;
+	memset(&dsbdesc, 0, sizeof(DSBUFFERDESC));
+	dsbdesc.dwSize = sizeof(DSBUFFERDESC);
+	dsbdesc.dwBufferBytes = m_soundFile.length;
+	dsbdesc.lpwfxFormat = &m_dsWaveFormat;
+
 	dsbdesc.dwFlags = g_bufferFlags;
 
 
@@ -307,7 +308,7 @@ GENRESULT SoundArchetype::set_sound_data(const SoundFormat * sourceData, U32 len
 	//	dsbdesc.dwFlags |= DSBCAPS_CTRLPAN;
 	//}
 
-	if (m_bufferFlags & SM_ENABLE_FREQUENCY_CONTROL) 
+	if (m_bufferFlags & SM_ENABLE_FREQUENCY_CONTROL)
 	{
 		dsbdesc.dwFlags |= DSBCAPS_CTRLFREQUENCY;
 	}
@@ -317,9 +318,9 @@ GENRESULT SoundArchetype::set_sound_data(const SoundFormat * sourceData, U32 len
 	{
 		dsbdesc.dwFlags |= DSBCAPS_STICKYFOCUS;
 	}
-	
+
 	// if the app wants the buffer muted at max distance, add the buffer creation flag
-	if ( m_bufferFlags & SM_MUTE_3D_AT_MAX_DISTANCE )
+	if (m_bufferFlags & SM_MUTE_3D_AT_MAX_DISTANCE)
 	{
 		dsbdesc.dwFlags |= DSBCAPS_MUTE3DATMAXDISTANCE;
 	}
@@ -338,18 +339,18 @@ GENRESULT SoundArchetype::set_sound_data(const SoundFormat * sourceData, U32 len
 	//}
 	// Create buffer. 
 	HRESULT r = lpds->CreateSoundBuffer(&dsbdesc, &m_lpSoundBuffer, NULL);
-	if SUCCEEDED(r) 
-	{ 
+	if SUCCEEDED(r)
+	{
 		// write data now, duplicate buffers will be used to get new instances
 		if SUCCEEDED(SoundManager::write_data_to_buffer(&m_soundFile, m_lpSoundBuffer, m_soundFile.length))
 		{
-			return GR_OK; 
+			return GR_OK;
 		}
-	} 
-	else 
-	{ 
+	}
+	else
+	{
 		// Failed. 
-		m_lpSoundBuffer = NULL; 
+		m_lpSoundBuffer = NULL;
 	}
 	return GR_GENERIC;
 }
@@ -375,12 +376,12 @@ void SoundArchetype::release_instance_hw_buffer()
 	}
 }
 // ISoundArchetype methods
-void DACOM_API SoundArchetype::get_sound_format(SoundFormat *soundFormat)
+void DACOM_API SoundArchetype::get_sound_format(SoundFormat* soundFormat)
 {
 	memcpy(soundFormat, &m_soundFile.format, sizeof(SoundFormat));
 }
 
-U32 DACOM_API SoundArchetype::get_samples(void * samples)
+U32 DACOM_API SoundArchetype::get_samples(void* samples)
 {
 	samples = m_soundFile.samples;
 	return m_soundFile.length;
@@ -411,14 +412,14 @@ bool DACOM_API SoundArchetype::is_loopable()
 	return true;
 }
 
-void DACOM_API SoundArchetype::set_samples(void * samples, U32 length)
+void DACOM_API SoundArchetype::set_samples(void* samples, U32 length)
 {
 	memcpy(m_soundFile.samples, samples, length);
 }
 
 GENRESULT DACOM_API SoundArchetype::set_base_attenuation(SINGLE attenuation)
 {
-	if (attenuation > 0.0) 
+	if (attenuation > 0.0)
 	{
 		attenuation = 0.0;
 	}
@@ -432,15 +433,15 @@ GENRESULT DACOM_API SoundArchetype::set_base_attenuation(SINGLE attenuation)
 
 struct Crit
 {
-	Crit (CRITICAL_SECTION* csec) : sec (csec)
+	Crit(CRITICAL_SECTION* csec) : sec(csec)
 	{
-		ASSERT (sec);
-		EnterCriticalSection (sec);
+		ASSERT(sec);
+		EnterCriticalSection(sec);
 	}
 
-	~Crit (void)
+	~Crit(void)
 	{
-		LeaveCriticalSection (sec);
+		LeaveCriticalSection(sec);
 	}
 
 private:
@@ -450,9 +451,9 @@ private:
 #define CRIT_SEC(x) Crit _critical_section_ (x)
 
 #ifdef DA_THREAD_SAFE
-	#define CRIT(x) Crit _critical_section_ (x)
+#define CRIT(x) Crit _critical_section_ (x)
 #else
-	#define CRIT(x) (void)0
+#define CRIT(x) (void)0
 #endif
 
 //
@@ -464,13 +465,13 @@ HANDLE SoundManager::ResetNotificationLoopEvent = NULL;
 LONG SoundManager::ExitReq = 0;
 InstanceList SoundManager::m_playList;
 
-DWORD WINAPI SoundManager::loop_notification_thread_loop (LPVOID)
+DWORD WINAPI SoundManager::loop_notification_thread_loop(LPVOID)
 {
 	while (true)
 	{
 		U32 numEvents = m_playList.size() + 1;	// add 1 for the ResetNotificationLoopEvent
 
-		HANDLE *eventHandleArray = new HANDLE[numEvents];
+		HANDLE* eventHandleArray = new HANDLE[numEvents];
 		U32 i = 0;
 		for (InstanceList::iterator itr = m_playList.begin(); itr != m_playList.end(); itr++)
 		{
@@ -508,8 +509,8 @@ DWORD WINAPI SoundManager::loop_notification_thread_loop (LPVOID)
 		}
 
 		if (eventHandleArray)
-		{	
-			delete [] eventHandleArray;
+		{
+			delete[] eventHandleArray;
 		}
 
 		if (ExitReq)
@@ -518,15 +519,15 @@ DWORD WINAPI SoundManager::loop_notification_thread_loop (LPVOID)
 	return 0;
 }
 
-bool SoundManager::start_looping_sound_with_markers(SoundInstance &instance)
+bool SoundManager::start_looping_sound_with_markers(SoundInstance& instance)
 {
 	if (LoopNotificationThread == NULL)
 	{
 		DWORD thID;
-		LoopNotificationThread = CreateThread (NULL, 0, loop_notification_thread_loop, NULL, 0, &thID);
+		LoopNotificationThread = CreateThread(NULL, 0, loop_notification_thread_loop, NULL, 0, &thID);
 		if (!LoopNotificationThread)
 		{
-			GENERAL_ERROR( "SoundManager: couldn't create thread for looping sounds.\n" );
+			GENERAL_ERROR("SoundManager: couldn't create thread for looping sounds.\n");
 			return false;
 		}
 	}
@@ -537,11 +538,11 @@ bool SoundManager::start_looping_sound_with_markers(SoundInstance &instance)
 		instance.m_loopEventHandle = NULL;
 	}
 
-	instance.m_loopEventHandle = CreateEvent (NULL, FALSE, FALSE, NULL);
+	instance.m_loopEventHandle = CreateEvent(NULL, FALSE, FALSE, NULL);
 	if (instance.m_loopEventHandle)
 	{
 		LPDIRECTSOUNDNOTIFY lpDsNotify = NULL;
-		HRESULT hr = instance.m_lpSoundBuffer->QueryInterface(IID_IDirectSoundNotify, (LPVOID *)&lpDsNotify);
+		HRESULT hr = instance.m_lpSoundBuffer->QueryInterface(IID_IDirectSoundNotify, (LPVOID*)&lpDsNotify);
 		if SUCCEEDED(hr)
 		{
 			DSBPOSITIONNOTIFY PositionNotify[1];
@@ -569,10 +570,10 @@ bool SoundManager::start_looping_sound_with_markers(SoundInstance &instance)
 SoundManager::SoundManager()
 {
 #ifdef DA_THREAD_SAFE
-	InitializeCriticalSection (&m_archetypeLock);
+	InitializeCriticalSection(&m_archetypeLock);
 #endif
 
-	InitializeCriticalSection (&m_loopThreadLock);
+	InitializeCriticalSection(&m_loopThreadLock);
 
 	m_Initialized = false;
 	m_lpds = NULL;
@@ -599,10 +600,10 @@ SoundManager::SoundManager()
 	m_originalReverb.vol = 0.0f;
 
 	// listener defaults
-	m_listenerFront.set(0,0,1);
-	m_listenerUp.set(0,1,0);
-	m_listenerPosition.set(0,0,0);
-	m_listenerVelocity.set(0,0,0);
+	m_listenerFront.set(0, 0, 1);
+	m_listenerUp.set(0, 1, 0);
+	m_listenerPosition.set(0, 0, 0);
+	m_listenerVelocity.set(0, 0, 0);
 	m_listenerDistanceFactor = 1; // units are 1 meter unless changed by the app
 	m_listenerDopplerFactor = DS3D_DEFAULTDOPPLERFACTOR;
 	m_listenerRolloffFactor = DS3D_DEFAULTROLLOFFFACTOR;
@@ -612,7 +613,7 @@ SoundManager::SoundManager()
 
 SoundManager::~SoundManager()
 {
-	erase_archetypes ();
+	erase_archetypes();
 
 	if (!m_playList.empty())
 	{
@@ -623,23 +624,23 @@ SoundManager::~SoundManager()
 		m_activeSoundList.clear();
 	}
 
-	DeleteCriticalSection (&m_loopThreadLock);
+	DeleteCriticalSection(&m_loopThreadLock);
 
 #ifdef DA_THREAD_SAFE
-	DeleteCriticalSection (&m_archetypeLock);
+	DeleteCriticalSection(&m_archetypeLock);
 #endif
 }
 
 // ISoundManager methods
-GENRESULT DACOM_API SoundManager::set_sound_format(SoundFormat *soundFormat)
+GENRESULT DACOM_API SoundManager::set_sound_format(SoundFormat* soundFormat)
 {
 	m_primarySampleRate = soundFormat->samples_per_sec;
 	m_primaryNumChannels = soundFormat->num_channels;
 	m_primaryBitsPerSample = soundFormat->bytes_per_sample * 8;
 	return GR_OK;
-}	
+}
 
-GENRESULT DACOM_API SoundManager::get_sound_format(SoundFormat *soundFormat)
+GENRESULT DACOM_API SoundManager::get_sound_format(SoundFormat* soundFormat)
 {
 	soundFormat->samples_per_sec = m_primarySampleRate;
 	soundFormat->num_channels = m_primaryNumChannels;
@@ -658,7 +659,7 @@ GENRESULT DACOM_API SoundManager::set_maximum_channels(const U32 maxChannels)
 {
 	if (maxChannels > m_maxHardwareChannels)
 	{
-		GENERAL_TRACE_1( TEMPSTR("SoundMgr:Max channels reset to %d. Card can only mix %d in HW.\n", maxChannels, m_maxHardwareChannels) );
+		GENERAL_TRACE_1(TEMPSTR("SoundMgr:Max channels reset to %d. Card can only mix %d in HW.\n", maxChannels, m_maxHardwareChannels));
 	}
 	m_maxChannels = maxChannels;
 	return GR_OK;
@@ -705,32 +706,32 @@ U32 DACOM_API SoundManager::get_speaker_configuration()
 GENRESULT DACOM_API SoundManager::set_master_reverb(const U32 baseEnv, const SINGLE vol, const SINGLE decay, const SINGLE damping)
 {
 	// clamp the values for EAX
-	m_reverb.baseEnv = (baseEnv >=EAX_ENVIRONMENT_COUNT) ? EAX_ENVIRONMENT_GENERIC : baseEnv ;
-	m_reverb.vol = (vol < 0.0) ? 0.0 : ( (vol > 1.0) ? 1.0 : vol);
-	m_reverb.decay = (decay < 0.1) ? 0.1 : ( (decay > 100.0) ? 100.0 : decay);
-	m_reverb.damping = (damping < 0.0) ? 0.0 : ( (damping > 2.0) ? 2.0 : damping);
+	m_reverb.baseEnv = (baseEnv >= EAX_ENVIRONMENT_COUNT) ? EAX_ENVIRONMENT_GENERIC : baseEnv;
+	m_reverb.vol = (vol < 0.0) ? 0.0 : ((vol > 1.0) ? 1.0 : vol);
+	m_reverb.decay = (decay < 0.1) ? 0.1 : ((decay > 100.0) ? 100.0 : decay);
+	m_reverb.damping = (damping < 0.0) ? 0.0 : ((damping > 2.0) ? 2.0 : damping);
 
 	// Get a dummy buffer
 	if (m_hardwareOptionsDesired & SM_USE_EAX) // if user says try to use EAX
 	{
-		WAVEFORMATEX fmt={WAVE_FORMAT_PCM,2,22050,88200,4,16,0};
+		WAVEFORMATEX fmt = { WAVE_FORMAT_PCM,2,22050,88200,4,16,0 };
 		GenericDSoundBuffer dummyBuffer(&fmt);
 
 		LPDIRECTSOUNDBUFFER pBuffer = dummyBuffer.pBuffer;
 		LPKSPROPERTYSET pEAX;
 		U32 support = 0;
-		HRESULT r = m_lpds->CreateSoundBuffer(&dummyBuffer.desc,&pBuffer,NULL);
+		HRESULT r = m_lpds->CreateSoundBuffer(&dummyBuffer.desc, &pBuffer, NULL);
 		if (r == DS_OK)
 		{
-			if (pBuffer->QueryInterface(IID_IKsPropertySet, (void **) &pEAX) == DS_OK)
+			if (pBuffer->QueryInterface(IID_IKsPropertySet, (void**)&pEAX) == DS_OK)
 			{
-				if (	(pEAX->QuerySupport(DSPROPSETID_EAX_ReverbProperties,DSPROPERTY_EAX_ALL,&support) == DS_OK) &&
-						(support & (KSPROPERTY_SUPPORT_GET|KSPROPERTY_SUPPORT_SET)) )
+				if ((pEAX->QuerySupport(DSPROPSETID_EAX_ReverbProperties, DSPROPERTY_EAX_ALL, &support) == DS_OK) &&
+					(support & (KSPROPERTY_SUPPORT_GET | KSPROPERTY_SUPPORT_SET)))
 				{
-					if (! (m_hardwareOptionsUsed & SM_USE_EAX)) // first time setting the properties, so save the original values
+					if (!(m_hardwareOptionsUsed & SM_USE_EAX)) // first time setting the properties, so save the original values
 					{
 						EAX_REVERBPROPERTIES originalprops;
-						pEAX->Get(DSPROPSETID_EAX_ReverbProperties, DSPROPERTY_EAX_ALL, NULL,0, &originalprops, sizeof(EAX_REVERBPROPERTIES), NULL);
+						pEAX->Get(DSPROPSETID_EAX_ReverbProperties, DSPROPERTY_EAX_ALL, NULL, 0, &originalprops, sizeof(EAX_REVERBPROPERTIES), NULL);
 						m_originalReverb.baseEnv = originalprops.environment;
 						m_originalReverb.vol = originalprops.fVolume;
 						m_originalReverb.decay = originalprops.fDecayTime_sec;
@@ -738,13 +739,13 @@ GENRESULT DACOM_API SoundManager::set_master_reverb(const U32 baseEnv, const SIN
 						m_hardwareOptionsUsed |= SM_USE_EAX;
 					}
 					// set the properties to the new one
-					EAX_REVERBPROPERTIES props={m_reverb.baseEnv, m_reverb.vol,m_reverb.decay,m_reverb.damping};
-					pEAX->Set(DSPROPSETID_EAX_ReverbProperties, DSPROPERTY_EAX_ALL, NULL,0, &props, sizeof(EAX_REVERBPROPERTIES));
+					EAX_REVERBPROPERTIES props = { m_reverb.baseEnv, m_reverb.vol,m_reverb.decay,m_reverb.damping };
+					pEAX->Set(DSPROPSETID_EAX_ReverbProperties, DSPROPERTY_EAX_ALL, NULL, 0, &props, sizeof(EAX_REVERBPROPERTIES));
 				}
 				else
 				{
 					// couldn't get the property set
-					GENERAL_TRACE_1( "SoundManager: EAX properties NOT available.\n" );
+					GENERAL_TRACE_1("SoundManager: EAX properties NOT available.\n");
 				}
 				pEAX->Release();
 			}
@@ -753,10 +754,10 @@ GENRESULT DACOM_API SoundManager::set_master_reverb(const U32 baseEnv, const SIN
 
 #if A3D_SUPPORTED
 	// if a3d was succesfully created, set the high frequency absorbtion factor
-	if (m_hardwareOptionsUsed & SM_USE_A3D) 
+	if (m_hardwareOptionsUsed & SM_USE_A3D)
 	{
 		LPIA3D2 pIA3d2 = NULL;
-		if ( SUCCEEDED(m_lpds->QueryInterface(IID_IA3d2, (void **)&pIA3d2)) )
+		if (SUCCEEDED(m_lpds->QueryInterface(IID_IA3d2, (void**)&pIA3d2)))
 		{
 			SINGLE A3DDampingFactor = 2.0 - m_reverb.damping;
 			pIA3d2->SetHFAbsorbFactor((A3DDampingFactor < 0.1) ? 0.1 : A3DDampingFactor); // A3D values are 0.1 to 2.0 are opposite EAX
@@ -768,7 +769,7 @@ GENRESULT DACOM_API SoundManager::set_master_reverb(const U32 baseEnv, const SIN
 	return GR_OK;
 }
 
-void DACOM_API SoundManager::get_master_reverb(U32 *baseEnv, SINGLE *vol, SINGLE *decay, SINGLE *damping)
+void DACOM_API SoundManager::get_master_reverb(U32* baseEnv, SINGLE* vol, SINGLE* decay, SINGLE* damping)
 {
 	*baseEnv = m_reverb.baseEnv;
 	*vol = m_reverb.vol;
@@ -776,16 +777,16 @@ void DACOM_API SoundManager::get_master_reverb(U32 *baseEnv, SINGLE *vol, SINGLE
 	*damping = m_reverb.damping;
 }
 
-GENRESULT DACOM_API SoundManager::set_ear_orientation(const Matrix *orientation)
+GENRESULT DACOM_API SoundManager::set_ear_orientation(const Matrix* orientation)
 {
 	Vector k = orientation->get_k();
 	Vector j = orientation->get_j();
 	return set_ear_orientation(&k, &j);
 }
 
-GENRESULT DACOM_API SoundManager::set_ear_orientation(const Vector *back, const Vector * up)
+GENRESULT DACOM_API SoundManager::set_ear_orientation(const Vector* back, const Vector* up)
 {
-	m_listenerFront = - *back;
+	m_listenerFront = -*back;
 	m_listenerFront.z *= m_simpleCoordTransformation;
 	m_listenerUp = *up;
 	m_listenerUp.z *= m_simpleCoordTransformation;
@@ -796,7 +797,7 @@ GENRESULT DACOM_API SoundManager::set_ear_orientation(const Vector *back, const 
 	return GR_OK;
 }
 
-GENRESULT DACOM_API SoundManager::set_ear_position(const Vector *position)
+GENRESULT DACOM_API SoundManager::set_ear_position(const Vector* position)
 {
 	m_listenerPosition = *position;
 	m_listenerPosition.z *= m_simpleCoordTransformation;
@@ -807,7 +808,7 @@ GENRESULT DACOM_API SoundManager::set_ear_position(const Vector *position)
 	return GR_OK;
 }
 
-GENRESULT DACOM_API SoundManager::set_ear_velocity(const Vector *velocity)
+GENRESULT DACOM_API SoundManager::set_ear_velocity(const Vector* velocity)
 {
 	m_listenerVelocity = *velocity;
 	m_listenerVelocity.z *= m_simpleCoordTransformation;
@@ -844,8 +845,8 @@ GENRESULT DACOM_API SoundManager::set_ear_rolloff_factor(const SINGLE rolloff)
 	return GR_OK;
 }
 
-void DACOM_API SoundManager::get_ear_orientation(Matrix *orientation)
-{	
+void DACOM_API SoundManager::get_ear_orientation(Matrix* orientation)
+{
 	Vector back, up, side;
 
 	get_ear_orientation(&back, &up);
@@ -861,11 +862,11 @@ void DACOM_API SoundManager::get_ear_orientation(Matrix *orientation)
 	orientation->set_k(back);
 }
 
-void DACOM_API SoundManager::get_ear_orientation(Vector *back, Vector *up)
+void DACOM_API SoundManager::get_ear_orientation(Vector* back, Vector* up)
 {
 	*back = m_listenerFront;
 	back->z *= m_simpleCoordTransformation;
-	*back = - *back;
+	*back = -*back;
 	*up = m_listenerUp;
 	up->z *= m_simpleCoordTransformation;
 	return;
@@ -900,7 +901,7 @@ SINGLE DACOM_API SoundManager::get_ear_rolloff_factor()
 	return m_listenerRolloffFactor;
 }
 
-GENRESULT DACOM_API SoundManager::get_property(ISoundSource *sound, REFGUID propGUID, const U32 propID, void *propData, const U32 sizeOfPropData, U32 * sizeOfDataWritten)
+GENRESULT DACOM_API SoundManager::get_property(ISoundSource* sound, REFGUID propGUID, const U32 propID, void* propData, const U32 sizeOfPropData, U32* sizeOfDataWritten)
 {
 	GENRESULT retVal = GR_GENERIC;
 
@@ -909,11 +910,11 @@ GENRESULT DACOM_API SoundManager::get_property(ISoundSource *sound, REFGUID prop
 	if (exists_in_list(sound, m_playList, &itr))
 	{
 		LPKSPROPERTYSET pPropSet;
-		if ((*itr).m_lpSoundBuffer->QueryInterface(IID_IKsPropertySet, (void **) &pPropSet) == DS_OK)
+		if ((*itr).m_lpSoundBuffer->QueryInterface(IID_IKsPropertySet, (void**)&pPropSet) == DS_OK)
 		{
 			U32 support = 0;
 			pPropSet->QuerySupport(propGUID, propID, &support);
-			if (support & (KSPROPERTY_SUPPORT_GET) )
+			if (support & (KSPROPERTY_SUPPORT_GET))
 			{
 				pPropSet->Get(propGUID, propID, NULL, 0, propData, sizeOfPropData, sizeOfDataWritten);
 				retVal = GR_OK;
@@ -925,22 +926,22 @@ GENRESULT DACOM_API SoundManager::get_property(ISoundSource *sound, REFGUID prop
 	return retVal;
 }
 
-GENRESULT DACOM_API SoundManager::get_global_property(REFGUID propGUID, const U32 propID, void *propData, const U32 sizeOfPropData, U32 * sizeOfDataWritten)
+GENRESULT DACOM_API SoundManager::get_global_property(REFGUID propGUID, const U32 propID, void* propData, const U32 sizeOfPropData, U32* sizeOfDataWritten)
 {
 	GENRESULT retVal = GR_GENERIC;
 
-	WAVEFORMATEX fmt={WAVE_FORMAT_PCM,2,22050,88200,4,16,0};
+	WAVEFORMATEX fmt = { WAVE_FORMAT_PCM,2,22050,88200,4,16,0 };
 	GenericDSoundBuffer dummyBuffer(&fmt);
 	LPDIRECTSOUNDBUFFER pBuffer = dummyBuffer.pBuffer;
-	HRESULT r = m_lpds->CreateSoundBuffer(&dummyBuffer.desc,&pBuffer,NULL);
-	if (pBuffer)
+	HRESULT hr = m_lpds->CreateSoundBuffer(&dummyBuffer.desc, &pBuffer, NULL);
+	if (SUCCEEDED(hr))
 	{
 		LPKSPROPERTYSET pPropSet;
-		if (m_lpdsPrimaryBuffer->QueryInterface(IID_IKsPropertySet, (void **) &pPropSet) == DS_OK)
+		if (m_lpdsPrimaryBuffer->QueryInterface(IID_IKsPropertySet, (void**)&pPropSet) == DS_OK)
 		{
 			U32 support = 0;
 			pPropSet->QuerySupport(propGUID, propID, &support);
-			if (support & (KSPROPERTY_SUPPORT_GET) )
+			if (support & (KSPROPERTY_SUPPORT_GET))
 			{
 				pPropSet->Get(propGUID, propID, NULL, 0, propData, sizeOfPropData, sizeOfDataWritten);
 				retVal = GR_OK;
@@ -952,7 +953,7 @@ GENRESULT DACOM_API SoundManager::get_global_property(REFGUID propGUID, const U3
 }
 
 
-GENRESULT DACOM_API SoundManager::set_property(ISoundSource *sound, REFGUID propGUID, const U32 propID, void *propData, const U32 sizeOfPropData)
+GENRESULT DACOM_API SoundManager::set_property(ISoundSource* sound, REFGUID propGUID, const U32 propID, void* propData, const U32 sizeOfPropData)
 {
 	GENRESULT retVal = GR_GENERIC;
 
@@ -961,11 +962,11 @@ GENRESULT DACOM_API SoundManager::set_property(ISoundSource *sound, REFGUID prop
 	if (exists_in_list(sound, m_playList, &itr))
 	{
 		LPKSPROPERTYSET pPropSet;
-		if ((*itr).m_lpSoundBuffer->QueryInterface(IID_IKsPropertySet, (void **) &pPropSet) == DS_OK)
+		if ((*itr).m_lpSoundBuffer->QueryInterface(IID_IKsPropertySet, (void**)&pPropSet) == DS_OK)
 		{
 			U32 support = 0;
 			pPropSet->QuerySupport(propGUID, propID, &support);
-			if (support & (KSPROPERTY_SUPPORT_SET) )
+			if (support & (KSPROPERTY_SUPPORT_SET))
 			{
 				pPropSet->Set(propGUID, propID, NULL, 0, propData, sizeOfPropData);
 				retVal = GR_OK;
@@ -977,22 +978,22 @@ GENRESULT DACOM_API SoundManager::set_property(ISoundSource *sound, REFGUID prop
 	return retVal;
 }
 
-GENRESULT DACOM_API SoundManager::set_global_property(REFGUID propGUID, const U32 propID, void *propData, const U32 sizeOfPropData)
+GENRESULT DACOM_API SoundManager::set_global_property(REFGUID propGUID, const U32 propID, void* propData, const U32 sizeOfPropData)
 {
 	GENRESULT retVal = GR_GENERIC;
 
-	WAVEFORMATEX fmt={WAVE_FORMAT_PCM,2,22050,88200,4,16,0};
+	WAVEFORMATEX fmt = { WAVE_FORMAT_PCM,2,22050,88200,4,16,0 };
 	GenericDSoundBuffer dummyBuffer(&fmt);
 	LPDIRECTSOUNDBUFFER pBuffer = dummyBuffer.pBuffer;
-	HRESULT r = m_lpds->CreateSoundBuffer(&dummyBuffer.desc,&pBuffer,NULL);
-	if (pBuffer)
+	HRESULT hr = m_lpds->CreateSoundBuffer(&dummyBuffer.desc, &pBuffer, NULL);
+	if (SUCCEEDED(hr))
 	{
 		LPKSPROPERTYSET pPropSet;
-		if (m_lpdsPrimaryBuffer->QueryInterface(IID_IKsPropertySet, (void **) &pPropSet) == DS_OK)
+		if (m_lpdsPrimaryBuffer->QueryInterface(IID_IKsPropertySet, (void**)&pPropSet) == DS_OK)
 		{
 			U32 support = 0;
 			pPropSet->QuerySupport(propGUID, propID, &support);
-			if (support & (KSPROPERTY_SUPPORT_SET) )
+			if (support & (KSPROPERTY_SUPPORT_SET))
 			{
 				pPropSet->Set(propGUID, propID, NULL, 0, propData, sizeOfPropData);
 				retVal = GR_OK;
@@ -1003,16 +1004,16 @@ GENRESULT DACOM_API SoundManager::set_global_property(REFGUID propGUID, const U3
 	return retVal;
 }
 
-inline SOUND_ARCH_INDEX SoundManager::add_archetype (SOUND_ARCH* nu)
+inline SOUND_ARCH_INDEX SoundManager::add_archetype(SOUND_ARCH* nu)
 {
-	CRIT (&m_archetypeLock);
+	CRIT(&m_archetypeLock);
 
 	SOUND_ARCH_INDEX result = m_nextAvailableArchetype;
-	m_archetypeMap.insert (ArchetypeMap::value_type (m_nextAvailableArchetype++, nu));
+	m_archetypeMap.insert(ArchetypeMap::value_type(m_nextAvailableArchetype++, nu));
 	return result;
 }
 
-SOUND_ARCH_INDEX DACOM_API SoundManager::create_archetype_from_raw_data (const SoundFormat &format, U32 length, U32 loop_start, U32 loop_end, void *sample_buffer, U32 options)
+SOUND_ARCH_INDEX DACOM_API SoundManager::create_archetype_from_raw_data(const SoundFormat& format, U32 length, U32 loop_start, U32 loop_end, void* sample_buffer, U32 options)
 {
 	SOUND_ARCH* nu = new DAComponent <SoundArchetype>;
 
@@ -1025,25 +1026,25 @@ SOUND_ARCH_INDEX DACOM_API SoundManager::create_archetype_from_raw_data (const S
 	else
 	{
 
-		return add_archetype (nu);
+		return add_archetype(nu);
 	}
 }
 
-SOUND_ARCH_INDEX DACOM_API SoundManager::create_archetype_from_soundfile (const SoundFile &soundFile, U32 options)
+SOUND_ARCH_INDEX DACOM_API SoundManager::create_archetype_from_soundfile(const SoundFile& soundFile, U32 options)
 {
 	SOUND_ARCH* nu = new DAComponent <SoundArchetype>;
 
-	if (FAILED(nu->set_sound_data( &soundFile.format ,soundFile.length, soundFile.loop_start, soundFile.loop_end, soundFile.samples, m_lpds, options)))
+	if (FAILED(nu->set_sound_data(&soundFile.format, soundFile.length, soundFile.loop_start, soundFile.loop_end, soundFile.samples, m_lpds, options)))
 	{
 		nu->Release();
 		GENERAL_WARNING(TEMPSTR("SoundMgr:Couldn't create archetype %d.\n", m_nextAvailableArchetype));
 		return SM_INVALID_ARCHETYPE;
 	}
 	else
-		return add_archetype (nu);
+		return add_archetype(nu);
 }
 
-SOUND_ARCH_INDEX DACOM_API SoundManager::create_archetype (IFileSystem *sourceFile, U32 options)
+SOUND_ARCH_INDEX DACOM_API SoundManager::create_archetype(IFileSystem* sourceFile, U32 options)
 {
 	SOUND_ARCH* nu = new DAComponent <SoundArchetype>;
 
@@ -1054,7 +1055,7 @@ SOUND_ARCH_INDEX DACOM_API SoundManager::create_archetype (IFileSystem *sourceFi
 		return SM_INVALID_ARCHETYPE;
 	}
 	else
-		return add_archetype (nu);
+		return add_archetype(nu);
 }
 
 // deletes an archetype and its internal instances
@@ -1063,19 +1064,19 @@ GENRESULT DACOM_API SoundManager::destroy_archetype(SOUND_ARCH_INDEX archetype)
 	SOUND_ARCH* dead = NULL;
 
 	{
-		CRIT (&m_archetypeLock);
-		ArchetypeMap::iterator it = m_archetypeMap.find (archetype);
-		
-		if (it != m_archetypeMap.end ())
+		CRIT(&m_archetypeLock);
+		ArchetypeMap::iterator it = m_archetypeMap.find(archetype);
+
+		if (it != m_archetypeMap.end())
 		{
 			dead = it->second;
-			m_archetypeMap.erase (it);
+			m_archetypeMap.erase(it);
 		}
 	}
-			
+
 	if (dead)
 	{
-		clean_archetype_references (archetype);
+		clean_archetype_references(archetype);
 
 		// release this archetype
 		dead->Release();
@@ -1085,20 +1086,20 @@ GENRESULT DACOM_API SoundManager::destroy_archetype(SOUND_ARCH_INDEX archetype)
 	return GR_GENERIC;
 }
 
-bool SoundManager::query_archetype (SOUND_ARCH_INDEX archetype, SOUND_ARCH*& arch_ptr)
+bool SoundManager::query_archetype(SOUND_ARCH_INDEX archetype, SOUND_ARCH*& arch_ptr)
 {
 	bool gr = false;
 
 	if (SM_INVALID_ARCHETYPE != archetype)
 	{
-		CRIT (&m_archetypeLock);
+		CRIT(&m_archetypeLock);
 
-		ArchetypeMap::iterator it = m_archetypeMap.find (archetype);
+		ArchetypeMap::iterator it = m_archetypeMap.find(archetype);
 
-		if (it != m_archetypeMap.end ())
+		if (it != m_archetypeMap.end())
 		{
 			arch_ptr = it->second;
-			arch_ptr->AddRef ();
+			arch_ptr->AddRef();
 
 			gr = true;
 		}
@@ -1106,28 +1107,28 @@ bool SoundManager::query_archetype (SOUND_ARCH_INDEX archetype, SOUND_ARCH*& arc
 
 	if (!gr)
 	{
-		GENERAL_TRACE_2(TEMPSTR("SoundMgr:Invalid archetype index %d. Last valid archetype index is %d.\n", archetype, m_nextAvailableArchetype-1));
+		GENERAL_TRACE_2(TEMPSTR("SoundMgr:Invalid archetype index %d. Last valid archetype index is %d.\n", archetype, m_nextAvailableArchetype - 1));
 	}
 
 	return gr;
 }
 
 // returns a pointer to the archetypes ISoundArchetype interface 
-GENRESULT DACOM_API SoundManager::get_archetype_interface(SOUND_ARCH_INDEX archetype, void ** archInterface)
+GENRESULT DACOM_API SoundManager::get_archetype_interface(SOUND_ARCH_INDEX archetype, void** archInterface)
 {
 	if (archInterface)
 	{
 		SOUND_ARCH* ar;
 
-		if (query_archetype (archetype, ar))
+		if (query_archetype(archetype, ar))
 		{
 			if (ar->QueryInterface(IID_ISoundArchetype, archInterface) != GR_OK)
 			{
-				GENERAL_WARNING ("Failed to query the IID_ISoundArchetype.\n");
-				ar->Release ();
+				GENERAL_WARNING("Failed to query the IID_ISoundArchetype.\n");
+				ar->Release();
 				return GR_GENERIC;
 			}
-			ar->Release ();
+			ar->Release();
 			return GR_OK;
 		}
 		*archInterface = NULL;
@@ -1136,7 +1137,7 @@ GENRESULT DACOM_API SoundManager::get_archetype_interface(SOUND_ARCH_INDEX arche
 }
 
 // add an active sound to the list that will be used during next update()
-GENRESULT DACOM_API SoundManager::add_active_sound (ISoundSource *sound, U32 index)
+GENRESULT DACOM_API SoundManager::add_active_sound(ISoundSource* sound, U32 index)
 {
 	if (sound)
 	{
@@ -1162,7 +1163,7 @@ GENRESULT DACOM_API SoundManager::add_active_sound (ISoundSource *sound, U32 ind
 }
 
 // set the entire active sound list that will be used during next update()
-GENRESULT DACOM_API SoundManager::set_active_sounds (ISoundSource *sounds[], U32 count)
+GENRESULT DACOM_API SoundManager::set_active_sounds(ISoundSource* sounds[], U32 count)
 {
 	// m_activeSoundList is a list of pointers, so Release has to be called
 	for (SoundSourceList::iterator itr = m_activeSoundList.begin(); itr != m_activeSoundList.end(); itr++)
@@ -1195,7 +1196,7 @@ GENRESULT DACOM_API SoundManager::set_active_sounds (ISoundSource *sounds[], U32
 }
 
 // remove an active sound and stop it immediately
-GENRESULT DACOM_API SoundManager::remove_active_sound (ISoundSource *sound)
+GENRESULT DACOM_API SoundManager::remove_active_sound(ISoundSource* sound)
 {
 	// remove from play list and stop sound
 	InstanceList::iterator itr;
@@ -1206,7 +1207,7 @@ GENRESULT DACOM_API SoundManager::remove_active_sound (ISoundSource *sound)
 
 	// remove from active list
 	SoundSourceList::iterator activeItr = m_activeSoundList.begin();
-	while(activeItr != m_activeSoundList.end())
+	while (activeItr != m_activeSoundList.end())
 	{
 		if (*activeItr == sound)
 		{
@@ -1235,7 +1236,7 @@ U32 DACOM_API SoundManager::get_playing_sound_count()
 	return m_playList.size();
 }
 
-GENRESULT DACOM_API SoundManager::get_playing_sound_status (int which, SoundStatus &playingStatus)
+GENRESULT DACOM_API SoundManager::get_playing_sound_status(int which, SoundStatus& playingStatus)
 {
 	int size = m_playList.size();
 	if (which < 0 || which >= size)
@@ -1252,7 +1253,7 @@ GENRESULT DACOM_API SoundManager::get_playing_sound_status (int which, SoundStat
 		++it;
 	}
 
-	const SoundInstance &si = (*it);
+	const SoundInstance& si = (*it);
 	playingStatus.dsoundBufferFlags = si.m_DSOUND_buffer_flags;
 	playingStatus.internalFlags = si.m_internal_flags;
 	playingStatus.soundSource = si.soundSource;
@@ -1268,7 +1269,7 @@ GENRESULT DACOM_API SoundManager::startup(HWND hWnd, U32 options)
 	m_hWnd = hWnd;
 	if (!options)
 	{
-		GENERAL_ERROR( "SoundManager: startup options must be non-zero.\n" );
+		GENERAL_ERROR("SoundManager: startup options must be non-zero.\n");
 		return GR_GENERIC;
 	}
 
@@ -1281,42 +1282,42 @@ GENRESULT DACOM_API SoundManager::startup(HWND hWnd, U32 options)
 	}
 
 	// get any info from the ini file
-	LPGUID lpguid;
 	U32 iniFileOption = 0;
 	SINGLE iniFileFloat = 0;
 
-	ICOManager *DACOM = DACOM_Acquire();
+	ICOManager* DACOM = DACOM_Acquire();
 
 	// Audio extension properties (not in "SoundManager" section - in "AudioProperties" section)
-	opt_get_u32( DACOM, profile_parser, "AudioProperties", "useEAX", (m_hardwareOptionsDesired&SM_USE_EAX), &iniFileOption );
+	opt_get_u32(DACOM, profile_parser, "AudioProperties", "useEAX", (m_hardwareOptionsDesired & SM_USE_EAX), &iniFileOption);
 	if (iniFileOption)
 		m_hardwareOptionsDesired |= (SM_USE_EAX);
 	else
 		m_hardwareOptionsDesired &= (~SM_USE_EAX);
 
 #if A3D_SUPPORTED
-	opt_get_u32( DACOM, profile_parser, "AudioProperties", "useA3D", (m_hardwareOptionsDesired&SM_USE_A3D), &iniFileOption );
+	opt_get_u32(DACOM, profile_parser, "AudioProperties", "useA3D", (m_hardwareOptionsDesired & SM_USE_A3D), &iniFileOption);
 	if (iniFileOption)
 		m_hardwareOptionsDesired |= (SM_USE_A3D);
 	else
 		m_hardwareOptionsDesired &= (~SM_USE_A3D);
 #endif
 
-	opt_get_u32( DACOM, profile_parser, "AudioProperties", "reverbBaseEnvironment", 0, &iniFileOption );
-		m_reverb.baseEnv = iniFileOption;
-	opt_get_float( DACOM, profile_parser, "AudioProperties", "reverbMasterVolume", 0.0f, &iniFileFloat );
-		m_reverb.vol = iniFileFloat;
-	opt_get_float( DACOM, profile_parser, "AudioProperties", "reverbDecayTime", 0.1f, &iniFileFloat );
-		m_reverb.decay = iniFileFloat;
-	opt_get_float( DACOM, profile_parser, "AudioProperties", "reverbDamping", 1.0f, &iniFileFloat );
-		m_reverb.damping = iniFileFloat;
-	opt_get_float( DACOM, profile_parser, "AudioProperties", "reverbMix", 0.0f, &iniFileFloat );
-		m_masterReverbMix = iniFileFloat;
+	opt_get_u32(DACOM, profile_parser, "AudioProperties", "reverbBaseEnvironment", 0, &iniFileOption);
+	m_reverb.baseEnv = iniFileOption;
+	opt_get_float(DACOM, profile_parser, "AudioProperties", "reverbMasterVolume", 0.0f, &iniFileFloat);
+	m_reverb.vol = iniFileFloat;
+	opt_get_float(DACOM, profile_parser, "AudioProperties", "reverbDecayTime", 0.1f, &iniFileFloat);
+	m_reverb.decay = iniFileFloat;
+	opt_get_float(DACOM, profile_parser, "AudioProperties", "reverbDamping", 1.0f, &iniFileFloat);
+	m_reverb.damping = iniFileFloat;
+	opt_get_float(DACOM, profile_parser, "AudioProperties", "reverbMix", 0.0f, &iniFileFloat);
+	m_masterReverbMix = iniFileFloat;
 
 	// soundManager specific properties
 	// see if a specific device was desired
-	opt_get_string( DACOM, profile_parser, "SoundManager", "deviceID", ID_NullGuid, m_deviceGuidString, 40 );
-	lpguid = ConvertStringToGUID(m_deviceGuidString, &m_deviceGuid);
+	opt_get_string(DACOM, profile_parser, "SoundManager", "deviceID", ID_NullGuid, m_deviceGuidString, 40);
+	LPGUID lpguid = ConvertStringToGUID(m_deviceGuidString, &m_deviceGuid);
+	unused(lpguid);
 
 	char buffer[32];
 	char SW_3D_type[32];
@@ -1324,60 +1325,60 @@ GENRESULT DACOM_API SoundManager::startup(HWND hWnd, U32 options)
 
 	switch (m_hardwareOptionsDesired & ALL_SW_FLAGS)
 	{
-		case SM_USE_3D_SOFTWARE_FULL:
-			sprintf(buffer, "FULL");
-			break;
-		case SM_USE_3D_SOFTWARE_LIGHT:
-			sprintf(buffer, "LIGHT");
-			break;
-		case SM_USE_3D_SOFTWARE_BASIC:
-			sprintf(buffer, "BASIC");
-			break;
-		case SM_USE_3D_SOFTWARE_NONE:
-			sprintf(buffer, "NONE");
-			break;
-		default:
-			sprintf(buffer, "USER");
-			break;
+	case SM_USE_3D_SOFTWARE_FULL:
+		sprintf(buffer, "FULL");
+		break;
+	case SM_USE_3D_SOFTWARE_LIGHT:
+		sprintf(buffer, "LIGHT");
+		break;
+	case SM_USE_3D_SOFTWARE_BASIC:
+		sprintf(buffer, "BASIC");
+		break;
+	case SM_USE_3D_SOFTWARE_NONE:
+		sprintf(buffer, "NONE");
+		break;
+	default:
+		sprintf(buffer, "USER");
+		break;
 	}
-	opt_get_string( DACOM, profile_parser, "SoundManager", "3D_SW_Algorithm", buffer, SW_3D_type, 32);
+	opt_get_string(DACOM, profile_parser, "SoundManager", "3D_SW_Algorithm", buffer, SW_3D_type, 32);
 	m_hardwareOptionsDesired &= (~ALL_SW_FLAGS);
-	if (! stricmp("FULL", SW_3D_type))
+	if (!_stricmp("FULL", SW_3D_type))
 	{
 		m_hardwareOptionsDesired |= SM_USE_3D_SOFTWARE_FULL;
 		m_hardwareOptionsUsed |= SM_USE_3D_SOFTWARE_FULL;
 		m_DS3D_SW_ALG_GUID = DS3DALG_HRTF_FULL;
 	}
-	else if (! stricmp("LIGHT", SW_3D_type))
+	else if (!_stricmp("LIGHT", SW_3D_type))
 	{
 		m_hardwareOptionsDesired |= SM_USE_3D_SOFTWARE_LIGHT;
 		m_hardwareOptionsUsed |= SM_USE_3D_SOFTWARE_LIGHT;
 		m_DS3D_SW_ALG_GUID = DS3DALG_HRTF_LIGHT;
 	}
-	else if (! stricmp("BASIC", SW_3D_type))
+	else if (!_stricmp("BASIC", SW_3D_type))
 	{
 		m_hardwareOptionsDesired |= SM_USE_3D_SOFTWARE_BASIC;
 		m_hardwareOptionsUsed |= SM_USE_3D_SOFTWARE_BASIC;
 		m_DS3D_SW_ALG_GUID = DS3DALG_NO_VIRTUALIZATION;
 	}
-	else if (! stricmp("USER", SW_3D_type))
+	else if (!_stricmp("USER", SW_3D_type))
 	{
 		m_hardwareOptionsDesired |= SM_USE_3D_SOFTWARE_USER_DEFINED;
 		m_hardwareOptionsUsed |= SM_USE_3D_SOFTWARE_USER_DEFINED;
 		m_DS3D_SW_ALG_GUID = DS3DALG_DEFAULT;
 	}
-	else if (! stricmp("NONE", SW_3D_type))
+	else if (!_stricmp("NONE", SW_3D_type))
 	{
 		g_bufferFlags &= ~DSBCAPS_CTRL3D;	// disable 3D control for all 2D buffers
 		g_bufferFlags |= DSBCAPS_CTRLPAN;	// add pan control for all 2D buffers
 		m_DS3D_SW_ALG_GUID = GUID_NULL;
 	}
-	
-	opt_get_u32( DACOM, profile_parser, "SoundManager", "useNoHW", (m_hardwareOptionsDesired&SM_USE_NO_HW), &iniFileOption );
+
+	opt_get_u32(DACOM, profile_parser, "SoundManager", "useNoHW", (m_hardwareOptionsDesired & SM_USE_NO_HW), &iniFileOption);
 	if (iniFileOption)
 		m_hardwareOptionsDesired &= ~(SM_USE_2D_HARDWARE | SM_USE_3D_HARDWARE);
 
-	opt_get_u32( DACOM, profile_parser, "SoundManager", "rightHandedCoordinates", (m_hardwareOptionsDesired & SM_USE_RIGHT_HANDED_SYSTEM), &iniFileOption );
+	opt_get_u32(DACOM, profile_parser, "SoundManager", "rightHandedCoordinates", (m_hardwareOptionsDesired & SM_USE_RIGHT_HANDED_SYSTEM), &iniFileOption);
 	if (iniFileOption)
 	{
 		m_hardwareOptionsDesired |= SM_USE_RIGHT_HANDED_SYSTEM;
@@ -1388,8 +1389,8 @@ GENRESULT DACOM_API SoundManager::startup(HWND hWnd, U32 options)
 	{
 		m_hardwareOptionsDesired &= ~SM_USE_RIGHT_HANDED_SYSTEM;
 	}
- 
-	opt_get_u32( DACOM, profile_parser, "SoundManager", "createAll2DInSoftware", (m_hardwareOptionsDesired & SM_CREATE_ALL_2D_IN_SOFTWARE), &iniFileOption );
+
+	opt_get_u32(DACOM, profile_parser, "SoundManager", "createAll2DInSoftware", (m_hardwareOptionsDesired & SM_CREATE_ALL_2D_IN_SOFTWARE), &iniFileOption);
 	if (iniFileOption)
 	{
 		m_hardwareOptionsDesired |= SM_CREATE_ALL_2D_IN_SOFTWARE;
@@ -1401,20 +1402,20 @@ GENRESULT DACOM_API SoundManager::startup(HWND hWnd, U32 options)
 		m_hardwareOptionsUsed &= ~SM_CREATE_ALL_2D_IN_SOFTWARE;
 	}
 
-	opt_get_u32( DACOM, profile_parser, "SoundManager", "speakerConfiguration", SM_SPEAKER_STEREO, &iniFileOption );
+	opt_get_u32(DACOM, profile_parser, "SoundManager", "speakerConfiguration", SM_SPEAKER_STEREO, &iniFileOption);
 	m_speakerConfiguration = iniFileOption;
-	
-	opt_get_u32( DACOM, profile_parser, "SoundManager", "maxSoundChannels", m_maxChannels, &iniFileOption );
+
+	opt_get_u32(DACOM, profile_parser, "SoundManager", "maxSoundChannels", m_maxChannels, &iniFileOption);
 	m_maxChannels = iniFileOption;
 
 	/// debug stuff that can be added to the ini file
-	opt_get_u32( DACOM, profile_parser, "SoundManager", "use2DHW", (m_hardwareOptionsDesired&SM_USE_2D_HARDWARE), &iniFileOption );
+	opt_get_u32(DACOM, profile_parser, "SoundManager", "use2DHW", (m_hardwareOptionsDesired & SM_USE_2D_HARDWARE), &iniFileOption);
 	if (iniFileOption)
 		m_hardwareOptionsDesired |= (SM_USE_2D_HARDWARE);
 	else
 		m_hardwareOptionsDesired &= (~SM_USE_2D_HARDWARE);
 
-	opt_get_u32( DACOM, profile_parser, "SoundManager", "use3DHW", (m_hardwareOptionsDesired&SM_USE_3D_HARDWARE), &iniFileOption );
+	opt_get_u32(DACOM, profile_parser, "SoundManager", "use3DHW", (m_hardwareOptionsDesired & SM_USE_3D_HARDWARE), &iniFileOption);
 	if (iniFileOption)
 		m_hardwareOptionsDesired |= (SM_USE_3D_HARDWARE);
 	else
@@ -1432,13 +1433,13 @@ GENRESULT DACOM_API SoundManager::startup(HWND hWnd, U32 options)
 	return GR_GENERIC;
 }
 
-void SoundManager::clean_archetype_references (U32 archetype)
+void SoundManager::clean_archetype_references(U32 archetype)
 {
 	// stop and delete all instances of this archetype
 	InstanceList::iterator itr = m_playList.begin();
-	while(itr != m_playList.end())
+	while (itr != m_playList.end())
 	{
-		if (archetype == (*itr).soundSource->get_archetype() )
+		if (archetype == (*itr).soundSource->get_archetype())
 		{
 			itr = m_playList.erase(itr);
 		}
@@ -1449,35 +1450,35 @@ void SoundManager::clean_archetype_references (U32 archetype)
 	}
 }
 
-void SoundManager::erase_archetypes (void)
+void SoundManager::erase_archetypes(void)
 {
-	CRIT (&m_archetypeLock);
+	CRIT(&m_archetypeLock);
 
 	for (ArchetypeMap::iterator itr = m_archetypeMap.begin(); itr != m_archetypeMap.end(); itr++)
 	{
-		clean_archetype_references ((*itr).first);
-		(*itr).second->Release ();
+		clean_archetype_references((*itr).first);
+		(*itr).second->Release();
 	}
 
-	m_archetypeMap.clear ();
+	m_archetypeMap.clear();
 }
 
 GENRESULT DACOM_API SoundManager::shutdown()
 {
-	erase_archetypes ();
+	erase_archetypes();
 
 	if (LoopNotificationThread)
 	{
 		ExitReq = 1;
-		CloseHandle (LoopNotificationThread);
+		CloseHandle(LoopNotificationThread);
 		LoopNotificationThread = NULL;
 	}
 
-	if (! m_playList.empty())
+	if (!m_playList.empty())
 	{
 		m_playList.clear();
 	}
-	if (! m_activeSoundList.empty())
+	if (!m_activeSoundList.empty())
 	{
 		m_activeSoundList.clear();
 	}
@@ -1506,7 +1507,7 @@ GENRESULT DACOM_API SoundManager::shutdown()
 	return GR_OK;
 }
 
-GENRESULT SoundManager::get_directsound_interface(void **lpds)
+GENRESULT SoundManager::get_directsound_interface(void** lpds)
 {
 	if (m_lpds)
 	{
@@ -1526,7 +1527,7 @@ U32 SoundManager::get_current_time_ms()
 	return GetTickCount();
 }
 
-GENRESULT SoundManager::get_device_info(SM_DEVICEINFO *info)
+GENRESULT SoundManager::get_device_info(SM_DEVICEINFO* info)
 {
 	// these are the values that were set when this instance of soundManager was created
 	info->deviceOptionsUsed = m_hardwareOptionsUsed;
@@ -1544,8 +1545,8 @@ GENRESULT SoundManager::get_device_info(SM_DEVICEINFO *info)
 	return GR_OK;
 }
 
-void DACOM_API SoundManager::update(ISoundListener *IEar)
-{	
+void DACOM_API SoundManager::update(ISoundListener* IEar)
+{
 	bool needToUpdateThread = false;
 
 #ifdef _DEBUG
@@ -1553,7 +1554,6 @@ void DACOM_API SoundManager::update(ISoundListener *IEar)
 		return;
 #endif
 
-	U32 positionInActiveList = 0;
 	U32 playingSounds = 0;
 	HRESULT r = 0;
 	m_currentTime = GetTickCount();
@@ -1576,7 +1576,7 @@ void DACOM_API SoundManager::update(ISoundListener *IEar)
 		activeItr = m_activeSoundList.begin();
 		while (activeItr != activeEndItr)
 		{
-			if ((ISoundSource *) (*activeItr) == (ISoundSource *) (*playItr).soundSource)
+			if ((ISoundSource*)(*activeItr) == (ISoundSource*)(*playItr).soundSource)
 			{
 				found = true;
 				break;
@@ -1606,11 +1606,11 @@ void DACOM_API SoundManager::update(ISoundListener *IEar)
 #endif
 
 	while (activeItr != activeEndItr)
-	{	
+	{
 		tempInstance.soundSource = *activeItr;
 		tempInstance.m_submitted_index = list_index;
-		if ( (playingSounds < m_maxChannels) && tempInstance.soundSource->is_on() && need_to_play(tempInstance))		
-		{	
+		if ((playingSounds < m_maxChannels) && tempInstance.soundSource->is_on() && need_to_play(tempInstance))
+		{
 			++playingSounds;
 			// on and playing, so process this one
 			if (exists_in_list(*activeItr, m_playList, &playItr))							// exists, so update its info
@@ -1626,9 +1626,9 @@ void DACOM_API SoundManager::update(ISoundListener *IEar)
 					(*playItr).m_internal_flags |= SMI_BUFFER_IN_HARDWARE;					// put the IN_HW flag back
 
 #if ALLOW_REMOVAL_FROM_HW
-					if	(
-							(need_to_prioritize && (list_index > m_maxHardwareChannels)) ||	// sounds priority is lower than the number of HW channels available
-							(! (buffer_flags & SMI_BUFFER_USE_HW_BUFFER))					// HW sound that should now be SW
+					if (
+						(need_to_prioritize && (list_index > m_maxHardwareChannels)) ||	// sounds priority is lower than the number of HW channels available
+						(!(buffer_flags & SMI_BUFFER_USE_HW_BUFFER))					// HW sound that should now be SW
 						)
 					{
 						// stop the sound so that it will be restarted again with changes
@@ -1641,9 +1641,9 @@ void DACOM_API SoundManager::update(ISoundListener *IEar)
 				else
 				{
 					// if this instance is in SW and it should be in HW, stop the buffer so it will get started in HW
-					if	( 
-							(! (buffer_flags & SMI_BUFFER_GIVE_UP_ON_HW )) &&	// not a SW buffer that previously couldn't make it into HW
-							( buffer_flags & SMI_BUFFER_USE_HW_BUFFER )			// SW sound that should now be HW
+					if (
+						(!(buffer_flags & SMI_BUFFER_GIVE_UP_ON_HW)) &&	// not a SW buffer that previously couldn't make it into HW
+						(buffer_flags & SMI_BUFFER_USE_HW_BUFFER)			// SW sound that should now be HW
 						)
 					{
 						(*playItr).m_lpSoundBuffer->Stop();
@@ -1652,7 +1652,7 @@ void DACOM_API SoundManager::update(ISoundListener *IEar)
 
 			}
 			else																			// not in play list, so add temp instance
-			{	
+			{
 				create_instance(tempInstance, newInstance);									// create a new instance
 				newInstance.m_submitted_index = list_index;									// set its index
 				m_spliceList.push_back(newInstance);										// add it to the splice list (which will be added to the playing list later)
@@ -1671,7 +1671,7 @@ void DACOM_API SoundManager::update(ISoundListener *IEar)
 			}
 		}
 		else																				// sound shouldn't be playing, so don't process this sound
-		{	
+		{
 			if (exists_in_list(*activeItr, m_playList, &playItr))
 			{
 				CRIT_SEC(&m_loopThreadLock);
@@ -1684,7 +1684,7 @@ void DACOM_API SoundManager::update(ISoundListener *IEar)
 	}
 	tempInstance.soundSource = NULL;
 
-	if (! m_spliceList.empty())
+	if (!m_spliceList.empty())
 	{
 		CRIT_SEC(&m_loopThreadLock);
 		needToUpdateThread = true;															// make sure the thread knows about the new additions to the list
@@ -1696,20 +1696,20 @@ void DACOM_API SoundManager::update(ISoundListener *IEar)
 	InstanceList::iterator playEndItr = m_playList.end();
 	while (playItr != playEndItr)
 	{
-// *** HW stuff is now deferred to the play() method (by passing the DSBPLAY_LOCHARDWARE flag)
-//		if ( ((*playItr).m_internal_flags & SMI_BUFFER_USE_HW_BUFFER) && (!((*playItr).m_internal_flags & SMI_BUFFER_IN_HARDWARE)) )
-//		{
-//			CRIT_SEC(&m_loopThreadLock);	// create_hardware_buffer can change the dsound buffer ptr
-//			needToUpdateThread = true;
-//			create_hardware_buffer(*playItr);
-//		}
-		// update all of the data for all instances and then commit them below
+		// *** HW stuff is now deferred to the play() method (by passing the DSBPLAY_LOCHARDWARE flag)
+		//		if ( ((*playItr).m_internal_flags & SMI_BUFFER_USE_HW_BUFFER) && (!((*playItr).m_internal_flags & SMI_BUFFER_IN_HARDWARE)) )
+		//		{
+		//			CRIT_SEC(&m_loopThreadLock);	// create_hardware_buffer can change the dsound buffer ptr
+		//			needToUpdateThread = true;
+		//			create_hardware_buffer(*playItr);
+		//		}
+				// update all of the data for all instances and then commit them below
 		update_instance_data(*playItr);
 		++playItr;
 	}
 
 	// all sounds should now have buffers and be ready to play
-	
+
 	// tell DSound to process all the instance's sound data (set by update_instance_data() )
 	if (m_lpdsListener)
 	{
@@ -1725,7 +1725,7 @@ void DACOM_API SoundManager::update(ISoundListener *IEar)
 	{
 		playFlags = ((*playItr).soundSource->is_looping()) ? DSBPLAY_LOOPING : 0;
 		// correct play position if necessary
-		if (update_position(*playItr))	
+		if (update_position(*playItr))
 		{
 			if ((playFlags & DSBPLAY_LOOPING) && ((*playItr).m_DSOUND_buffer_flags & DSBCAPS_CTRLPOSITIONNOTIFY))
 			{
@@ -1733,30 +1733,30 @@ void DACOM_API SoundManager::update(ISoundListener *IEar)
 			}
 			// play the sound specifying HW or SW
 			DWORD loc_flag = (*playItr).m_internal_flags & SMI_BUFFER_USE_HW_BUFFER ? DSBPLAY_LOCHARDWARE : DSBPLAY_LOCSOFTWARE;
-			r = (*playItr).m_lpSoundBuffer->Play(0,0,playFlags | loc_flag);
+			r = (*playItr).m_lpSoundBuffer->Play(0, 0, playFlags | loc_flag);
 
 			if (DSBPLAY_LOCHARDWARE == loc_flag) // so add the IN_HW flag
 			{
 				(*playItr).m_internal_flags |= SMI_BUFFER_IN_HARDWARE;
 			}
-		
+
 			if FAILED(r)
 			{
 				if (DSERR_BUFFERLOST == r) // someone switched apps and our buffers were lost, so restore them
 				{
 					if (restore_lost_buffer(*playItr))
 					{
-						r = (*playItr).m_lpSoundBuffer->Play(0,0,playFlags | loc_flag);  // play the sound again
+						r = (*playItr).m_lpSoundBuffer->Play(0, 0, playFlags | loc_flag);  // play the sound again
 						if FAILED(r)
 						{
-							GENERAL_TRACE_1(TEMPSTR("SoundMgr:Playing restored buffer failed, result %X.\n",r));
+							GENERAL_TRACE_1(TEMPSTR("SoundMgr:Playing restored buffer failed, result %X.\n", r));
 						}
 					}
 				}
 				// DSERR_HWUNAVAIL doen't seem to exist in the header, although it does in the docs, so use something else
 				if (FAILED(r) && (DSBPLAY_LOCHARDWARE == loc_flag))// no HW resources for this sound, so try SW
 				{
-					r = (*playItr).m_lpSoundBuffer->Play(0,0,playFlags | DSBPLAY_LOCSOFTWARE);  // play the sound w/ SW specified
+					r = (*playItr).m_lpSoundBuffer->Play(0, 0, playFlags | DSBPLAY_LOCSOFTWARE);  // play the sound w/ SW specified
 					if SUCCEEDED(r)
 					{
 						// had to force SW, so mark this instance so HW won't be tried again for this instance
@@ -1767,11 +1767,11 @@ void DACOM_API SoundManager::update(ISoundListener *IEar)
 
 				if FAILED(r)
 				{
-					GENERAL_TRACE_1(TEMPSTR("SoundMgr:Play failed, result %X.\n",r));
+					GENERAL_TRACE_1(TEMPSTR("SoundMgr:Play failed, result %X.\n", r));
 				}
 			}
 		}
-		++ playItr;
+		++playItr;
 	}
 	if (needToUpdateThread)
 	{
@@ -1791,25 +1791,25 @@ GENRESULT DACOM_API SoundManager::unknownB(void* value)
 
 
 // ISoundArchetype methods implemented by SoundManager
-void DACOM_API SoundManager::get_sound_format(SOUND_ARCH_INDEX archetype, SoundFormat *soundFormat)
+void DACOM_API SoundManager::get_sound_format(SOUND_ARCH_INDEX archetype, SoundFormat* soundFormat)
 {
 	SOUND_ARCH* ar;
 
-	if (query_archetype (archetype, ar))
+	if (query_archetype(archetype, ar))
 	{
 		ar->get_sound_format(soundFormat);
-		ar->Release ();
+		ar->Release();
 	}
 }
 
-U32 DACOM_API SoundManager::get_samples(SOUND_ARCH_INDEX archetype, void * samples)
+U32 DACOM_API SoundManager::get_samples(SOUND_ARCH_INDEX archetype, void* samples)
 {
 	SOUND_ARCH* ar;
 
-	if (query_archetype (archetype, ar))
+	if (query_archetype(archetype, ar))
 	{
 		U32 result = ar->get_samples(samples);
-		ar->Release ();
+		ar->Release();
 		return result;
 	}
 	return 0;
@@ -1819,10 +1819,10 @@ U32 DACOM_API SoundManager::get_sample_count(SOUND_ARCH_INDEX archetype)
 {
 	SOUND_ARCH* ar;
 
-	if (query_archetype (archetype, ar))
+	if (query_archetype(archetype, ar))
 	{
 		U32 result = ar->get_sample_count();
-		ar->Release ();
+		ar->Release();
 		return result;
 	}
 	return 0;
@@ -1832,10 +1832,10 @@ SINGLE DACOM_API SoundManager::get_base_attenuation(SOUND_ARCH_INDEX archetype)
 {
 	SOUND_ARCH* ar;
 
-	if (query_archetype (archetype, ar))
+	if (query_archetype(archetype, ar))
 	{
 		SINGLE result = ar->m_baseAttenuation;
-		ar->Release ();
+		ar->Release();
 		return result;
 	}
 	return 0;
@@ -1845,25 +1845,25 @@ U32 DACOM_API SoundManager::get_num_channels(SOUND_ARCH_INDEX archetype)
 {
 	SOUND_ARCH* ar;
 
-	if (query_archetype (archetype, ar))
+	if (query_archetype(archetype, ar))
 	{
 		U32 result = ar->m_dsWaveFormat.nChannels;
-		ar->Release ();
+		ar->Release();
 		return result;
 	}
 	return 0;
 }
 
-void DACOM_API SoundManager::set_samples(SOUND_ARCH_INDEX archetype, void * samples, U32 length)
+void DACOM_API SoundManager::set_samples(SOUND_ARCH_INDEX archetype, void* samples, U32 length)
 {
 	SOUND_ARCH* ar;
 
-	if (query_archetype (archetype, ar))
+	if (query_archetype(archetype, ar))
 	{
 		if (ar->m_soundFile.length == length)
 		{
 			ar->set_samples(samples, length);
-			ar->Release ();
+			ar->Release();
 		}
 	}
 }
@@ -1872,24 +1872,24 @@ bool DACOM_API SoundManager::is_loopable(SOUND_ARCH_INDEX archetype)
 {
 	SOUND_ARCH* ar;
 
-	if (query_archetype (archetype, ar))
+	if (query_archetype(archetype, ar))
 	{
-		bool result = ar->is_loopable ();
-		ar->Release ();
+		bool result = ar->is_loopable();
+		ar->Release();
 		return result;
 	}
 	return false;
 }
 
 // SoundManager methods
-GENRESULT SoundManager::init (AGGDESC * desc)
+GENRESULT SoundManager::init(AGGDESC* desc)
 {
 	return GR_OK;
 }
 
 GENRESULT DACOM_API SoundManager::Initialize()
 {
-	DACOM_Acquire()->QueryInterface( IID_IProfileParser, profile_parser );
+	DACOM_Acquire()->QueryInterface(IID_IProfileParser, profile_parser);
 	m_Initialized = true;
 	return GR_OK;
 }
@@ -1900,20 +1900,20 @@ GENRESULT SoundManager::initialize_direct_sound()
 		return GR_GENERIC;
 
 	if FAILED(CoInitialize(NULL))
-	    return GR_GENERIC;
+		return GR_GENERIC;
 
 	HRESULT r;
 
 #if A3D_SUPPORTED
 	LPIA3D2 pIA3d2 = NULL;
- 
+
 	// try and get an A3D driver for the sound card if an A3D card was selected
 	if (m_hardwareOptionsDesired & SM_USE_A3D)
 	{
-		r = CoCreateInstance(CLSID_A3d, NULL, CLSCTX_INPROC_SERVER, IID_IDirectSound, (void **) &m_lpds);
+		r = CoCreateInstance(CLSID_A3d, NULL, CLSCTX_INPROC_SERVER, IID_IDirectSound, (void**)&m_lpds);
 		if SUCCEEDED(r)
 		{
-			if ( SUCCEEDED(m_lpds->QueryInterface(IID_IA3d2, (void **)&pIA3d2)) )
+			if (SUCCEEDED(m_lpds->QueryInterface(IID_IA3d2, (void**)&pIA3d2)))
 			{
 				r = pIA3d2->RegisterVersion(A3D_CURRENT_VERSION);
 				if SUCCEEDED(r)
@@ -1926,30 +1926,30 @@ GENRESULT SoundManager::initialize_direct_sound()
 					m_lpds = NULL;
 					pIA3d2->Release();
 					pIA3d2 = NULL;
-					GENERAL_NOTICE( "SoundManager: A3D.dll present, but card not available\n" );
+					GENERAL_NOTICE("SoundManager: A3D.dll present, but card not available\n");
 				}
-			} 
+			}
 			else
 			{	// found the A3D DLL, but no card, so get rid of it and use plain DSound
 				m_lpds->Release();
 				m_lpds = NULL;
 				pIA3d2 = NULL;
-				GENERAL_NOTICE( "SoundManager: A3D.dll present, but card not available\n" );
-			} 
+				GENERAL_NOTICE("SoundManager: A3D.dll present, but card not available\n");
+			}
 		}
 	}
 #endif
 
 	if (m_lpds == NULL)
-		CoCreateInstance(CLSID_DirectSound, NULL, CLSCTX_INPROC_SERVER, IID_IDirectSound, (void **) &m_lpds);
+		CoCreateInstance(CLSID_DirectSound, NULL, CLSCTX_INPROC_SERVER, IID_IDirectSound, (void**)&m_lpds);
 
 	if (m_lpds)
 	{
 		r = m_lpds->Initialize(&m_deviceGuid);
 		if FAILED(r)
 		{
-			GENERAL_WARNING(TEMPSTR("SoundManager:Couldn't create DSound device %s.\n",m_deviceGuidString));
-			if FAILED (m_lpds->Initialize(NULL)) // try the default device
+			GENERAL_WARNING(TEMPSTR("SoundManager:Couldn't create DSound device %s.\n", m_deviceGuidString));
+			if FAILED(m_lpds->Initialize(NULL)) // try the default device
 			{
 				GENERAL_WARNING("SoundManager:Couldn't initialize default DSound device.\n");
 				m_lpds->Release();
@@ -1957,8 +1957,8 @@ GENRESULT SoundManager::initialize_direct_sound()
 				return GR_GENERIC;
 			}
 		}
-		
-		m_lpds->SetCooperativeLevel(m_hWnd, DSSCL_PRIORITY); 
+
+		m_lpds->SetCooperativeLevel(m_hWnd, DSSCL_PRIORITY);
 
 		DSCAPS caps;
 		caps.dwSize = sizeof(DSCAPS);
@@ -1993,7 +1993,7 @@ GENRESULT SoundManager::initialize_direct_sound()
 			m_hardwareOptionsUsed &= ~(SM_USE_2D_HARDWARE | SM_USE_3D_HARDWARE);
 			// see if this is emulated OR there are no 3D capabilities OR there is a penalty for creating buffers
 			// if any of these conditions are true, then disable HW
-			if ( (caps.dwFlags & DSCAPS_EMULDRIVER) || (caps.dwUnlockTransferRateHwBuffers) )
+			if ((caps.dwFlags & DSCAPS_EMULDRIVER) || (caps.dwUnlockTransferRateHwBuffers))
 			{
 				m_hardwareOptionsDesired &= ~(SM_USE_2D_HARDWARE | SM_USE_3D_HARDWARE);
 				GENERAL_NOTICE(TEMPSTR("ISA or slow sound card detected. Disabling HW buffers.\n"));
@@ -2004,11 +2004,11 @@ GENRESULT SoundManager::initialize_direct_sound()
 				if (m_hardwareOptionsDesired & SM_USE_2D_HARDWARE)
 				{
 					// try to create a hw buffer
-					WAVEFORMATEX fmt={WAVE_FORMAT_PCM,2,22050,88200,4,16,0};
+					WAVEFORMATEX fmt = { WAVE_FORMAT_PCM,2,22050,88200,4,16,0 };
 					GenericDSoundBuffer dummyBuffer(&fmt);
 					LPDIRECTSOUNDBUFFER pBuffer = dummyBuffer.pBuffer;
 					dummyBuffer.desc.dwFlags = DSBCAPS_LOCHARDWARE;
-					if SUCCEEDED(m_lpds->CreateSoundBuffer(&dummyBuffer.desc,&pBuffer,NULL))
+					if SUCCEEDED(m_lpds->CreateSoundBuffer(&dummyBuffer.desc, &pBuffer, NULL))
 					{
 						m_hardwareOptionsUsed |= SM_USE_2D_HARDWARE;
 					}
@@ -2018,28 +2018,28 @@ GENRESULT SoundManager::initialize_direct_sound()
 				if (m_hardwareOptionsDesired & SM_USE_3D_HARDWARE)
 				{
 					// try to create a hw buffer
-					WAVEFORMATEX fmt={WAVE_FORMAT_PCM,2,22050,88200,4,16,0};
+					WAVEFORMATEX fmt = { WAVE_FORMAT_PCM,2,22050,88200,4,16,0 };
 					GenericDSoundBuffer dummyBuffer(&fmt);
 					LPDIRECTSOUNDBUFFER pBuffer = dummyBuffer.pBuffer;
 					dummyBuffer.desc.dwFlags = DSBCAPS_LOCHARDWARE | DSBCAPS_CTRL3D;
-					if SUCCEEDED(m_lpds->CreateSoundBuffer(&dummyBuffer.desc,&pBuffer,NULL))
+					if SUCCEEDED(m_lpds->CreateSoundBuffer(&dummyBuffer.desc, &pBuffer, NULL))
 					{
 						m_hardwareOptionsUsed |= SM_USE_3D_HARDWARE;
 					}
 				}
 			}
-			
-			
+
+
 			U32 blockAlign = (m_primaryNumChannels * m_primaryBitsPerSample) / 8;
 			U32 bytesPerSec = (m_primarySampleRate * blockAlign);
 			if (desc.dwFlags & DSBCAPS_CTRL3D)
 			{
-				m_lpdsPrimaryBuffer->QueryInterface(IID_IDirectSound3DListener,(void**) &m_lpdsListener);
+				m_lpdsPrimaryBuffer->QueryInterface(IID_IDirectSound3DListener, (void**)&m_lpdsListener);
 			}
-			WAVEFORMATEX fmt={WAVE_FORMAT_PCM,(WORD)m_primaryNumChannels,m_primarySampleRate,bytesPerSec,(WORD)blockAlign,(WORD)m_primaryBitsPerSample,0};
+			WAVEFORMATEX fmt = { WAVE_FORMAT_PCM,(WORD)m_primaryNumChannels,m_primarySampleRate,bytesPerSec,(WORD)blockAlign,(WORD)m_primaryBitsPerSample,0 };
 			m_lpdsPrimaryBuffer->SetFormat(&fmt);
 			set_master_reverb(m_reverb.baseEnv, m_reverb.vol, m_reverb.decay, m_reverb.damping); // turn off any current EAX reverb settings
-//			m_lpdsPrimaryBuffer->Play(0,0,DSBPLAY_LOOPING); // uncomment to keep mixer always running
+			//			m_lpdsPrimaryBuffer->Play(0,0,DSBPLAY_LOOPING); // uncomment to keep mixer always running
 
 #if A3D_SUPPORTED
 			if (pIA3d2)
@@ -2049,31 +2049,31 @@ GENRESULT SoundManager::initialize_direct_sound()
 				S32 OutputMode = OUTPUT_MODE_STEREO;
 				switch (m_speakerConfiguration)
 				{
-					case SM_SPEAKER_HEADPHONE:
-						FrontXtalkMode = OUTPUT_HEADPHONES;
-						RearXtalkMode = OUTPUT_HEADPHONES;
-						break;
-					case SM_SPEAKER_MONO:
-					case SM_SPEAKER_STEREO:
-					case SM_SPEAKER_STEREO_MIN:
-					case SM_SPEAKER_STEREO_NARROW:
-						FrontXtalkMode = OUTPUT_SPEAKERS_NARROW;
-						RearXtalkMode = OUTPUT_SPEAKERS_NARROW;
-						break;
-					case SM_SPEAKER_STEREO_WIDE:
-					case SM_SPEAKER_STEREO_MAX:
-						FrontXtalkMode = OUTPUT_SPEAKERS_WIDE;
-						RearXtalkMode = OUTPUT_SPEAKERS_WIDE;
-						break;
-					case SM_SPEAKER_QUAD:
-					case SM_SPEAKER_SURROUND:
-					case SM_SPEAKER_5POINT1:
-						FrontXtalkMode = OUTPUT_SPEAKERS_NARROW;
-						RearXtalkMode = OUTPUT_SPEAKERS_WIDE;
-						OutputMode = OUTPUT_MODE_QUAD;
-						break;
-					default:
-						ASSERT("INVALID SPEAKER CONFIGURATION" && 0);
+				case SM_SPEAKER_HEADPHONE:
+					FrontXtalkMode = OUTPUT_HEADPHONES;
+					RearXtalkMode = OUTPUT_HEADPHONES;
+					break;
+				case SM_SPEAKER_MONO:
+				case SM_SPEAKER_STEREO:
+				case SM_SPEAKER_STEREO_MIN:
+				case SM_SPEAKER_STEREO_NARROW:
+					FrontXtalkMode = OUTPUT_SPEAKERS_NARROW;
+					RearXtalkMode = OUTPUT_SPEAKERS_NARROW;
+					break;
+				case SM_SPEAKER_STEREO_WIDE:
+				case SM_SPEAKER_STEREO_MAX:
+					FrontXtalkMode = OUTPUT_SPEAKERS_WIDE;
+					RearXtalkMode = OUTPUT_SPEAKERS_WIDE;
+					break;
+				case SM_SPEAKER_QUAD:
+				case SM_SPEAKER_SURROUND:
+				case SM_SPEAKER_5POINT1:
+					FrontXtalkMode = OUTPUT_SPEAKERS_NARROW;
+					RearXtalkMode = OUTPUT_SPEAKERS_WIDE;
+					OutputMode = OUTPUT_MODE_QUAD;
+					break;
+				default:
+					ASSERT("INVALID SPEAKER CONFIGURATION" && 0);
 				}
 				pIA3d2->SetOutputMode(FrontXtalkMode, RearXtalkMode, OutputMode);
 				pIA3d2->Release();
@@ -2081,10 +2081,10 @@ GENRESULT SoundManager::initialize_direct_sound()
 #endif //A3D_SUPPORTED
 
 			report_audio_options();
-			GENERAL_TRACE_1( "SoundManager: SoundManager successfully initialized.\n" );
+			GENERAL_TRACE_1("SoundManager: SoundManager successfully initialized.\n");
 			return GR_OK;
 		}
-		GENERAL_NOTICE( "SoundManager: Couldn't create primary sound buffer.\n" );
+		GENERAL_NOTICE("SoundManager: Couldn't create primary sound buffer.\n");
 	}
 	// something didn't work, so get rid of DSound
 	if (m_lpds)
@@ -2097,12 +2097,12 @@ GENRESULT SoundManager::initialize_direct_sound()
 
 void SoundManager::report_audio_options()
 {
-	GENERAL_NOTICE(TEMPSTR("SoundMgr:2D HW%s requested and %s with %d HW buffers available.\n", 
+	GENERAL_NOTICE(TEMPSTR("SoundMgr:2D HW%s requested and %s with %d HW buffers available.\n",
 		((m_hardwareOptionsDesired & SM_USE_2D_HARDWARE) ? "" : " NOT"),
 		((m_hardwareOptionsUsed & SM_USE_2D_HARDWARE) ? "ENABLED" : "DISABLED"),
 		m_maxHardwareChannels));
 
-	GENERAL_NOTICE(TEMPSTR("SoundMgr:3D HW%s requested and %s with %d 3D HW buffers available.\n", 
+	GENERAL_NOTICE(TEMPSTR("SoundMgr:3D HW%s requested and %s with %d 3D HW buffers available.\n",
 		((m_hardwareOptionsDesired & SM_USE_3D_HARDWARE) ? "" : " NOT"),
 		((m_hardwareOptionsUsed & SM_USE_3D_HARDWARE) ? "ENABLED" : "DISABLED"),
 		m_numHardware3DBuffers));
@@ -2138,14 +2138,14 @@ void SoundManager::report_audio_options()
 	}
 
 	GENERAL_NOTICE(TEMPSTR("SoundMgr:EAX %s\n",
-		((m_hardwareOptionsUsed & SM_USE_EAX) ? "ENABLED" : "DISABLED") ));
+		((m_hardwareOptionsUsed & SM_USE_EAX) ? "ENABLED" : "DISABLED")));
 
 #if A3D_SUPPORTED
 	GENERAL_NOTICE(TEMPSTR("SoundMgr:A3D %s\n",
-		((m_hardwareOptionsUsed & SM_USE_A3D) ? "ENABLED" : "DISABLED") ));
+		((m_hardwareOptionsUsed & SM_USE_A3D) ? "ENABLED" : "DISABLED")));
 #endif
 
-	GENERAL_NOTICE( TEMPSTR("SoundMgr:Max channels set to %d.\n", m_maxChannels) );
+	GENERAL_NOTICE(TEMPSTR("SoundMgr:Max channels set to %d.\n", m_maxChannels));
 }
 
 /*
@@ -2189,10 +2189,10 @@ GENRESULT SoundManager::create_hardware_buffer(SoundInstance &instance)
 			{
 				DSBUFFERDESC dsbdesc;
 				WAVEFORMATEX format;
-				memcpy(&format, &sarch->m_dsWaveFormat, sizeof(WAVEFORMATEX)); 
+				memcpy(&format, &sarch->m_dsWaveFormat, sizeof(WAVEFORMATEX));
 
-				memset(&dsbdesc, 0, sizeof(DSBUFFERDESC)); // Zero it out. 
-				dsbdesc.dwSize = sizeof(DSBUFFERDESC); 
+				memset(&dsbdesc, 0, sizeof(DSBUFFERDESC)); // Zero it out.
+				dsbdesc.dwSize = sizeof(DSBUFFERDESC);
 
 				// clear the SW flag
 				instance.m_DSOUND_buffer_flags &= ~DSBCAPS_LOCSOFTWARE;
@@ -2204,14 +2204,14 @@ GENRESULT SoundManager::create_hardware_buffer(SoundInstance &instance)
 				{
 					instance.m_DSOUND_buffer_flags |= DSBCAPS_CTRLFREQUENCY;
 				}
-	
+
 				// add mute at max distance if 3D and requested
 				if ( (instance.m_DSOUND_buffer_flags & DSBCAPS_CTRL3D) && (sarch->m_bufferFlags & SM_MUTE_3D_AT_MAX_DISTANCE))
 				{
 					instance.m_DSOUND_buffer_flags |= DSBCAPS_MUTE3DATMAXDISTANCE;
 				}
-				
-				dsbdesc.dwBufferBytes = sarch->m_soundFile.length; 
+
+				dsbdesc.dwBufferBytes = sarch->m_soundFile.length;
 				dsbdesc.lpwfxFormat = &format;
 
 				dsbdesc.dwFlags = instance.m_DSOUND_buffer_flags;
@@ -2221,7 +2221,7 @@ GENRESULT SoundManager::create_hardware_buffer(SoundInstance &instance)
 					if (SUCCEEDED(r))
 					{
 						if (!sarch->m_lpHardwareBuffer)
-						{				
+						{
 							sarch->m_lpHardwareBuffer = HWBuffer;
 							sarch->m_lpHardwareBuffer->AddRef();
 							sarch->add_instance_hw_buffer();
@@ -2242,8 +2242,8 @@ GENRESULT SoundManager::create_hardware_buffer(SoundInstance &instance)
 //						GENERAL_TRACE_1( TEMPSTR("SoundMan: Create 2D HW Buffer failed with %d HW buffers free\n",caps.dwFreeHwMixingAllBuffers));
 //				}
 			}
-			if SUCCEEDED(r) 
-			{ 
+			if SUCCEEDED(r)
+			{
 				if (instance.m_lpSoundBuffer)
 				{
 					instance.m_lpSoundBuffer->Release();
@@ -2253,28 +2253,28 @@ GENRESULT SoundManager::create_hardware_buffer(SoundInstance &instance)
 				instance.m_internal_flags |= SMI_BUFFER_IN_HARDWARE;
 				instance.m_archetype = sarch;
 				sarch->Release ();
-				return GR_OK; 
+				return GR_OK;
 			}
 			else
 			{
 				instance.m_internal_flags |= SMI_BUFFER_GIVE_UP_ON_HW;
 			}
-			
+
 			sarch->Release ();
 		}
-	}	
+	}
 	return GR_GENERIC;
 }
 */
 
 // Determine whether this sound should be put in HW (or remain in HW if already created in HW)
-void SoundManager::check_hardware_buffer_status(SoundInstance &instance)
+void SoundManager::check_hardware_buffer_status(SoundInstance& instance)
 {
 	// default to no HW for the instance
 	instance.m_internal_flags &= ~SMI_BUFFER_USE_HW_BUFFER;
 
 	// if m_loopEventHandle != NULL then this instance is looping between markers, so don't mess with it
-	if ( (instance.m_internal_flags & SMI_BUFFER_GIVE_UP_ON_HW) || (instance.m_loopEventHandle != NULL))
+	if ((instance.m_internal_flags & SMI_BUFFER_GIVE_UP_ON_HW) || (instance.m_loopEventHandle != NULL))
 	{
 		// don't event try
 		return;
@@ -2293,8 +2293,8 @@ void SoundManager::check_hardware_buffer_status(SoundInstance &instance)
 		instance.soundSource->get_min_distance(&instance.m_cachedMin);
 		// calc the other related values
 		instance.m_cachedPositionV.z *= m_simpleCoordTransformation;
-		instance.m_cachedMaxSquared = instance.m_cachedMax*instance.m_cachedMax;
-		instance.m_cachedMinSquared = instance.m_cachedMin*instance.m_cachedMin;
+		instance.m_cachedMaxSquared = instance.m_cachedMax * instance.m_cachedMax;
+		instance.m_cachedMinSquared = instance.m_cachedMin * instance.m_cachedMin;
 		instance.m_cachedSoundPanV.set(instance.m_cachedPositionV.x - m_listenerPosition.x, instance.m_cachedPositionV.y - m_listenerPosition.y, instance.m_cachedPositionV.z - m_listenerPosition.z);
 		instance.m_cachedDistanceSquared = instance.m_cachedSoundPanV.magnitude_squared();
 
@@ -2302,21 +2302,21 @@ void SoundManager::check_hardware_buffer_status(SoundInstance &instance)
 		if (m_hardwareOptionsUsed & SM_USE_3D_HARDWARE)
 		{
 			// if all HW buffers are 3D or the sound is closer than half max distance try to use 3D HW
-			if (	(m_maxHardwareChannels == m_numHardware3DBuffers) || 
-					((instance.m_cachedDistanceSquared)) < (instance.m_cachedMinSquared * m_hw_threshold_multiplier_squared) )
+			if ((m_maxHardwareChannels == m_numHardware3DBuffers) ||
+				((instance.m_cachedDistanceSquared)) < (instance.m_cachedMinSquared * m_hw_threshold_multiplier_squared))
 			{
 				instance.m_internal_flags |= SMI_BUFFER_USE_HW_BUFFER;
 			}
 		}
 	}
 	else																		// 2D sound
-	{	
+	{
 		// if the app didn't specify all 2D sounds are created in SW and
 		// the card is capable of HW, put this instance in HW
 		instance.m_internal_flags |= SMI_DISABLE_3D;							// add the disable flag
-		if (	
-				(!(m_hardwareOptionsUsed & SM_CREATE_ALL_2D_IN_SOFTWARE)) &&	// app didn't specify all 2D are SW
-				(m_hardwareOptionsUsed & SM_USE_2D_HARDWARE) )					// AND 2D HW is available
+		if (
+			(!(m_hardwareOptionsUsed & SM_CREATE_ALL_2D_IN_SOFTWARE)) &&	// app didn't specify all 2D are SW
+			(m_hardwareOptionsUsed & SM_USE_2D_HARDWARE))					// AND 2D HW is available
 		{
 			instance.m_internal_flags |= SMI_BUFFER_USE_HW_BUFFER;
 		}
@@ -2324,17 +2324,17 @@ void SoundManager::check_hardware_buffer_status(SoundInstance &instance)
 }
 
 // returns true if the sound should be playing
-inline bool SoundManager::need_to_play(SoundInstance &instance)
+inline bool SoundManager::need_to_play(SoundInstance& instance)
 {
 	// IMPORTANT: in_range() updates instance data (and the cached data) and checks the HW status of the instance
-	return (	(!finished(instance)) &&										// sound hasn't finished
-				(m_currentTime >= instance.soundSource->get_start_time()) &&	// sound should have started
-				(in_range(instance)) );											// sound is audible
+	return ((!finished(instance)) &&										// sound hasn't finished
+		(m_currentTime >= instance.soundSource->get_start_time()) &&	// sound should have started
+		(in_range(instance)));											// sound is audible
 }
 
 // returns true if the sound is still playing
 // (takes freq changed into consideration)
-inline bool SoundManager::finished(const SoundInstance &instance)
+inline bool SoundManager::finished(const SoundInstance& instance)
 {
 	bool result = true;
 
@@ -2347,44 +2347,44 @@ inline bool SoundManager::finished(const SoundInstance &instance)
 		SOUND_ARCH* ar;
 
 		SOUND_ARCH_INDEX archetype = instance.soundSource->get_archetype();
-		if (query_archetype (archetype, ar))
+		if (query_archetype(archetype, ar))
 		{
 			SINGLE freqFactor = 1.0f;
 			instance.soundSource->get_frequency(&freqFactor);
 			// scale the sounds duration based on the freq change
-			result = m_currentTime > (instance.soundSource->get_start_time() + (ar->m_msDuration/freqFactor));
-			ar->Release ();
+			result = m_currentTime > (instance.soundSource->get_start_time() + (ar->m_msDuration / freqFactor));
+			ar->Release();
 		}
 	}
 
 	return result;
 }
 
-inline bool SoundManager::in_range(SoundInstance &instance)
+inline bool SoundManager::in_range(SoundInstance& instance)
 {
 	// this call determines whether this sound should be put in a HW buffer
 	// *** IMPORTANT this call also updates cached values for the sound
 	check_hardware_buffer_status(instance);
 
-	if ( (!(instance.m_DSOUND_buffer_flags & DSBCAPS_MUTE3DATMAXDISTANCE)) ||		// if app doesn't want sounds muted at max dist, return true
-			(!(instance.soundSource->is_3D())) )					// 2D sounds are always in range
+	if ((!(instance.m_DSOUND_buffer_flags & DSBCAPS_MUTE3DATMAXDISTANCE)) ||		// if app doesn't want sounds muted at max dist, return true
+		(!(instance.soundSource->is_3D())))					// 2D sounds are always in range
 	{
 		return true;
 	}
-	
+
 	// check that this sound is closer than max distance
 	return (instance.m_cachedDistanceSquared < instance.m_cachedMaxSquared);
 }
 
 // returns the position of the instance in the specified list (or 0 if not found) and optionally returns the existing instance
-inline U32 SoundManager::exists_in_list(const ISoundSource *source, InstanceList &checkList, InstanceList::iterator *returnItr)
+inline U32 SoundManager::exists_in_list(const ISoundSource* source, InstanceList& checkList, InstanceList::iterator* returnItr)
 {
 	U32 position = 1;
 	InstanceList::iterator itr;
 	for (itr = checkList.begin(); itr != checkList.end(); itr++)
-	{	
-		if (source == (const ISoundSource *) (*itr).soundSource)
-		{	
+	{
+		if (source == (const ISoundSource*)(*itr).soundSource)
+		{
 			if (returnItr)
 			{
 				*returnItr = itr;
@@ -2400,16 +2400,16 @@ inline U32 SoundManager::exists_in_list(const ISoundSource *source, InstanceList
 }
 
 // creates a new instance of a sound and adds the instance to the archetypes internal list
-GENRESULT SoundManager::create_instance(SoundInstance &instance, SoundInstance &newInstance)
+GENRESULT SoundManager::create_instance(SoundInstance& instance, SoundInstance& newInstance)
 {
 	SOUND_ARCH* ar;
 
-	SOUND_ARCH_INDEX archetype = instance.soundSource->get_archetype ();
+	SOUND_ARCH_INDEX archetype = instance.soundSource->get_archetype();
 
-	if (query_archetype (archetype, ar))
+	if (query_archetype(archetype, ar))
 	{
-		HRESULT r =  m_lpds->DuplicateSoundBuffer(ar->m_lpSoundBuffer, &newInstance.m_lpSoundBuffer);
-		if SUCCEEDED( r )
+		HRESULT r = m_lpds->DuplicateSoundBuffer(ar->m_lpSoundBuffer, &newInstance.m_lpSoundBuffer);
+		if SUCCEEDED(r)
 		{
 			newInstance.copy_instance_data(instance);
 			newInstance.soundSource = instance.soundSource;
@@ -2423,8 +2423,8 @@ GENRESULT SoundManager::create_instance(SoundInstance &instance, SoundInstance &
 
 			// copy the buffer flags from the archetype's buffer
 			newInstance.m_DSOUND_buffer_flags = bufferCaps.dwFlags;
-			
-			if (! (newInstance.m_DSOUND_buffer_flags & DSBCAPS_CTRL3D))
+
+			if (!(newInstance.m_DSOUND_buffer_flags & DSBCAPS_CTRL3D))
 			{
 				newInstance.m_internal_flags |= SMI_DISABLE_3D;
 			}
@@ -2437,18 +2437,18 @@ GENRESULT SoundManager::create_instance(SoundInstance &instance, SoundInstance &
 			}
 
 			newInstance.m_archetype = ar;
-			ar->Release ();
+			ar->Release();
 			return GR_OK;
 		}
 
-		ar->Release ();
+		ar->Release();
 	}
 	GENERAL_WARNING(TEMPSTR("SoundMgr:Couldn't create an instance of archetype %d.\n", archetype));
 	return GR_GENERIC;
 }
 
 // copies the sample to data to the specified secondary buffer
-GENRESULT SoundManager::write_data_to_buffer(SoundFile * sourceData, LPDIRECTSOUNDBUFFER lpdsBuffer, U32 length)
+GENRESULT SoundManager::write_data_to_buffer(SoundFile* sourceData, LPDIRECTSOUNDBUFFER lpdsBuffer, U32 length)
 {
 	DWORD dwWriteCursor = 0;
 	DWORD dwWriteBytes = length;
@@ -2457,17 +2457,17 @@ GENRESULT SoundManager::write_data_to_buffer(SoundFile * sourceData, LPDIRECTSOU
 	LPVOID lplpvAudioPtr2 = NULL;
 	DWORD lpdwAudioBytes2 = 0;
 	DWORD dwFlags = 0;
-	
-	if (! length) // copy entire buffer if no length specified
+
+	if (!length) // copy entire buffer if no length specified
 		dwFlags |= DSBLOCK_ENTIREBUFFER;
 
-	if SUCCEEDED( lpdsBuffer->Lock(dwWriteCursor, dwWriteBytes,	&lplpvAudioPtr1, &lpdwAudioBytes1, 
-																	&lplpvAudioPtr2, &lpdwAudioBytes2,
-																	dwFlags) )
+	if SUCCEEDED(lpdsBuffer->Lock(dwWriteCursor, dwWriteBytes, &lplpvAudioPtr1, &lpdwAudioBytes1,
+		&lplpvAudioPtr2, &lpdwAudioBytes2,
+		dwFlags))
 	{
 		memcpy(lplpvAudioPtr1, sourceData->samples, lpdwAudioBytes1);
 		if (lpdwAudioBytes2) // this should always be null, because these are allways static buffers
-			memcpy(lplpvAudioPtr2, (char *) sourceData->samples + lpdwAudioBytes1, lpdwAudioBytes2);
+			memcpy(lplpvAudioPtr2, (char*)sourceData->samples + lpdwAudioBytes1, lpdwAudioBytes2);
 		lpdsBuffer->Unlock(lplpvAudioPtr1, lpdwAudioBytes1, lplpvAudioPtr2, lpdwAudioBytes2);
 		return GR_OK;
 	}
@@ -2476,16 +2476,16 @@ GENRESULT SoundManager::write_data_to_buffer(SoundFile * sourceData, LPDIRECTSOU
 }
 
 // restores buffers lost by another app, with primary buffer write access, taking over direct sound
-inline bool SoundManager::restore_lost_buffer(SoundInstance &instance)
+inline bool SoundManager::restore_lost_buffer(SoundInstance& instance)
 {
 	if (DS_OK == instance.m_lpSoundBuffer->Restore())
 	{
 		SOUND_ARCH* ar;
 
-		if (query_archetype (instance.soundSource->get_archetype(), ar))
+		if (query_archetype(instance.soundSource->get_archetype(), ar))
 		{
 			bool result = SUCCEEDED(write_data_to_buffer(&ar->m_soundFile, instance.m_lpSoundBuffer, ar->m_soundFile.length));
-			ar->Release ();
+			ar->Release();
 			return result;
 		}
 	}
@@ -2493,7 +2493,7 @@ inline bool SoundManager::restore_lost_buffer(SoundInstance &instance)
 }
 
 // get the current data for this instance and update the appropriate ds3d stuff
-void SoundManager::update_instance_data(SoundInstance &instance)
+void SoundManager::update_instance_data(SoundInstance& instance)
 {
 	SINGLE attenuation = 0.0f;
 	SINGLE freqFactor = 1.0f;
@@ -2502,7 +2502,7 @@ void SoundManager::update_instance_data(SoundInstance &instance)
 	S32 soundApplyMode = DS3D_DEFERRED;
 
 	// get the 3D buffer interface
-	instance.m_lpSoundBuffer->QueryInterface(IID_IDirectSound3DBuffer, (LPVOID *)&lpDs3dBuffer);
+	instance.m_lpSoundBuffer->QueryInterface(IID_IDirectSound3DBuffer, (LPVOID*)&lpDs3dBuffer);
 
 	// not a 3d sound, so set the pan
 	if (instance.m_internal_flags & SMI_DISABLE_3D)
@@ -2512,44 +2512,45 @@ void SoundManager::update_instance_data(SoundInstance &instance)
 			lpDs3dBuffer->SetMode(DS3DMODE_DISABLE, soundApplyMode);
 		// get the current pan amount and, if successful, set it
 		S32 pan;
-		if SUCCEEDED(instance.soundSource->get_pan(&pan) )
+		if SUCCEEDED(instance.soundSource->get_pan(&pan))
 		{
 			pan *= 100;
 			pan = (pan < DSBPAN_LEFT) ? DSBPAN_LEFT : ((pan > DSBPAN_RIGHT) ? DSBPAN_RIGHT : pan);
-			HRESULT r = instance.m_lpSoundBuffer->SetPan(pan);
+			HRESULT hr = instance.m_lpSoundBuffer->SetPan(pan);
+			unused(hr);
 		}
 	}
 	else
 	{
 		if (lpDs3dBuffer)	// have a 3D interface, so set all of the properties
-		{	
+		{
 			// this is a hardware buffer or the app wants to use ds3d for software also, so set every parameter
 			DWORD dw1, dw2;
 			SINGLE s;
 			S32 u;
 			Vector v;
-			
+
 			instance.soundSource->get_apply_mode(&soundApplyMode);  // update now or defer until all are updated
 
-			if SUCCEEDED(instance.soundSource->get_sound_mode(&u) ) // normal, no 3d, or head releative
+			if SUCCEEDED(instance.soundSource->get_sound_mode(&u)) // normal, no 3d, or head releative
 				lpDs3dBuffer->SetMode(u, soundApplyMode);
-			
+
 			// only get the rest of the values if DS3D is not disabled
 			if (u != DS3DMODE_DISABLE)
 			{
-				if SUCCEEDED(instance.soundSource->get_cone_angles(&dw1, &dw2) )
+				if SUCCEEDED(instance.soundSource->get_cone_angles(&dw1, &dw2))
 				{
 					lpDs3dBuffer->SetConeAngles(dw1, dw2, soundApplyMode);
-					v.set(0,0,0);
+					v.set(0, 0, 0);
 					instance.soundSource->get_cone_orientation(&v);
 					v.z *= m_simpleCoordTransformation;
 					lpDs3dBuffer->SetConeOrientation(v.x, v.y, v.z, soundApplyMode);
 					s = DS3D_DEFAULTCONEOUTSIDEVOLUME;
 					instance.soundSource->get_cone_outside_attenuation(&s);
-					lpDs3dBuffer->SetConeOutsideVolume(s*100, soundApplyMode);
+					lpDs3dBuffer->SetConeOutsideVolume(s * 100, soundApplyMode);
 				}
 
-				if SUCCEEDED(instance.soundSource->get_velocity(&v) )
+				if SUCCEEDED(instance.soundSource->get_velocity(&v))
 				{
 					v.z *= m_simpleCoordTransformation;
 					lpDs3dBuffer->SetVelocity(v.x, v.y, v.z, soundApplyMode);
@@ -2563,28 +2564,28 @@ void SoundManager::update_instance_data(SoundInstance &instance)
 	}
 
 	// set frequency if enabled
-	if ( (instance.m_archetype->m_bufferFlags & SM_ENABLE_FREQUENCY_CONTROL) && SUCCEEDED(instance.soundSource->get_frequency(&freqFactor)) )
+	if ((instance.m_archetype->m_bufferFlags & SM_ENABLE_FREQUENCY_CONTROL) && SUCCEEDED(instance.soundSource->get_frequency(&freqFactor)))
 	{
 		if (SUCCEEDED(instance.m_lpSoundBuffer->GetFrequency(&freq)))
 		{
 			SOUND_ARCH* ar;
-			query_archetype (instance.soundSource->get_archetype(), ar);
+			query_archetype(instance.soundSource->get_archetype(), ar);
 			U32 sampleRate = ar->m_dsWaveFormat.nSamplesPerSec;
-			ar->Release ();
+			ar->Release();
 
 			U32 frequency = freqFactor * sampleRate;
 			frequency = (frequency > DSBFREQUENCY_MAX) ? DSBFREQUENCY_MAX : ((frequency < DSBFREQUENCY_MIN) ? DSBFREQUENCY_MIN : frequency);
 			instance.m_lpSoundBuffer->SetFrequency(frequency);
 		}
 	}
-	
+
 	// calculate and set the attenuation for this instance
 	instance.soundSource->get_attenuation(&attenuation);
 	SINGLE totalAttenuation = 100 * (attenuation + instance.m_archetype->m_baseAttenuation + m_masterAttenuation);
 	totalAttenuation = (totalAttenuation > DSBVOLUME_MAX) ? DSBVOLUME_MAX : ((totalAttenuation < DSBVOLUME_MIN) ? DSBVOLUME_MIN : totalAttenuation);
 
 	instance.m_lpSoundBuffer->SetVolume(totalAttenuation);
-	
+
 	// set the EAX parameters for this sound if enabled
 	if (m_hardwareOptionsUsed & SM_USE_EAX) // EAX was succesfully initialized, so get reverbMix for this instance
 	{
@@ -2592,13 +2593,13 @@ void SoundManager::update_instance_data(SoundInstance &instance)
 		if (GR_OK == (instance.soundSource->get_reverb_mix(&reverbMix)))
 		{
 			LPKSPROPERTYSET pEAX;
-			if (instance.m_lpSoundBuffer->QueryInterface(IID_IKsPropertySet, (void **) &pEAX) == DS_OK)
+			if (instance.m_lpSoundBuffer->QueryInterface(IID_IKsPropertySet, (void**)&pEAX) == DS_OK)
 			{
 				U32 support = 0;
-				pEAX->QuerySupport(DSPROPSETID_EAXBUFFER_ReverbProperties,DSPROPERTY_EAXBUFFER_REVERBMIX,&support);
-				if (support & (KSPROPERTY_SUPPORT_SET) )
+				pEAX->QuerySupport(DSPROPSETID_EAXBUFFER_ReverbProperties, DSPROPERTY_EAXBUFFER_REVERBMIX, &support);
+				if (support & (KSPROPERTY_SUPPORT_SET))
 				{
-					pEAX->Set(DSPROPSETID_EAXBUFFER_ReverbProperties,DSPROPERTY_EAXBUFFER_REVERBMIX,NULL,0,&reverbMix,sizeof(SINGLE));
+					pEAX->Set(DSPROPSETID_EAXBUFFER_ReverbProperties, DSPROPERTY_EAXBUFFER_REVERBMIX, NULL, 0, &reverbMix, sizeof(SINGLE));
 				}
 				pEAX->Release();
 			}
@@ -2614,32 +2615,32 @@ void SoundManager::update_instance_data(SoundInstance &instance)
 // set the play cursor to the appropriate place in the buffer
 // this currently only modifies sounds that aren't playing or whose start time has been changed since the sound started playing
 // returns false if the sound shouldn't be play()ed (already started or has expired)
-bool SoundManager::update_position(SoundInstance &instance)
+bool SoundManager::update_position(SoundInstance& instance)
 {
 	U32 startTime = instance.soundSource->get_start_time();
 
 	// see if the sound is playing
-	if (startTime == instance.m_startTime) 
+	if (startTime == instance.m_startTime)
 	{
 		DWORD status;
-		HRESULT r = instance.m_lpSoundBuffer->GetStatus(&status); 
-		if (status & (DSBSTATUS_PLAYING | DSBSTATUS_LOOPING) )
+		HRESULT hr = instance.m_lpSoundBuffer->GetStatus(&status);
+		if (SUCCEEDED(hr) && (status & (DSBSTATUS_PLAYING | DSBSTATUS_LOOPING)))
 		{
 			// don't recalculate position if currently playing and start time hasn't changed
-			return false;  
+			return false;
 		}
 	}
 
 	SOUND_ARCH* ar;
-	if (query_archetype (instance.soundSource->get_archetype(), ar))
+	if (query_archetype(instance.soundSource->get_archetype(), ar))
 	{
-		U32			offset;			
+		U32			offset;
 		SINGLE		freqFactor = 1.0f;
-		SoundFile * soundFile = &ar->m_soundFile;					// get the sound format from the archetype
+		SoundFile* soundFile = &ar->m_soundFile;					// get the sound format from the archetype
 		U32			msecs = m_currentTime - instance.soundSource->get_start_time();
 
 		U32 freq;	// just used to test the GetFrequency function (even though the buffer might have been created w/ the freq flag, it might not be available)
-		if ( (instance.m_DSOUND_buffer_flags & DSBCAPS_CTRLFREQUENCY) && SUCCEEDED(instance.m_lpSoundBuffer->GetFrequency(&freq)) )
+		if ((instance.m_DSOUND_buffer_flags & DSBCAPS_CTRLFREQUENCY) && SUCCEEDED(instance.m_lpSoundBuffer->GetFrequency(&freq)))
 			instance.soundSource->get_frequency(&freqFactor);
 
 		// adjust the time for the frequency
@@ -2649,7 +2650,7 @@ bool SoundManager::update_position(SoundInstance &instance)
 		offset = msecs * soundFile->format.samples_per_sec / 1000; // samples to offset
 
 		// convert the offset from samples to bytes
-		offset *= soundFile->format.bytes_per_sample ;
+		offset *= soundFile->format.bytes_per_sample;
 
 
 		if (soundFile->length <= offset)
@@ -2675,7 +2676,7 @@ bool SoundManager::update_position(SoundInstance &instance)
 		}
 		instance.m_startTime = startTime;  // next time we'll know we already playing this sound and whether the sound has a new start time
 
-		ar->Release ();
+		ar->Release();
 
 		return true;
 	}
@@ -2689,9 +2690,9 @@ void SoundManager::set_listener_parameters()
 	if (m_lpdsListener)
 	{
 		m_lpdsListener->SetOrientation(m_listenerFront.x, m_listenerFront.y, m_listenerFront.z,
-									   m_listenerUp.x, m_listenerUp.y, m_listenerUp.z, DS3D_DEFERRED);
+			m_listenerUp.x, m_listenerUp.y, m_listenerUp.z, DS3D_DEFERRED);
 		m_lpdsListener->SetPosition(m_listenerPosition.x, m_listenerPosition.y, m_listenerPosition.z, DS3D_DEFERRED);
-		m_lpdsListener->SetVelocity(m_listenerVelocity.x, m_listenerVelocity.y, m_listenerVelocity.z  , DS3D_DEFERRED);
+		m_lpdsListener->SetVelocity(m_listenerVelocity.x, m_listenerVelocity.y, m_listenerVelocity.z, DS3D_DEFERRED);
 		m_lpdsListener->SetDistanceFactor(m_listenerDistanceFactor, DS3D_DEFERRED);
 		m_lpdsListener->SetDopplerFactor(m_listenerDopplerFactor, DS3D_DEFERRED);
 		m_lpdsListener->SetRolloffFactor(m_listenerRolloffFactor, DS3D_DEFERRED);
@@ -2700,11 +2701,11 @@ void SoundManager::set_listener_parameters()
 
 // 
 // This function gets the listener parameters from the app and updates the DS3DListener.
-void SoundManager::update_listener_parameters(ISoundListener *IEar)
+void SoundManager::update_listener_parameters(ISoundListener* IEar)
 {
-	Vector back(0,0,1);
-	Vector up(0,1,0);
-	Vector v(0,0,0);
+	Vector back(0, 0, 1);
+	Vector up(0, 1, 0);
+	Vector v(0, 0, 0);
 	SINGLE s = 1.0f;
 
 	// get and, if successful, store the current values;
@@ -2745,66 +2746,66 @@ void SoundManager::update_listener_parameters(ISoundListener *IEar)
 //
 // Note that a GUID of all zeros is equivelent to the NULL guid.
 //
-LPGUID ConvertStringToGUID( char *string, LPGUID guid )
+LPGUID ConvertStringToGUID(char* string, LPGUID guid)
 {
-	
-	if( !strcmp( string, ID_NullGuid ) ) {
-		memset( guid, 0, sizeof(GUID) );
+
+	if (!strcmp(string, ID_NullGuid)) {
+		memset(guid, 0, sizeof(GUID));
 		return NULL;
 	}
 	else {
-		DWORD d1,d2,d3;
-		char d4[8], sz[200], s[3], *p, *start;
-		
+		DWORD d1, d2, d3;
+		char d4[8], sz[200], s[3], * p, * start;
+
 		p = string;
-		while( *p && *p!='{' ) p++;
-		
-		strcpy( sz, ++p );
+		while (*p && *p != '{') p++;
+
+		strcpy(sz, ++p);
 
 		start = p;
-		while( *p && ((*p>='0' && *p<='9')||(*p>='a' && *p<='f')||(*p>='A' && *p<='F')) ) p++;
+		while (*p && ((*p >= '0' && *p <= '9') || (*p >= 'a' && *p <= 'f') || (*p >= 'A' && *p <= 'F'))) p++;
 		p++;
 
-		d1 = strtoul( start, NULL, 16 );
+		d1 = strtoul(start, NULL, 16);
 
 		start = p;
-		while( *p && ((*p>='0' && *p<='9')||(*p>='a' && *p<='f')||(*p>='A' && *p<='F')) ) p++;
+		while (*p && ((*p >= '0' && *p <= '9') || (*p >= 'a' && *p <= 'f') || (*p >= 'A' && *p <= 'F'))) p++;
 		p++;
 
-		d2 = strtoul( start, NULL, 16 );
+		d2 = strtoul(start, NULL, 16);
 
 		start = p;
-		while( *p && ((*p>='0' && *p<='9')||(*p>='a' && *p<='f')||(*p>='A' && *p<='F')) ) p++;
+		while (*p && ((*p >= '0' && *p <= '9') || (*p >= 'a' && *p <= 'f') || (*p >= 'A' && *p <= 'F'))) p++;
 		p++;
 
-		d3 = strtoul( start, NULL, 16 );
+		d3 = strtoul(start, NULL, 16);
 
 		s[0] = *p++;
 		s[1] = *p++;
 		s[2] = 0;
 
-		d4[0] = (char)strtoul( s, NULL, 16 );
+		d4[0] = (char)strtoul(s, NULL, 16);
 
 		s[0] = *p++;
 		s[1] = *p++;
 		s[2] = 0;
 
-		d4[1] = (char)strtoul( s, NULL, 16 );
+		d4[1] = (char)strtoul(s, NULL, 16);
 
 		p++;
 
-		for( int i=0; i<6; i++ ) {
+		for (int i = 0; i < 6; i++) {
 			s[0] = *p++;
 			s[1] = *p++;
 			s[2] = 0;
 
-			d4[2+i] = (char)strtoul( s, NULL, 16 );
+			d4[2 + i] = (char)strtoul(s, NULL, 16);
 		}
 
 		guid->Data1 = d1;
 		guid->Data2 = (unsigned short)d2;
 		guid->Data3 = (unsigned short)d3;
-		memcpy( guid->Data4, d4, 8 );
+		memcpy(guid->Data4, d4, 8);
 	}
 	return guid;
 }
@@ -2816,49 +2817,49 @@ LPGUID ConvertStringToGUID( char *string, LPGUID guid )
 //****************************************************************************
 //
 BOOL DACOM_API DllMain(HINSTANCE hinstDLL,  //)
-                    DWORD     fdwReason,
-                    LPVOID    lpvReserved)
+	DWORD     fdwReason,
+	LPVOID    lpvReserved)
 {
-	ICOManager *DACOM = NULL;				// Handle to component manager
-	IComponentFactory *server;
+	ICOManager* DACOM = NULL;				// Handle to component manager
+	IComponentFactory* server;
 
 	switch (fdwReason)
-      {
-      //
-      // DLL_PROCESS_ATTACH: Create object server component and register it 
-      // with DACOM manager
-      //
+	{
+		//
+		// DLL_PROCESS_ATTACH: Create object server component and register it 
+		// with DACOM manager
+		//
 
-      case DLL_PROCESS_ATTACH:
+	case DLL_PROCESS_ATTACH:
 
-			//DA_HEAP_ACQUIRE_HEAP(HEAP);
-			//DA_HEAP_DEFINE_HEAP_MESSAGE(hinstDLL);
+		//DA_HEAP_ACQUIRE_HEAP(HEAP);
+		//DA_HEAP_DEFINE_HEAP_MESSAGE(hinstDLL);
 
 
 #define CLSID_SoundManager "SoundManager"
 
-			DACOM = DACOM_Acquire();
-			if( DACOM == NULL ) {
-				GENERAL_WARNING( "SoundManager: DllMain: unable to get DACOM!\n" );
-				break;
-			}
-			if( (server = new DAComponentFactory2<DAComponentAggregate<SoundManager>, AGGDESC> (CLSID_SoundManager)) != NULL ) {
-				if (DACOM_Acquire()->RegisterComponent(server, CLSID_SoundManager, DACOM_LOW_PRIORITY) != GR_OK)
-				{
-					GENERAL_WARNING( "SoundManager: DllMain: unable to register component!\n" );
-				}
-				server->Release();
-			}
-			else
-			{
-				GENERAL_WARNING( "SoundManager: DllMain: unable to create component factory!\n" );
-			}
-
+		DACOM = DACOM_Acquire();
+		if (DACOM == NULL) {
+			GENERAL_WARNING("SoundManager: DllMain: unable to get DACOM!\n");
 			break;
+		}
+		if ((server = new DAComponentFactory2<DAComponentAggregate<SoundManager>, AGGDESC>(CLSID_SoundManager)) != NULL) {
+			if (DACOM_Acquire()->RegisterComponent(server, CLSID_SoundManager, DACOM_LOW_PRIORITY) != GR_OK)
+			{
+				GENERAL_WARNING("SoundManager: DllMain: unable to register component!\n");
+			}
+			server->Release();
+		}
+		else
+		{
+			GENERAL_WARNING("SoundManager: DllMain: unable to create component factory!\n");
+		}
 
-      case DLL_PROCESS_DETACH:
-         break;
-      }
+		break;
+
+	case DLL_PROCESS_DETACH:
+		break;
+	}
 
 	return TRUE;
 }

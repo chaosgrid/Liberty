@@ -1,5 +1,18 @@
 #pragma once
 
+#include <Core.h>
+
+// this is acceptible, because the DAComponent's is created at the very
+// top level of the inheritance structure so nothing should override
+// the destructor. Because the destructor is baked into the Release
+// function and will only ever be called from there, this is fine.
+
+#define TCOMPONENT_IGNORE_ABSTRACT_DELETE_PUSH() \
+CLANG_DIAGNOSTIC_PUSH(); \
+CLANG_DIAGNOSTIC_IGNORED("-Wdelete-non-abstract-non-virtual-dtor"); \
+CLANG_DIAGNOSTIC_IGNORED("-Wdelete-abstract-non-virtual-dtor")
+#define TCOMPONENT_IGNORE_ABSTRACT_DELETE_POP() CLANG_DIAGNOSTIC_POP()
+
 // Template class for Base DA Components
 
 #define daoffsetofclass(base, derived) ((U32)(static_cast<base*>((derived*)8))-8)
@@ -108,7 +121,9 @@ U32 DAComponent< Base >::Release(void)
 	if (ref_count == 0)
 	{
 		ref_count++;		// artificially add reference to prevent infinite loops
+		TCOMPONENT_IGNORE_ABSTRACT_DELETE_PUSH();
 		delete this;
+		TCOMPONENT_IGNORE_ABSTRACT_DELETE_POP();
 		return 0;
 	}
 
@@ -197,7 +212,9 @@ U32 DAComponentFactoryBase<ClassType, DescType>::Release(void)
 	if (ref_count == 0)
 	{
 		ref_count++;		// artificially add reference to prevent infinite loops
+		TCOMPONENT_IGNORE_ABSTRACT_DELETE_PUSH();
 		delete this;
+		TCOMPONENT_IGNORE_ABSTRACT_DELETE_POP();
 		return 0;
 	}
 	return ref_count;
@@ -307,7 +324,9 @@ GENRESULT DAComponentFactory2<ClassType, DescType>::CreateInstance(DACOMDESC* de
 		// 
 		// initialization failed!
 		//
+		TCOMPONENT_IGNORE_ABSTRACT_DELETE_PUSH();
 		delete pNewInstance;
+		TCOMPONENT_IGNORE_ABSTRACT_DELETE_POP();
 		pNewInstance = 0;
 	}
 Done:
@@ -382,7 +401,9 @@ U32 DAComponentInner< Type, Base >::Release(void)
 	if (ref_count == 0)
 	{
 		ref_count++;		// artificially add reference to prevent infinite loops
+		TCOMPONENT_IGNORE_ABSTRACT_DELETE_PUSH();
 		delete owner;
+		TCOMPONENT_IGNORE_ABSTRACT_DELETE_POP();
 		return 0;
 	}
 
@@ -442,7 +463,7 @@ struct DADebugComponentAggregate : public DAComponentAggregate<Base>
 {
 	DADebugComponentAggregate(struct AGGDESC* desc) : DAComponentAggregate<Base>(desc)
 	{
-		
+
 	}
 
 	DACOM_DEFMETHOD_(U32, AddRef)(void)

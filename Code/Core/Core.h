@@ -2,6 +2,7 @@
 
 #include <stdarg.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <Windows.h>
 
 #define DA_XSTR(s) DA_STR(s)
@@ -22,6 +23,16 @@
 #ifdef __INTELLISENSE__
 // Shut the fuck up IntelliSense
 #define __thiscall __fastcall
+#endif
+
+#ifdef __clang__
+#define CLANG_DIAGNOSTIC_PUSH() __pragma(clang diagnostic push)
+#define CLANG_DIAGNOSTIC_IGNORED(warning) __pragma(clang diagnostic ignored warning)
+#define CLANG_DIAGNOSTIC_POP() __pragma(clang diagnostic pop)
+#else
+#define CLANG_DIAGNOSTIC_PUSH()
+#define CLANG_DIAGNOSTIC_IGNORED(warning)
+#define CLANG_DIAGNOSTIC_POP()
 #endif
 
 template<typename Output, typename Input>

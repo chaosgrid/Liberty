@@ -19,19 +19,14 @@
 #include "typedefs.h"
 #endif
 
-#ifndef DAVARIANT_H
-#include "davariant.h"
-#endif
+#include "DAVariant.h"
 
-#ifndef DACOM_H
-#include "dacom.h"   
-#endif
-
-#include "3dmath.h"
+#include <DACOM.h>
+#include <3dMath.h>
 
 //
 
-enum vis_state;
+#include "VisState.h"
 
 //
 

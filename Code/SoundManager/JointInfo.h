@@ -146,29 +146,28 @@ public: // Interface
 
 	static JointType get_type_from_name( const char *jointtypename )
 	{
-
-		if( stricmp( jointtypename, JT_FIXED_NAME ) == 0 ) {
+		if( _stricmp( jointtypename, JT_FIXED_NAME ) == 0 ) {
 			return JT_FIXED;
 		}
-		else if( stricmp( jointtypename, JT_PRISMATIC_NAME ) == 0 ) {
+		else if(_stricmp( jointtypename, JT_PRISMATIC_NAME ) == 0 ) {
 			return JT_PRISMATIC;
 		}
-		else if( stricmp( jointtypename, JT_REVOLUTE_NAME ) == 0 ) {
+		else if(_stricmp( jointtypename, JT_REVOLUTE_NAME ) == 0 ) {
 			return JT_REVOLUTE;
 		}
-		else if( stricmp( jointtypename, JT_DAMPED_SPRING_NAME ) == 0 ) {
+		else if(_stricmp( jointtypename, JT_DAMPED_SPRING_NAME ) == 0 ) {
 			return JT_DAMPED_SPRING;
 		}
-		else if( stricmp( jointtypename, JT_CYLINDRICAL_NAME ) == 0 ) {
+		else if(_stricmp( jointtypename, JT_CYLINDRICAL_NAME ) == 0 ) {
 			return JT_CYLINDRICAL;
 		}
-		else if( stricmp( jointtypename, JT_SPHERICAL_NAME ) == 0 ) {
+		else if(_stricmp( jointtypename, JT_SPHERICAL_NAME ) == 0 ) {
 			return JT_SPHERICAL;
 		}
-		else if( stricmp( jointtypename, JT_TRANSLATIONAL_NAME ) == 0 ) {
+		else if(_stricmp( jointtypename, JT_TRANSLATIONAL_NAME ) == 0 ) {
 			return JT_TRANSLATIONAL;
 		}
-		else if( stricmp( jointtypename, JT_LOOSE_NAME ) == 0 ) {
+		else if(_stricmp( jointtypename, JT_LOOSE_NAME ) == 0 ) {
 			return JT_LOOSE;
 		}
 
@@ -188,9 +187,8 @@ public: // Interface
 		case JT_SPHERICAL:		return JT_SPHERICAL_NAME;
 		case JT_TRANSLATIONAL:	return JT_TRANSLATIONAL_NAME;
 		case JT_LOOSE:			return JT_LOOSE_NAME;
+		default:				return NULL;
 		}
-
-		return NULL;
 	}
 
 };

@@ -309,8 +309,8 @@
 #ifndef ISOUNDMANGER_H
 #define ISOUNDMANGER_H
 
-#ifndef DACOM_H
-#include "dacom.h"
+#ifndef DACOM_H  
+#include <DACOM.h>
 #endif
 
 #ifndef ISOUNDLISTENER_H
@@ -361,7 +361,7 @@ enum SM_3D_PROCESSING_MODES
 	SM_NUM_3D_PROCESSING_MODES
 };
 
-typedef enum SM_SPEAKER_CONFIG
+enum SM_SPEAKER_CONFIG
 {
 	SM_SPEAKER_MONO = 0,
 	SM_SPEAKER_HEADPHONE,
@@ -376,7 +376,7 @@ typedef enum SM_SPEAKER_CONFIG
 	SM_SPEAKER_NUM_SETTINGS
 };
 
-typedef struct _SM_DEVICEINFO
+struct SM_DEVICEINFO
 {
 	U32 size;
 	U32 deviceOptionsUsed;
@@ -385,7 +385,7 @@ typedef struct _SM_DEVICEINFO
 	U32 numHWChannelsFree;
 	U32 numHW3DBuffersFree;
 	GUID deviceGUID;
-} SM_DEVICEINFO;
+};
 
 class Vector;
 struct IDirectSound;

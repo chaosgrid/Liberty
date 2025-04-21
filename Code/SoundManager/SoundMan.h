@@ -33,12 +33,12 @@
 #include <list>
 #include <map>
 
-#include "3dmath.h"
+#include <3dMath.h>
+#include <TSmartPointer.h>
 
 //#include "da_heap_utility.h"
 
-#include "engine.h"
-#include "TSmartPointer.h"
+#include "Engine.h"
 #include "IProfileParser_Utility.h"
 
 #include "AllocLite.h"
@@ -250,77 +250,73 @@ public:
 	DA_HEAP_DEFINE_NEW_OPERATOR(SoundManager);
 
 	// ISoundManager methods
-	virtual GENRESULT DACOM_API set_sound_format(SoundFormat *soundFormat);
-	virtual GENRESULT DACOM_API get_sound_format(SoundFormat *soundFormat);
+	virtual GENRESULT DACOM_API set_sound_format(SoundFormat *soundFormat) override;
+	virtual GENRESULT DACOM_API get_sound_format(SoundFormat *soundFormat) override;
 
-	virtual GENRESULT DACOM_API set_master_attenuation(const SINGLE attenuation);
-	virtual GENRESULT DACOM_API set_maximum_channels(const U32 numChannels);
-	virtual GENRESULT DACOM_API set_speaker_configuration(const U32 speakerConfiguration);
+	virtual GENRESULT DACOM_API set_master_attenuation(const SINGLE attenuation) override;
+	virtual GENRESULT DACOM_API set_maximum_channels(const U32 numChannels) override;
+	virtual GENRESULT DACOM_API set_speaker_configuration(const U32 speakerConfiguration) override;
 
-	virtual SINGLE DACOM_API get_master_attenuation();
-	virtual U32 DACOM_API get_maximum_channels();
-	virtual U32 DACOM_API get_speaker_configuration();
+	virtual SINGLE DACOM_API get_master_attenuation() override;
+	virtual U32 DACOM_API get_maximum_channels() override;
+	virtual U32 DACOM_API get_speaker_configuration() override;
 
-	virtual GENRESULT DACOM_API set_master_reverb(const U32 baseEnv, const SINGLE vol, const SINGLE decay, const SINGLE damping);
-	virtual void DACOM_API get_master_reverb(U32 *baseEnv, SINGLE *vol, SINGLE *decay, SINGLE *damping);
-	//
-	//
-	// These need to be removed as soon as Freelancer implements an ISoundListener
-	// begin remove
-	virtual GENRESULT DACOM_API set_ear_orientation(const Matrix * orientation);
-	virtual GENRESULT DACOM_API set_ear_orientation(const Vector *, const Vector *);
-	virtual GENRESULT DACOM_API set_ear_position(const Vector *);
-	virtual GENRESULT DACOM_API set_ear_velocity(const Vector *);
-	virtual GENRESULT DACOM_API set_ear_distance_factor(const SINGLE);
-	virtual GENRESULT DACOM_API set_ear_doppler_factor(const SINGLE);
-	virtual GENRESULT DACOM_API set_ear_rolloff_factor(const SINGLE);
+	virtual GENRESULT DACOM_API set_master_reverb(const U32 baseEnv, const SINGLE vol, const SINGLE decay, const SINGLE damping) override;
+	virtual void DACOM_API get_master_reverb(U32 *baseEnv, SINGLE *vol, SINGLE *decay, SINGLE *damping) override;
+	
+	// These need to be removed as soon as Freelancer implements an ISoundListener begin remove
+	virtual GENRESULT DACOM_API set_ear_orientation(const Matrix * orientation) override;
+	virtual GENRESULT DACOM_API set_ear_orientation(const Vector*, const Vector*) override;
+	virtual GENRESULT DACOM_API set_ear_position(const Vector*) override;
+	virtual GENRESULT DACOM_API set_ear_velocity(const Vector*) override;
+	virtual GENRESULT DACOM_API set_ear_distance_factor(const SINGLE) override;
+	virtual GENRESULT DACOM_API set_ear_doppler_factor(const SINGLE) override;
+	virtual GENRESULT DACOM_API set_ear_rolloff_factor(const SINGLE) override;
 
-	virtual void DACOM_API get_ear_orientation(Matrix * orientation);
-	virtual void DACOM_API get_ear_orientation(Vector *, Vector *);
-	virtual Vector DACOM_API get_ear_position();
-	virtual Vector DACOM_API get_ear_velocity();
-	virtual SINGLE DACOM_API get_ear_distance_factor();
-	virtual SINGLE DACOM_API get_ear_doppler_factor();
-	virtual SINGLE DACOM_API get_ear_rolloff_factor();
-	// end of remove
-	//
-	//
+	virtual void DACOM_API get_ear_orientation(Matrix * orientation) override;
+	virtual void DACOM_API get_ear_orientation(Vector*, Vector*) override;
+	virtual Vector DACOM_API get_ear_position() override;
+	virtual Vector DACOM_API get_ear_velocity() override;
+	virtual SINGLE DACOM_API get_ear_distance_factor() override;
+	virtual SINGLE DACOM_API get_ear_doppler_factor() override;
+	virtual SINGLE DACOM_API get_ear_rolloff_factor() override;
+	// end of remove 
 
 	// generic property set extensions to allow getting/setting of new properties not currently supported
-	virtual GENRESULT DACOM_API get_property(ISoundSource *sound, REFGUID propGUID, const U32 propID, void *propData, const U32 sizeOfPropData, U32 * sizeOfDataWritten);
-	virtual GENRESULT DACOM_API get_global_property(REFGUID propGUID, const U32 propID, void *propData, const U32 sizeOfPropData, U32 * sizeOfDataWritten);
-	virtual GENRESULT DACOM_API set_property(ISoundSource *sound, REFGUID propGUID, const U32 propID, void *propData, const U32 sizeOfPropData);
-	virtual GENRESULT DACOM_API set_global_property(REFGUID propGUID, const U32 propID, void *propData, const U32 sizeOfPropData);
+	virtual GENRESULT DACOM_API get_property(ISoundSource *sound, REFGUID propGUID, const U32 propID, void *propData, const U32 sizeOfPropData, U32 * sizeOfDataWritten)  override;
+	virtual GENRESULT DACOM_API get_global_property(REFGUID propGUID, const U32 propID, void* propData, const U32 sizeOfPropData, U32* sizeOfDataWritten)  override;
+	virtual GENRESULT DACOM_API set_property(ISoundSource* sound, REFGUID propGUID, const U32 propID, void* propData, const U32 sizeOfPropData)  override;
+	virtual GENRESULT DACOM_API set_global_property(REFGUID propGUID, const U32 propID, void* propData, const U32 sizeOfPropData)  override;
 
 	// archetype creation/destruction methods
-	virtual SOUND_ARCH_INDEX DACOM_API create_archetype_from_raw_data (const SoundFormat &, U32 length, U32 loop_start, U32 loop_end, void *sample_buffer, U32 options);
-	virtual SOUND_ARCH_INDEX DACOM_API create_archetype_from_soundfile (const SoundFile &sourceData, U32 options);
-	virtual SOUND_ARCH_INDEX DACOM_API create_archetype (IFileSystem *sourceFile, U32 options);
-	virtual GENRESULT DACOM_API destroy_archetype (SOUND_ARCH_INDEX archetype);
+	virtual SOUND_ARCH_INDEX DACOM_API create_archetype_from_raw_data (const SoundFormat &, U32 length, U32 loop_start, U32 loop_end, void *sample_buffer, U32 options)  override;
+	virtual SOUND_ARCH_INDEX DACOM_API create_archetype_from_soundfile(const SoundFile& sourceData, U32 options)  override;
+	virtual SOUND_ARCH_INDEX DACOM_API create_archetype(IFileSystem* sourceFile, U32 options)  override;
+	virtual GENRESULT DACOM_API destroy_archetype(SOUND_ARCH_INDEX archetype)  override;
 
 	// sound instance management methods
-	virtual GENRESULT DACOM_API add_active_sound (ISoundSource *sound, U32 index); // add a single
-	virtual GENRESULT DACOM_API remove_active_sound (ISoundSource *sound); // remove a sound from the active list
-	virtual GENRESULT DACOM_API set_active_sounds (ISoundSource *sounds[], U32 count); // this is the list.
-	virtual U32 DACOM_API get_active_sound_count ();
-	virtual U32 DACOM_API get_playing_sound_count ();
+	virtual GENRESULT DACOM_API add_active_sound (ISoundSource *sound, U32 index) override; // add a single
+	virtual GENRESULT DACOM_API remove_active_sound (ISoundSource *sound) override; // remove a sound from the active list
+	virtual GENRESULT DACOM_API set_active_sounds (ISoundSource *sounds[], U32 count) override; // this is the list.
+	virtual U32 DACOM_API get_active_sound_count () override;
+	virtual U32 DACOM_API get_playing_sound_count () override;
 
 	// SoundManager methods
 	GENRESULT init (AGGDESC * desc);
-	GENRESULT DACOM_API Initialize();
+	GENRESULT DACOM_API Initialize() override;
 	GENRESULT initialize_direct_sound();
-	virtual GENRESULT DACOM_API startup(HWND hWnd, U32 options);
-	virtual GENRESULT DACOM_API shutdown();
-	virtual GENRESULT DACOM_API get_directsound_interface(void **);
-	virtual U32 get_current_time_ms();
-	virtual GENRESULT get_device_info(SM_DEVICEINFO *);
-	virtual void DACOM_API update (ISoundListener *IEar); // syncs the need_to_play properties to the active sound properties.
+	virtual GENRESULT DACOM_API startup(HWND hWnd, U32 options) override;
+	virtual GENRESULT DACOM_API shutdown() override;
+	virtual GENRESULT DACOM_API get_directsound_interface(void **) override;
+	virtual U32 get_current_time_ms() override;
+	virtual GENRESULT get_device_info(SM_DEVICEINFO *) override;
+	virtual void DACOM_API update (ISoundListener *IEar) override; // syncs the need_to_play properties to the active sound properties.
 	virtual GENRESULT DACOM_API unknownA(void* value) override; // #TODO unsure what this is (seems to be called when pressing F1 to open menu)
 	virtual GENRESULT DACOM_API unknownB(void* value) override; // #TODO unsure what this is (seems to be called when pressing F1 to close menu)
 	static GENRESULT write_data_to_buffer(SoundFile * sourceData, LPDIRECTSOUNDBUFFER lpdsBuffer, U32 length = 0);
 
 	// SoundArchetype indexed methods
-	virtual GENRESULT DACOM_API get_archetype_interface(SOUND_ARCH_INDEX archetype, void ** archInterface);
+	virtual GENRESULT DACOM_API get_archetype_interface(SOUND_ARCH_INDEX archetype, void ** archInterface) override;
 	virtual void DACOM_API get_sound_format(SOUND_ARCH_INDEX archetype, SoundFormat *);
 	virtual U32 DACOM_API get_samples(SOUND_ARCH_INDEX archetype, void * samples);
 	virtual U32 DACOM_API get_sample_count(SOUND_ARCH_INDEX archetype);
@@ -330,7 +326,7 @@ public:
 	virtual bool DACOM_API is_loopable(SOUND_ARCH_INDEX archetype);
 
 	// --- ISoundManagerStatus methods
-	virtual GENRESULT DACOM_API get_playing_sound_status (int which, SoundStatus &playingStatus);
+	virtual GENRESULT DACOM_API get_playing_sound_status (int which, SoundStatus &playingStatus) override;
 
 protected:
 
@@ -350,7 +346,7 @@ protected:
 	GENRESULT create_hardware_buffer(SoundInstance &instance);
 	void check_hardware_buffer_status(SoundInstance &instance);
 	bool restore_lost_buffer(SoundInstance &instance);
-	SOUND_ARCH_INDEX SoundManager::add_archetype (SOUND_ARCH* nu);
+	SOUND_ARCH_INDEX add_archetype (SOUND_ARCH* nu);
 
 	static DWORD WINAPI loop_notification_thread_loop(LPVOID);
 	bool start_looping_sound_with_markers(SoundInstance &instance);

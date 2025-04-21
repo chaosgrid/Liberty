@@ -85,8 +85,8 @@
 #ifndef ISOUNDLISTENER_H
 #define ISOUNDLISTENER_H
 
-#ifndef DACOM_H
-#include "dacom.h"
+#ifndef DACOM_H  
+#include <DACOM.h>
 #endif
 
 #include "typedefs.h"

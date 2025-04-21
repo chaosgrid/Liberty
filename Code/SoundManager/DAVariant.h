@@ -809,6 +809,8 @@ struct DACOM_VARIANT
 				case DAVT_PVOID:
 					(*this) = (void *)(*this);
 					break;
+				default:
+					break;
 			} // end switch on property type
 		}
 	}

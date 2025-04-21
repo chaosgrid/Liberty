@@ -55,7 +55,7 @@ struct DACOM_NO_VTABLE SoundStreamer : IStreamer2, IAggregateComponent
 	DACOM_DEFMETHOD_(BOOL32, SetSomethingC) (HSTREAM hStream, DWORD arg) override;
 	DACOM_DEFMETHOD_(BOOL32, GetSomethingC) (HSTREAM hStream, DWORD* arg) override;
 
-	DACOM_DEFMETHOD(Initialize) (void);
+	DACOM_DEFMETHOD(Initialize) (void) override;
 
 	GENRESULT init(AGGDESC* lpDesc);
 

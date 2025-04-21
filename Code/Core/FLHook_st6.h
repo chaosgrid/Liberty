@@ -558,7 +558,7 @@ namespace st6
             }
             const_reference operator*() const
             {
-                return (_Value(_Ptr));
+                return (_Value(iterator::_Ptr));
             }
             _Ctptr operator->() const
             {
@@ -588,7 +588,7 @@ namespace st6
             }
             bool operator==(const const_iterator& _X) const
             {
-                return (_Ptr == _X._Ptr);
+                return (iterator::_Ptr == _X._Ptr);
             }
             bool operator!=(const const_iterator& _X) const
             {
@@ -740,10 +740,16 @@ namespace st6
                 iterator _Pb = _P;
                 if (key_compare(_Key((--_Pb)._Mynode()), _Kfn()(_V))
                     && key_compare(_Kfn()(_V), _Key(_P._Mynode())))
+                {
                     if (_Right(_Pb._Mynode()) == _Nil)
+                    {
                         return (_Insert(_Nil, _Pb._Mynode(), _V));
+                    }
                     else
+                    {
                         return (_Insert(_Head, _P._Mynode(), _V));
+                    }
+                }
             }
             return (insert(_V).first);
         }

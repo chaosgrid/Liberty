@@ -10,7 +10,7 @@
 #endif
 
 #ifndef PERSISTMATH_H__
-#include "persistmath.h"
+#include "PersistMath.h"
 #endif
 
 #ifndef _INC_MATH

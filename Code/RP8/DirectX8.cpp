@@ -93,14 +93,14 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_add_light, _sub_6D0CCB2, IRenderPipeli
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_remove_light, _sub_6D0CD32, IRenderPipeline8B* _this, U32 light_index);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_update_light, _sub_6D0CDDB, IRenderPipeline8B* _this, U32 light_index);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_world_n, _sub_6D0AF55, IRenderPipeline8B* _this, UNKNOWN a2, Transform* transform);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_UnknownC, _sub_6D11354, IVertexBufferManager * _this, UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_UnknownC, _sub_6D11354, IVertexBufferManager* _this, UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_Unknown10, _sub_6D1135D, IVertexBufferManager* _this);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_acquire_vertex_buffer, _sub_6D114EA, IVertexBufferManager* _this, UNKNOWN vertex_format, U32 num_verts, VertexBufferAcquire* out_result);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_release_vertex_buffer, _sub_6D11877, IVertexBufferManager* _this, VertexBufferAcquire* vbacquire);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_Unknown1C, _sub_6D118BC, IVertexBufferManager* _this);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_Unknown20, _sub_6D114C5, IVertexBufferManager* _this, UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive2, _sub_6D111E1, IRPDraw* _this, D3DPRIMITIVETYPE type, U32 min_index, U32 num_verts, U32 start_index, U32 count);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_index_buffer, _sub_6D12D4E, IRPIndexBuffer * _this, U32 count, IRP_INDEXBUFFERHANDLE * out_ibhandle, BYTE flags);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_index_buffer, _sub_6D12D4E, IRPIndexBuffer* _this, U32 count, IRP_INDEXBUFFERHANDLE* out_ibhandle, BYTE flags);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_index_buffer, _sub_6D13002, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_ib, _sub_6D131B2, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle, U32 count);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_indices, _sub_6D13847, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle, U32* offset, void* data, U32 count);
@@ -109,7 +109,7 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_ib, _sub_6D13794, IRPIndexBuffe
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_select_ib, _sub_6D13BCE, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_ib_count, _sub_6D13D23, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle, U32* out_count);
 TRAMPOLINE(BOOL32, __stdcall, DirectX8_is_ib_valid, _sub_6D13B69, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_vb, _sub_6D118C8, IRPVertexBuffer * _this, UNKNOWN format, U32 count, IRP_VERTEXBUFFERHANDLE * out_vbhandle, BYTE flags);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_vb, _sub_6D118C8, IRPVertexBuffer* _this, UNKNOWN format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, BYTE flags);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_vb, _sub_6D11DB3, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_ressize_vb, _sub_6D11F78, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, UNKNOWN format, U32 count);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_vertices, _sub_6D1228C, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, UNKNOWN a5, UNKNOWN a6);
@@ -119,12 +119,12 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_RPVertexBuffer_Unknown24, _sub_6D12B30
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_select_vb, _sub_6D12B9D, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_vb_count, _sub_6D12CDC, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, UNKNOWN* vertex_format, U32* num_verts);
 TRAMPOLINE(BOOL32, __stdcall, DirectX8_is_vb_valid, _sub_6D12B3C, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_gamma_function, _sub_6D153E6, IGammaControl * _this, IGC_COMPONENT which, float display_gamma, float bias, float slope, float black_offset);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_gamma_function, _sub_6D153E6, IGammaControl* _this, IGC_COMPONENT which, float display_gamma, float bias, float slope, float black_offset);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_gamma_ramp, _sub_6D1560C, IGammaControl* _this, IGC_COMPONENT igc_component, U16* ramp);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_gamma_ramp, _sub_6D15757, IGammaControl* _this, IGC_COMPONENT igc_component, U16* out_ramp);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_calibration_enable, _sub_6D1535D, IGammaControl* _this, bool enabled);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_calibration_enable, _sub_6D153A4, IGammaControl* _this);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_print_screen, _sub_6D13D70, IRPTexture * _this, IFileSystem * pFileSystem, const char* filepath);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_print_screen, _sub_6D13D70, IRPTexture* _this, IFileSystem* pFileSystem, const char* filepath);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_load_texture, _sub_6D148D4, IRPTexture* _this, UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_load_surface_from_file, _sub_6D1455E, IRPTexture* _this, UNKNOWN* a2_interface, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_RPTexture_Unknown18, _sub_6D152E4, IRPTexture* _this, UNKNOWN a2, UNKNOWN a3, UNKNOWN* a4);
@@ -2205,9 +2205,9 @@ public:
 
 	// IDAComponent methods
 
-	DACOM_DEFMETHOD(QueryInterface)(const C8* interface_name, void** instance) = 0;
-	DACOM_DEFMETHOD_(U32, AddRef)(void) = 0;
-	DACOM_DEFMETHOD_(U32, Release)(void) = 0;
+	DACOM_DEFMETHOD(QueryInterface)(const C8* interface_name, void** instance) override = 0;
+	DACOM_DEFMETHOD_(U32, AddRef)(void) override = 0;
+	DACOM_DEFMETHOD_(U32, Release)(void) override = 0;
 
 	// IRenderPipeline8B methods
 

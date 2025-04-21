@@ -211,7 +211,9 @@ GENRESULT DOSFileSystem::CreateInstance(DACOMDESC* descriptor,  //)
 				memcpy(pNewSystem->szFilename, szFilename, iRootIndex);
 				if (GetAbsolutePath(pNewSystem->szFilename + iRootIndex, lpInfo->lpFileName, MAX_PATH - iRootIndex) == 0)
 				{
-					delete pNewSystem;
+					TCOMPONENT_IGNORE_ABSTRACT_DELETE_PUSH();
+					delete pNewSystem; // #TODO Should this be replaced with Release()?
+					TCOMPONENT_IGNORE_ABSTRACT_DELETE_POP();
 					pNewSystem = 0;
 					result = GR_FILE_ERROR;
 					goto Done;
@@ -222,7 +224,9 @@ GENRESULT DOSFileSystem::CreateInstance(DACOMDESC* descriptor,  //)
 
 			if (dwAttribs == 0xFFFFFFFF || (dwAttribs & FILE_ATTRIBUTE_DIRECTORY) == 0)
 			{
-				delete pNewSystem;
+				TCOMPONENT_IGNORE_ABSTRACT_DELETE_PUSH();
+				delete pNewSystem; // #TODO Should this be replaced with Release()?
+				TCOMPONENT_IGNORE_ABSTRACT_DELETE_POP();
 				pNewSystem = 0;
 
 				result = GR_FILE_ERROR;
@@ -365,7 +369,9 @@ GENRESULT DOSFileSystem::CreateInstance(DACOMDESC* descriptor,  //)
 
 			if (dwAttribs == 0xFFFFFFFF || (dwAttribs & FILE_ATTRIBUTE_DIRECTORY) == 0)
 			{
-				delete pNewSystem;
+				TCOMPONENT_IGNORE_ABSTRACT_DELETE_PUSH();
+				delete pNewSystem; // #TODO Should this be replaced with Release()?
+				TCOMPONENT_IGNORE_ABSTRACT_DELETE_POP();
 				pNewSystem = 0;
 
 				dwLastError = ::GetLastError();
@@ -1894,6 +1900,7 @@ BOOL32 __fastcall PatternMatch(const char* _string, const char* _pattern)
 }
 //--------------------------------------------------------------------------
 //  
+#if ENABLE_DOS_THREADING
 static long __stdcall DispatchQueuedMessage(const QueueNode* node)
 {
 	switch (node->message)
@@ -1909,6 +1916,7 @@ static long __stdcall DispatchQueuedMessage(const QueueNode* node)
 
 	return 0;
 }
+#endif
 //--------------------------------------------------------------------------//
 //
 static void WaitForDOSThread(void)
