@@ -89,19 +89,27 @@ public:
 	// while vec * mat is equivalent to transpose_mul(mat, vec).
 	// These operators are provided for completeness.
 
-	friend Vector operator * (const Transform& t, const Vector& v);
-	friend Vector operator * (const Vector& v, const Transform& t);
-	friend Transform operator * (const Transform& t1, const Transform& t2);
-	friend Transform operator + (const Transform& t1, const Transform& t2);
-	friend Transform operator - (const Transform& t1, const Transform& t2);
-	friend Transform add(const Transform& m1, const Transform& m2);
-	friend Transform subtract(const Transform& m1, const Transform& m2);
+	X86MATH_DEC friend Vector operator * (const Transform& t, const Vector& v);
+	X86MATH_DEC friend Vector operator * (const Vector& v, const Transform& t);
+	X86MATH_DEC friend Transform operator * (const Transform& t1, const Transform& t2);
+	X86MATH_DEC friend Transform operator + (const Transform& t1, const Transform& t2);
+	X86MATH_DEC friend Transform operator - (const Transform& t1, const Transform& t2);
+	X86MATH_DEC friend Transform add(const Transform& m1, const Transform& m2);
+	X86MATH_DEC friend Transform subtract(const Transform& m1, const Transform& m2);
 
 };
 
 /* ---------- prototypes */
 
 /* ---------- globals */
+
+X86MATH_DEC extern Vector operator * (const Transform& t, const Vector& v);
+X86MATH_DEC extern Vector operator * (const Vector& v, const Transform& t);
+X86MATH_DEC extern Transform operator * (const Transform& t1, const Transform& t2);
+X86MATH_DEC extern Transform operator + (const Transform& t1, const Transform& t2);
+X86MATH_DEC extern Transform operator - (const Transform& t1, const Transform& t2);
+X86MATH_DEC extern Transform add(const Transform& m1, const Transform& m2);
+X86MATH_DEC extern Transform subtract(const Transform& m1, const Transform& m2);
 
 /* ----------  code */
 

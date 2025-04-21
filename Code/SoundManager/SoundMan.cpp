@@ -690,7 +690,7 @@ U32 DACOM_API SoundManager::get_speaker_configuration()
 {
 	// returns DSounds speaker config, could just return m_speakerConfiguration
 	U32 currentSetting = SM_SPEAKER_STEREO;
-	U32 speakerConfiguration;
+	DWORD speakerConfiguration;
 	m_lpds->GetSpeakerConfig(&speakerConfiguration);
 	for (int i = SM_SPEAKER_HEADPHONE; i < SM_SPEAKER_NUM_SETTINGS; i++)
 	{
@@ -719,7 +719,7 @@ GENRESULT DACOM_API SoundManager::set_master_reverb(const U32 baseEnv, const SIN
 
 		LPDIRECTSOUNDBUFFER pBuffer = dummyBuffer.pBuffer;
 		LPKSPROPERTYSET pEAX;
-		U32 support = 0;
+		DWORD support = 0;
 		HRESULT r = m_lpds->CreateSoundBuffer(&dummyBuffer.desc, &pBuffer, NULL);
 		if (r == DS_OK)
 		{
@@ -912,11 +912,11 @@ GENRESULT DACOM_API SoundManager::get_property(ISoundSource* sound, REFGUID prop
 		LPKSPROPERTYSET pPropSet;
 		if ((*itr).m_lpSoundBuffer->QueryInterface(IID_IKsPropertySet, (void**)&pPropSet) == DS_OK)
 		{
-			U32 support = 0;
+			DWORD support = 0;
 			pPropSet->QuerySupport(propGUID, propID, &support);
 			if (support & (KSPROPERTY_SUPPORT_GET))
 			{
-				pPropSet->Get(propGUID, propID, NULL, 0, propData, sizeOfPropData, sizeOfDataWritten);
+				pPropSet->Get(propGUID, propID, NULL, 0, propData, sizeOfPropData, &reinterpret_cast<DWORD&>(sizeOfDataWritten));
 				retVal = GR_OK;
 			}
 			pPropSet->Release();
@@ -939,11 +939,11 @@ GENRESULT DACOM_API SoundManager::get_global_property(REFGUID propGUID, const U3
 		LPKSPROPERTYSET pPropSet;
 		if (m_lpdsPrimaryBuffer->QueryInterface(IID_IKsPropertySet, (void**)&pPropSet) == DS_OK)
 		{
-			U32 support = 0;
+			DWORD support = 0;
 			pPropSet->QuerySupport(propGUID, propID, &support);
 			if (support & (KSPROPERTY_SUPPORT_GET))
 			{
-				pPropSet->Get(propGUID, propID, NULL, 0, propData, sizeOfPropData, sizeOfDataWritten);
+				pPropSet->Get(propGUID, propID, NULL, 0, propData, sizeOfPropData, &reinterpret_cast<DWORD&>(sizeOfDataWritten));
 				retVal = GR_OK;
 			}
 			pPropSet->Release();
@@ -964,7 +964,7 @@ GENRESULT DACOM_API SoundManager::set_property(ISoundSource* sound, REFGUID prop
 		LPKSPROPERTYSET pPropSet;
 		if ((*itr).m_lpSoundBuffer->QueryInterface(IID_IKsPropertySet, (void**)&pPropSet) == DS_OK)
 		{
-			U32 support = 0;
+			DWORD support = 0;
 			pPropSet->QuerySupport(propGUID, propID, &support);
 			if (support & (KSPROPERTY_SUPPORT_SET))
 			{
@@ -991,7 +991,7 @@ GENRESULT DACOM_API SoundManager::set_global_property(REFGUID propGUID, const U3
 		LPKSPROPERTYSET pPropSet;
 		if (m_lpdsPrimaryBuffer->QueryInterface(IID_IKsPropertySet, (void**)&pPropSet) == DS_OK)
 		{
-			U32 support = 0;
+			DWORD support = 0;
 			pPropSet->QuerySupport(propGUID, propID, &support);
 			if (support & (KSPROPERTY_SUPPORT_SET))
 			{
@@ -2497,7 +2497,7 @@ void SoundManager::update_instance_data(SoundInstance& instance)
 {
 	SINGLE attenuation = 0.0f;
 	SINGLE freqFactor = 1.0f;
-	U32 freq;
+	DWORD freq;
 	LPDIRECTSOUND3DBUFFER lpDs3dBuffer = NULL;
 	S32 soundApplyMode = DS3D_DEFERRED;
 
@@ -2595,7 +2595,7 @@ void SoundManager::update_instance_data(SoundInstance& instance)
 			LPKSPROPERTYSET pEAX;
 			if (instance.m_lpSoundBuffer->QueryInterface(IID_IKsPropertySet, (void**)&pEAX) == DS_OK)
 			{
-				U32 support = 0;
+				DWORD support = 0;
 				pEAX->QuerySupport(DSPROPSETID_EAXBUFFER_ReverbProperties, DSPROPERTY_EAXBUFFER_REVERBMIX, &support);
 				if (support & (KSPROPERTY_SUPPORT_SET))
 				{
@@ -2639,7 +2639,7 @@ bool SoundManager::update_position(SoundInstance& instance)
 		SoundFile* soundFile = &ar->m_soundFile;					// get the sound format from the archetype
 		U32			msecs = m_currentTime - instance.soundSource->get_start_time();
 
-		U32 freq;	// just used to test the GetFrequency function (even though the buffer might have been created w/ the freq flag, it might not be available)
+		DWORD freq;	// just used to test the GetFrequency function (even though the buffer might have been created w/ the freq flag, it might not be available)
 		if ((instance.m_DSOUND_buffer_flags & DSBCAPS_CTRLFREQUENCY) && SUCCEEDED(instance.m_lpSoundBuffer->GetFrequency(&freq)))
 			instance.soundSource->get_frequency(&freqFactor);
 

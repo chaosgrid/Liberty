@@ -35,7 +35,7 @@ GENRESULT ProfileParser::Initialize(const C8* fileName, ACCESS access)
 	{
 		U32 fileSize;
 		C8* oldBuffer = fileBuffer;
-		U32 bytesRead;
+		DWORD bytesRead;
 
 		if (bBufferType == false)
 			fileSize = ::GetFileSize(hFile, 0);

@@ -400,7 +400,7 @@ target_link_libraries(SoundManager Core DACOM x86math ReadFile MSAcm32.Lib Winmm
 target_link_libraries(Shading Core)
 target_link_libraries(Server Core)
 target_link_libraries(RPCLocal Core)
-target_link_libraries(RP8 Core DACOM)
+target_link_libraries(RP8 Core DACOM x86math)
 target_link_libraries(RendComp Core)
 
 add_dependencies(FreeLancer 

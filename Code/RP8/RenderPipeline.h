@@ -12,8 +12,8 @@
 //--------------------------------------------------------------------------//
 
 struct RGB;
-struct Matrix4;
-struct Transform;
+class Matrix4;
+class Transform;
 
 #include "RPVertexBuffer.h"
 #include "RPIndexBuffer.h"
@@ -382,7 +382,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(get_viewport)(int* x, int* y, int* w, int* h) = 0;
+	DACOM_DEFMETHOD(get_viewport)(int* out_x, int* out_y, int* out_w, int* out_h) = 0;
 
 	// set_depth_range
 	//
@@ -427,10 +427,10 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	//
 	DACOM_DEFMETHOD(get_window)(HWND* out_wnd, int* out_x, int* out_y, int* out_w, int* out_h) = 0;
 
-	DACOM_DEFMETHOD(set_world)(const Transform* world) = 0;
-	DACOM_DEFMETHOD(get_world)(Transform* world) = 0;
-	DACOM_DEFMETHOD(set_view)(const Transform* view) = 0;
-	DACOM_DEFMETHOD(get_view)(Transform* modelview) = 0;
+	DACOM_DEFMETHOD(set_world)(const Transform& world) = 0;
+	DACOM_DEFMETHOD(get_world)(Transform& world) = 0;
+	DACOM_DEFMETHOD(set_view)(const Transform& view) = 0;
+	DACOM_DEFMETHOD(get_view)(Transform& view) = 0;
 
 	// set_modelview
 	//
@@ -439,7 +439,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(set_modelview)(const Transform* modelview) = 0;
+	DACOM_DEFMETHOD(set_modelview)(const Transform& modelview) = 0;
 
 	// get_modelview
 	//
@@ -448,7 +448,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(get_modelview)(Transform* modelview) = 0;
+	DACOM_DEFMETHOD(get_modelview)(Transform& modelview) = 0;
 
 	// set_projection
 	//
@@ -457,7 +457,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(set_projection)(const Transform* projection) = 0;
+	DACOM_DEFMETHOD(set_projection)(const Matrix4& projection) = 0;
 
 	// get_projection
 	//
@@ -466,7 +466,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(get_projection)(Transform* projection) = 0;
+	DACOM_DEFMETHOD(get_projection)(Matrix4& projection) = 0;
 
 	// set_lookat
 	//

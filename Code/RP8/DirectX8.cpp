@@ -6,15 +6,15 @@
 #include "GammaControl.h"
 #include "RPTexture.h"
 #include "RPInternal.h"
+#include "CachedMatrix.h"
+#include "CachedViewport.h"
+#include "StateInfo.h"
 
 #include <d3d8.h>
-
 #include <Dump.h>
+#include <FLHook_st6.h>
 
 #define uint U32
-#define st6_malloc_t decltype(&malloc)
-#define st6_free_t decltype(&free)
-#include <FLHook_st6.h>
 
 TRAMPOLINE(IRenderPipeline8B*, __thiscall, DirectX8_Ctor, _sub_6D01143, IRenderPipeline8B* _this);
 TRAMPOLINE(IRenderPipeline8B*, __thiscall, DirectX8_Dtor, _sub_6D01689, IRenderPipeline8B* _this);
@@ -38,19 +38,19 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_buffer, _sub_6D0A6C1, IRenderPi
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_buffer_interface, _sub_6D0A7EC, IRenderPipeline8B* _this, const char* iid, void** out_iif);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_device_stats, _sub_6D0A863, IRenderPipeline8B* _this, RPDEVICESTATS* stat);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_viewport, _sub_6D0A8D0, IRenderPipeline8B* _this, int x, int y, int w, int h);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_viewport, _sub_6D0AABC, IRenderPipeline8B* _this, int* x, int* y, int* w, int* h);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_viewport, _sub_6D0AABC, IRenderPipeline8B* _this, int* out_x, int* out_y, int* out_w, int* out_h);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_depth_range, _sub_6D0ABB2, IRenderPipeline8B* _this, float lower_z_bound, float upper_z_bound);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_depth_range, _sub_6D0ACA6, IRenderPipeline8B* _this, float* lower_z_bound, float* upper_z_bound);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_window, _sub_6D0AD7D, IRenderPipeline8B* _this, HWND hwnd, int x, int y, int w, int h);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_window, _sub_6D0AE23, IRenderPipeline8B* _this, HWND* out_hwnd, int* out_x, int* out_y, int* out_w, int* out_h);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_world, _sub_6D0B09D, IRenderPipeline8B* _this, const Transform* world);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_world, _sub_6D0B3DD, IRenderPipeline8B* _this, Transform* world);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_view, _sub_6D0B607, IRenderPipeline8B* _this, const Transform* view);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_view, _sub_6D0B939, IRenderPipeline8B* _this, Transform* modelview);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_modelview, _sub_6D0BB58, IRenderPipeline8B* _this, const Transform* modelview);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_modelview, _sub_6D0BF39, IRenderPipeline8B* _this, Transform* modelview);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_projection, _sub_6D0C29E, IRenderPipeline8B* _this, const Transform* projection);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_projection, _sub_6D0C438, IRenderPipeline8B* _this, Transform* projection);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_world, _sub_6D0B09D, IRenderPipeline8B* _this, const Transform& world);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_world, _sub_6D0B3DD, IRenderPipeline8B* _this, Transform& world);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_view, _sub_6D0B607, IRenderPipeline8B* _this, const Transform& view);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_view, _sub_6D0B939, IRenderPipeline8B* _this, Transform& view);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_modelview, _sub_6D0BB58, IRenderPipeline8B* _this, const Transform& modelview);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_modelview, _sub_6D0BF39, IRenderPipeline8B* _this, Transform& modelview);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_projection, _sub_6D0C29E, IRenderPipeline8B* _this, const Matrix4& projection);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_projection, _sub_6D0C438, IRenderPipeline8B* _this, Matrix4& projection);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_lookat, _sub_6D0C57C, IRenderPipeline8B* _this, float eyex, float eyey, float eyez, float centerx, float centery, float centerz, float upx, float upy, float upz);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_ortho, _sub_6D0C9C2, IRenderPipeline8B* _this, float left, float right, float bottom, float top, float nearval, float farval);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_perspective, _sub_6D0CB25, IRenderPipeline8B* _this, float fovy, float aspect, float znear, float zfar);
@@ -138,20 +138,6 @@ struct CACHED_PIPELINE_STATE
 	DWORD value;
 	DWORD unknown4;
 	DWORD valid;
-};
-
-struct RPSTATEINFO
-{
-	const char* key_name;
-	U32 enum_value;
-	U32	ct_default_value;	// compile time default
-	U32 rt_default_value;	// runtime default
-	BYTE valid;
-
-	bool is_valid(void)
-	{
-		return valid;
-	}
 };
 
 class DirectX8 : IRenderPipeline8B, IVertexBufferManager, IRPDraw, IRPIndexBuffer, IRPVertexBuffer, IGammaControl, IRPTexture, IAggregateComponent
@@ -2151,26 +2137,10 @@ public:
 	DWORD unknown21F0;
 	DWORD unknown21F4;
 	DWORD unknown21F8;
-	D3DMATRIX Mview;
-	BYTE unknown223C;
-	BYTE unknown223D;
-	BYTE unknown223E;
-	BYTE unknown223F;
-	D3DMATRIX Mworld;
-	BYTE unknown2280_set_to_zero_in_set_world;
-	BYTE unknown2281;
-	BYTE unknown2282;
-	BYTE unknown2283;
-	D3DMATRIX Mprojection;
-	BYTE unknown22C4;
-	BYTE unknown22C5;
-	BYTE unknown22C6;
-	BYTE unknown22C7;
-	D3DVIEWPORT8 direct3d_viewport;
-	BYTE unknown22E0_set_to_zero_after_viewport;
-	BYTE unknown22E1_set_to_zero_after_viewport;
-	BYTE unknown22E2;
-	BYTE unknown22E3;
+	CACHED_MATRIX curr_hw_view;
+	CACHED_MATRIX curr_hw_world;
+	CACHED_MATRIX curr_hw_projection;
+	CACHED_VIEWPORT curr_hw_viewport;
 	DWORD unknown22E4;
 	DWORD unknown22E8;
 	DWORD unknown22EC;
@@ -2230,19 +2200,19 @@ public:
 	DACOM_DEFMETHOD(get_buffer_interface)(const char* iid, void** out_iif) override;
 	DACOM_DEFMETHOD(get_device_stats)(RPDEVICESTATS* stat) override;
 	DACOM_DEFMETHOD(set_viewport)(int x, int y, int w, int h) override;
-	DACOM_DEFMETHOD(get_viewport)(int* x, int* y, int* w, int* h) override;
+	DACOM_DEFMETHOD(get_viewport)(int* out_x, int* out_y, int* out_w, int* out_h) override;
 	DACOM_DEFMETHOD(set_depth_range)(float lower_z_bound, float upper_z_bound) override;
 	DACOM_DEFMETHOD(get_depth_range)(float* lower_z_bound, float* upper_z_bound) override;
 	DACOM_DEFMETHOD(set_window)(HWND hwnd, int x, int y, int w, int h) override;
 	DACOM_DEFMETHOD(get_window)(HWND* out_hwnd, int* out_x, int* out_y, int* out_w, int* out_h) override;
-	DACOM_DEFMETHOD(set_world)(const Transform* world) override;
-	DACOM_DEFMETHOD(get_world)(Transform* world) override;
-	DACOM_DEFMETHOD(set_view)(const Transform* view) override;
-	DACOM_DEFMETHOD(get_view)(Transform* modelview) override;
-	DACOM_DEFMETHOD(set_modelview)(const Transform* modelview) override;
-	DACOM_DEFMETHOD(get_modelview)(Transform* modelview) override;
-	DACOM_DEFMETHOD(set_projection)(const Transform* projection) override;
-	DACOM_DEFMETHOD(get_projection)(Transform* projection) override;
+	DACOM_DEFMETHOD(set_world)(const Transform& world) override;
+	DACOM_DEFMETHOD(get_world)(Transform& world) override;
+	DACOM_DEFMETHOD(set_view)(const Transform& view) override;
+	DACOM_DEFMETHOD(get_view)(Transform& view) override;
+	DACOM_DEFMETHOD(set_modelview)(const Transform& modelview) override;
+	DACOM_DEFMETHOD(get_modelview)(Transform& modelview) override;
+	DACOM_DEFMETHOD(set_projection)(const Matrix4& projection) override;
+	DACOM_DEFMETHOD(get_projection)(Matrix4& projection) override;
 	DACOM_DEFMETHOD(set_lookat)(float eyex, float eyey, float eyez, float centerx, float centery, float centerz, float upx, float upy, float upz) override;
 	DACOM_DEFMETHOD(set_ortho)(float left, float right, float bottom, float top, float nearval, float farval) override;
 	DACOM_DEFMETHOD(set_perspective)(float fovy, float aspect, float znear, float zfar) override;
@@ -2482,9 +2452,9 @@ GENRESULT DirectX8::set_viewport(int x, int y, int w, int h)
 	return result;
 }
 
-GENRESULT DirectX8::get_viewport(int* x, int* y, int* w, int* h)
+GENRESULT DirectX8::get_viewport(int* out_x, int* out_y, int* out_w, int* out_h)
 {
-	GENRESULT result = DirectX8_get_viewport(this, x, y, w, h);
+	GENRESULT result = DirectX8_get_viewport(this, out_x, out_y, out_w, out_h);
 	return result;
 }
 
@@ -2512,49 +2482,49 @@ GENRESULT DirectX8::get_window(HWND* out_hwnd, int* out_x, int* out_y, int* out_
 	return result;
 }
 
-GENRESULT DirectX8::set_world(const Transform* world)
+GENRESULT DirectX8::set_world(const Transform& world)
 {
 	GENRESULT result = DirectX8_set_world(this, world);
 	return result;
 }
 
-GENRESULT DirectX8::get_world(Transform* world)
+GENRESULT DirectX8::get_world(Transform& world)
 {
 	GENRESULT result = DirectX8_get_world(this, world);
 	return result;
 }
 
-GENRESULT DirectX8::set_view(const Transform* view)
+GENRESULT DirectX8::set_view(const Transform& view)
 {
 	GENRESULT result = DirectX8_set_view(this, view);
 	return result;
 }
 
-GENRESULT DirectX8::get_view(Transform* modelview)
+GENRESULT DirectX8::get_view(Transform& view)
 {
-	GENRESULT result = DirectX8_get_view(this, modelview);
+	GENRESULT result = DirectX8_get_view(this, view);
 	return result;
 }
 
-GENRESULT DirectX8::set_modelview(const Transform* modelview)
+GENRESULT DirectX8::set_modelview(const Transform& modelview)
 {
 	GENRESULT result = DirectX8_set_modelview(this, modelview);
 	return result;
 }
 
-GENRESULT DirectX8::get_modelview(Transform* modelview)
+GENRESULT DirectX8::get_modelview(Transform& modelview)
 {
 	GENRESULT result = DirectX8_get_modelview(this, modelview);
 	return result;
 }
 
-GENRESULT DirectX8::set_projection(const Transform* projection)
+GENRESULT DirectX8::set_projection(const Matrix4& projection)
 {
 	GENRESULT result = DirectX8_set_projection(this, projection);
 	return result;
 }
 
-GENRESULT DirectX8::get_projection(Transform* projection)
+GENRESULT DirectX8::get_projection(Matrix4& projection)
 {
 	GENRESULT result = DirectX8_get_projection(this, projection);
 	return result;

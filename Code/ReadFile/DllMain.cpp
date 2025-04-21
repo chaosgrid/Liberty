@@ -30,7 +30,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,
 		if (StartUpFileSystem() == 0)
 			return 0;
 #endif
-
+		
 		pFirstSystem = new DAComponent<DOSFileSystem>;
 		if ((pFirstSystem != NULL) && (DACOM = DACOM_Acquire()) != NULL)
 		{

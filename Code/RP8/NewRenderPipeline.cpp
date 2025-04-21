@@ -6,19 +6,20 @@
 #include "GammaControl.h"
 #include "RPTexture.h"
 #include "RPInternal.h"
+#include "CachedMatrix.h"
+#include "CachedViewport.h"
 
+#include <Matrix4.h>
 #include <IProfileParser_Utility.h>
-
 #include <d3d8.h>
-
 #include <Dump.h>
-
-#define uint U32
-#define st6_malloc_t decltype(&malloc)
-#define st6_free_t decltype(&free)
+#include <3dMath.h>
 #include <FLHook_st6.h>
-const st6_malloc_t st6_malloc = &malloc;
-const st6_free_t st6_free = &free;
+
+static void Transform2D3D(D3DMATRIX& dst, const Transform& src);
+static void D3D2Transform(const D3DMATRIX& src, Transform& dest);
+static void Matrix2D3D(D3DMATRIX& dst, const Matrix4& src);
+static void D3D2Matrix(const D3DMATRIX& src, Matrix4& dest);
 
 #define CHECK_STARTUP() \
 if (direct3d_adapter == -1) \
@@ -27,7 +28,12 @@ if (direct3d_adapter == -1) \
 	return GR_GENERIC; \
 }
 
-#define CHECK_CREATE_BUFFERS() NOT_IMPLEMENTED;
+#define CHECK_DEVICE_LIFETIME() \
+if (direct3d_device == NULL) \
+{ \
+	GENERAL_ERROR(TEMPSTR("%s() called outside of device lifetime", __FUNCTION__)); \
+	return GR_GENERIC; \
+}
 
 #define HRESULT_GET_ERROR_STRING(...) (explode(), (const char*)0)
 
@@ -183,19 +189,10 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_lock_buffer, _sub_6D09F96, IRenderPipe
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_buffer, _sub_6D0A6C1, IRenderPipeline8B* _this);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_buffer_interface, _sub_6D0A7EC, IRenderPipeline8B* _this, const char* iid, void** out_iif);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_device_stats, _sub_6D0A863, IRenderPipeline8B* _this, RPDEVICESTATS* stat);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_viewport, _sub_6D0AABC, IRenderPipeline8B* _this, int* x, int* y, int* w, int* h);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_depth_range, _sub_6D0ABB2, IRenderPipeline8B* _this, float lower_z_bound, float upper_z_bound);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_depth_range, _sub_6D0ACA6, IRenderPipeline8B* _this, float* lower_z_bound, float* upper_z_bound);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_window, _sub_6D0AD7D, IRenderPipeline8B* _this, HWND hwnd, int x, int y, int w, int h);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_window, _sub_6D0AE23, IRenderPipeline8B* _this, HWND* out_hwnd, int* out_x, int* out_y, int* out_w, int* out_h);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_world, _sub_6D0B09D, IRenderPipeline8B* _this, const Transform* world);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_world, _sub_6D0B3DD, IRenderPipeline8B* _this, Transform* world);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_view, _sub_6D0B607, IRenderPipeline8B* _this, const Transform* view);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_view, _sub_6D0B939, IRenderPipeline8B* _this, Transform* modelview);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_modelview, _sub_6D0BB58, IRenderPipeline8B* _this, const Transform* modelview);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_modelview, _sub_6D0BF39, IRenderPipeline8B* _this, Transform* modelview);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_projection, _sub_6D0C29E, IRenderPipeline8B* _this, const Transform* projection);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_projection, _sub_6D0C438, IRenderPipeline8B* _this, Transform* projection);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_projection, _sub_6D0C29E, IRenderPipeline8B* _this, const Transform& projection);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_projection, _sub_6D0C438, IRenderPipeline8B* _this, Transform& projection);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_lookat, _sub_6D0C57C, IRenderPipeline8B* _this, float eyex, float eyey, float eyez, float centerx, float centery, float centerz, float upx, float upy, float upz);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_ortho, _sub_6D0C9C2, IRenderPipeline8B* _this, float left, float right, float bottom, float top, float nearval, float farval);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_perspective, _sub_6D0CB25, IRenderPipeline8B* _this, float fovy, float aspect, float znear, float zfar);
@@ -283,20 +280,6 @@ struct CACHED_PIPELINE_STATE
 	DWORD value;
 	DWORD unknown4;
 	DWORD valid;
-};
-
-struct RPSTATEINFO
-{
-	const char* key_name;
-	U32 enum_value;
-	U32	ct_default_value;	// compile time default
-	U32 rt_default_value;	// runtime default
-	BYTE valid;
-
-	bool is_valid(void)
-	{
-		return valid;
-	}
 };
 
 class NewRenderPipeline : IRenderPipeline8B, IVertexBufferManager, IRPDraw, IRPIndexBuffer, IRPVertexBuffer, IGammaControl, IRPTexture, IAggregateComponent
@@ -2297,26 +2280,10 @@ public:
 	DWORD unknown21F0;
 	DWORD unknown21F4;
 	DWORD unknown21F8;
-	D3DMATRIX Mview;
-	BYTE unknown223C;
-	BYTE unknown223D;
-	BYTE unknown223E;
-	BYTE unknown223F;
-	D3DMATRIX Mworld;
-	BYTE unknown2280_set_to_zero_in_set_world;
-	BYTE unknown2281;
-	BYTE unknown2282;
-	BYTE unknown2283;
-	D3DMATRIX Mprojection;
-	BYTE unknown22C4;
-	BYTE unknown22C5;
-	BYTE unknown22C6;
-	BYTE unknown22C7;
-	D3DVIEWPORT8 direct3d_viewport;
-	BYTE unknown22E0_set_to_zero_after_viewport;
-	BYTE unknown22E1_set_to_zero_after_viewport;
-	BYTE unknown22E2;
-	BYTE unknown22E3;
+	CACHED_MATRIX curr_hw_view;
+	CACHED_MATRIX curr_hw_world;
+	CACHED_MATRIX curr_hw_projection;
+	CACHED_VIEWPORT curr_hw_viewport;
 	DWORD unknown22E4;
 	DWORD unknown22E8;
 	DWORD unknown22EC;
@@ -2381,19 +2348,19 @@ public:
 	DACOM_DEFMETHOD(get_buffer_interface)(const char* iid, void** out_iif) override;
 	DACOM_DEFMETHOD(get_device_stats)(RPDEVICESTATS* stat) override;
 	DACOM_DEFMETHOD(set_viewport)(int x, int y, int w, int h) override;
-	DACOM_DEFMETHOD(get_viewport)(int* x, int* y, int* w, int* h) override;
+	DACOM_DEFMETHOD(get_viewport)(int* out_x, int* out_y, int* out_w, int* out_h) override;
 	DACOM_DEFMETHOD(set_depth_range)(float lower_z_bound, float upper_z_bound) override;
 	DACOM_DEFMETHOD(get_depth_range)(float* lower_z_bound, float* upper_z_bound) override;
 	DACOM_DEFMETHOD(set_window)(HWND hwnd, int x, int y, int w, int h) override;
 	DACOM_DEFMETHOD(get_window)(HWND* out_hwnd, int* out_x, int* out_y, int* out_w, int* out_h) override;
-	DACOM_DEFMETHOD(set_world)(const Transform* world) override;
-	DACOM_DEFMETHOD(get_world)(Transform* world) override;
-	DACOM_DEFMETHOD(set_view)(const Transform* view) override;
-	DACOM_DEFMETHOD(get_view)(Transform* modelview) override;
-	DACOM_DEFMETHOD(set_modelview)(const Transform* modelview) override;
-	DACOM_DEFMETHOD(get_modelview)(Transform* modelview) override;
-	DACOM_DEFMETHOD(set_projection)(const Transform* projection) override;
-	DACOM_DEFMETHOD(get_projection)(Transform* projection) override;
+	DACOM_DEFMETHOD(set_world)(const Transform& world) override;
+	DACOM_DEFMETHOD(get_world)(Transform& world) override;
+	DACOM_DEFMETHOD(set_view)(const Transform& view) override;
+	DACOM_DEFMETHOD(get_view)(Transform& view) override;
+	DACOM_DEFMETHOD(set_modelview)(const Transform& modelview) override;
+	DACOM_DEFMETHOD(get_modelview)(Transform& modelview) override;
+	DACOM_DEFMETHOD(set_projection)(const Matrix4& projection) override;
+	DACOM_DEFMETHOD(get_projection)(Matrix4& projection) override;
 	DACOM_DEFMETHOD(set_lookat)(float eyex, float eyey, float eyez, float centerx, float centery, float centerz, float upx, float upy, float upz) override;
 	DACOM_DEFMETHOD(set_ortho)(float left, float right, float bottom, float top, float nearval, float farval) override;
 	DACOM_DEFMETHOD(set_perspective)(float fovy, float aspect, float znear, float zfar) override;
@@ -3033,8 +3000,8 @@ GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinf
 	sub_6D03C94(this);
 	sub_6D047DF(this);
 
-	this->unknown22E0_set_to_zero_after_viewport = 0;
-	this->unknown22E1_set_to_zero_after_viewport = 0;
+	curr_hw_viewport.invalidate();
+
 	GENRESULT result = GR_GENERIC;
 	if (FAILED(result = set_viewport(0, 0, this->buffers_info.width, this->buffers_info.height)))
 	{
@@ -3106,67 +3073,49 @@ GENRESULT NewRenderPipeline::get_device_stats(RPDEVICESTATS* stat)
 
 GENRESULT NewRenderPipeline::set_viewport(int x, int y, int w, int h)
 {
-	CHECK_STARTUP();
+	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT result = GR_GENERIC;
-
-	IDirect3DDevice8* direct3d_device; // [esp+4h] [ebp-2018h]
-	D3DVIEWPORT8* p_direct3d_viewport; // [esp+8h] [ebp-2014h]
-	HRESULT hr; // [esp+2018h] [ebp-4h] MAPDST
-
-	if (this->direct3d_device)
-	{
-		direct3d_device = this->direct3d_device;
-		p_direct3d_viewport = &this->direct3d_viewport;
-		if (this->unknown22E1_set_to_zero_after_viewport
-			&& x == p_direct3d_viewport->X
-			&& y == this->direct3d_viewport.Y
-			&& w == this->direct3d_viewport.Width
-			&& h == this->direct3d_viewport.Height)
-		{
-			hr = 0;
-		}
-		else
-		{
-			p_direct3d_viewport->X = x;
-			this->direct3d_viewport.Y = y;
-			this->direct3d_viewport.Width = w;
-			this->direct3d_viewport.Height = h;
-			hr = direct3d_device->SetViewport(p_direct3d_viewport);
-			if (hr >= 0)
-				this->unknown22E1_set_to_zero_after_viewport = 1;
-		}
-		if (FAILED(hr))
-		{
-			GENERAL_ERROR(TEMPSTR("create_buffers_select_mode: %s", HRESULT_GET_ERROR_STRING(hr)));
-			return (GENRESULT)hr;
-		}
-		else
-		{
-			result = GR_OK;
-		}
-	}
+	curr_hw_viewport.set_viewport(
+		direct3d_device,
+		static_cast<U32>(x),
+		static_cast<U32>(y),
+		static_cast<U32>(w),
+		static_cast<U32>(h),
+		true);
 	
-	return result;
+	return GR_OK;
 }
 
-GENRESULT NewRenderPipeline::get_viewport(int* x, int* y, int* w, int* h)
+GENRESULT NewRenderPipeline::get_viewport(int* out_x, int* out_y, int* out_w, int* out_h)
 {
-	GENRESULT result = DirectX8_get_viewport(this, x, y, w, h);
-	return result;
+	CHECK_DEVICE_LIFETIME();
+
+	curr_hw_viewport.get_viewport(
+		direct3d_device, 
+		reinterpret_cast<U32*>(out_x),
+		reinterpret_cast<U32*>(out_y),
+		reinterpret_cast<U32*>(out_w),
+		reinterpret_cast<U32*>(out_h));
+
+	return GR_OK;
 }
 
 GENRESULT NewRenderPipeline::set_depth_range(float lower_z_bound, float upper_z_bound)
 {
-	GENRESULT result = DirectX8_set_depth_range(this, lower_z_bound, upper_z_bound);
-	return result;
+	CHECK_DEVICE_LIFETIME();
+
+	curr_hw_viewport.set_depth_range(direct3d_device, lower_z_bound, upper_z_bound, true);
+
+	return GR_OK;
 }
 
 GENRESULT NewRenderPipeline::get_depth_range(float* lower_z_bound, float* upper_z_bound)
 {
-	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_get_depth_range(this, lower_z_bound, upper_z_bound);
-	return result;
+	CHECK_DEVICE_LIFETIME();
+
+	curr_hw_viewport.get_depth_range(direct3d_device, lower_z_bound, upper_z_bound);
+
+	return GR_OK;
 }
 
 GENRESULT NewRenderPipeline::set_window(HWND hwnd, int x, int y, int w, int h)
@@ -3183,58 +3132,112 @@ GENRESULT NewRenderPipeline::get_window(HWND* out_hwnd, int* out_x, int* out_y, 
 	return result;
 }
 
-GENRESULT NewRenderPipeline::set_world(const Transform* world)
+
+GENRESULT NewRenderPipeline::set_world(const Transform& world)
 {
-	//NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_set_world(this, world);
+	CHECK_DEVICE_LIFETIME();
+
+	Transform T(false), M(false);
+	T.set_identity();
+	T.d[2][2] *= -1.0f;
+	M = T * world;
+
+	D3DMATRIX W;
+	Transform2D3D(W, M);
+	curr_hw_world.set(direct3d_device, D3DTS_WORLD, &W);
+
+	return GR_OK;
+}
+
+GENRESULT NewRenderPipeline::get_world(Transform& world)
+{
+	CHECK_DEVICE_LIFETIME();
+
+	D3DMATRIX M;
+	Transform T(false);
+
+	curr_hw_world.get(direct3d_device, D3DTS_WORLD, &M);
+
+	D3D2Transform(M, world);
+
+	T.set_identity();
+	T.d[2][2] *= -1.0f;
+
+	world = T * world;
+
+	return GR_OK;
+}
+
+GENRESULT NewRenderPipeline::set_view(const Transform& view)
+{
+	CHECK_DEVICE_LIFETIME();
+
+	Transform T(false), M(false);
+	T.set_identity();
+	T.d[2][2] *= -1.0f;
+	M = T * view;
+
+	D3DMATRIX V;
+	Transform2D3D(V, M);
+
+	curr_hw_view.set(direct3d_device, D3DTS_VIEW, &V);
+
+	return GR_OK;
+}
+
+GENRESULT NewRenderPipeline::get_view(Transform& view)
+{
+	CHECK_DEVICE_LIFETIME();
+
+	D3DMATRIX M;
+	Transform T(false);
+
+	curr_hw_view.get(direct3d_device, D3DTS_VIEW, &M);
+
+	D3D2Transform(M, view);
+
+	T.set_identity();
+	T.d[2][2] *= -1.0f;
+
+	view = T * view;
+
+	return GR_OK;
+}
+
+GENRESULT __stdcall NewRenderPipeline::set_modelview(const Transform& modelview)
+{
+	GENRESULT result = set_world(modelview);
 	return result;
 }
 
-GENRESULT NewRenderPipeline::get_world(Transform* world)
+GENRESULT NewRenderPipeline::get_modelview(Transform& modelview)
 {
-	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_get_world(this, world);
+	GENRESULT result = get_world(modelview);
 	return result;
 }
 
-GENRESULT NewRenderPipeline::set_view(const Transform* view)
+GENRESULT NewRenderPipeline::set_projection(const Matrix4& projection)
 {
-	//NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_set_view(this, view);
-	return result;
+	CHECK_DEVICE_LIFETIME();
+
+	D3DMATRIX P;
+	Matrix2D3D(P, projection);
+	curr_hw_projection.set(direct3d_device, D3DTS_PROJECTION, &P);
+	return GR_OK;
 }
 
-GENRESULT NewRenderPipeline::get_view(Transform* modelview)
+GENRESULT NewRenderPipeline::get_projection(Matrix4& projection)
 {
-	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_get_view(this, modelview);
-	return result;
-}
+	CHECK_DEVICE_LIFETIME();
 
-GENRESULT NewRenderPipeline::set_modelview(const Transform* modelview)
-{
-	GENRESULT result = DirectX8_set_modelview(this, modelview);
-	return result;
-}
 
-GENRESULT NewRenderPipeline::get_modelview(Transform* modelview)
-{
-	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_get_modelview(this, modelview);
-	return result;
-}
+	D3DMATRIX P;
 
-GENRESULT NewRenderPipeline::set_projection(const Transform* projection)
-{
-	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_set_projection(this, projection);
-	return result;
-}
+	curr_hw_projection.get(direct3d_device, D3DTS_PROJECTION, &P);
 
-GENRESULT NewRenderPipeline::get_projection(Transform* projection)
-{
-	GENRESULT result = DirectX8_get_projection(this, projection);
-	return result;
+	D3D2Matrix(P, projection);
+
+	return GR_OK;
 }
 
 GENRESULT NewRenderPipeline::set_lookat(float eyex, float eyey, float eyez, float centerx, float centery, float centerz, float upx, float upy, float upz)
@@ -3754,4 +3757,96 @@ extern "C"
 		}
 		unused(result);
 	}
+}
+
+static void Transform2D3D(D3DMATRIX& dst, const Transform& src)
+{
+	// Transpose rotation.
+
+	dst.m[0][0] = src.d[0][0];
+	dst.m[1][0] = src.d[0][1];
+	dst.m[2][0] = src.d[0][2];
+	dst.m[0][1] = src.d[1][0];
+	dst.m[1][1] = src.d[1][1];
+	dst.m[2][1] = src.d[1][2];
+	dst.m[0][2] = src.d[2][0];
+	dst.m[1][2] = src.d[2][1];
+	dst.m[2][2] = src.d[2][2];
+
+	dst.m[3][0] = src.translation.x;
+	dst.m[3][1] = src.translation.y;
+	dst.m[3][2] = src.translation.z;
+	dst.m[0][3] =
+		dst.m[1][3] =
+		dst.m[2][3] = 0;
+	dst.m[3][3] = 1;
+}
+
+static void D3D2Transform(const D3DMATRIX& src, Transform& dest)
+{
+	// Transpose rotation.
+
+	dest.d[0][0] = src.m[0][0];
+	dest.d[0][1] = src.m[1][0];
+	dest.d[0][2] = src.m[2][0];
+	dest.d[1][0] = src.m[0][1];
+	dest.d[1][1] = src.m[1][1];
+	dest.d[1][2] = src.m[2][1];
+	dest.d[2][0] = src.m[0][2];
+	dest.d[2][1] = src.m[1][2];
+	dest.d[2][2] = src.m[2][2];
+
+	dest.translation.x = src.m[3][0];
+	dest.translation.y = src.m[3][1];
+	dest.translation.z = src.m[3][2];
+}
+
+static void Matrix2D3D(D3DMATRIX& dst, const Matrix4& src)
+{
+	// Transpose rotation.
+
+	dst.m[0][0] = src.d[0][0];
+	dst.m[1][0] = src.d[0][1];
+	dst.m[2][0] = src.d[0][2];
+	dst.m[3][0] = src.d[0][3];
+
+	dst.m[0][1] = src.d[1][0];
+	dst.m[1][1] = src.d[1][1];
+	dst.m[2][1] = src.d[1][2];
+	dst.m[3][1] = src.d[1][3];
+
+	dst.m[0][2] = src.d[2][0];
+	dst.m[1][2] = src.d[2][1];
+	dst.m[2][2] = src.d[2][2];
+	dst.m[3][2] = src.d[2][3];
+
+	dst.m[0][3] = src.d[3][0];
+	dst.m[1][3] = src.d[3][1];
+	dst.m[2][3] = src.d[3][2];
+	dst.m[3][3] = src.d[3][3];
+}
+
+static void D3D2Matrix(const D3DMATRIX& src, Matrix4& dest)
+{
+	// Transpose rotation.
+
+	dest.d[0][0] = src.m[0][0];
+	dest.d[0][1] = src.m[1][0];
+	dest.d[0][2] = src.m[2][0];
+	dest.d[0][3] = src.m[3][0];
+
+	dest.d[1][0] = src.m[0][1];
+	dest.d[1][1] = src.m[1][1];
+	dest.d[1][2] = src.m[2][1];
+	dest.d[1][3] = src.m[3][1];
+
+	dest.d[2][0] = src.m[0][2];
+	dest.d[2][1] = src.m[1][2];
+	dest.d[2][2] = src.m[2][2];
+	dest.d[2][3] = src.m[3][2];
+
+	dest.d[3][0] = src.m[0][3];
+	dest.d[3][1] = src.m[1][3];
+	dest.d[3][2] = src.m[2][3];
+	dest.d[3][3] = src.m[3][3];
 }

@@ -1,14 +1,18 @@
 ﻿#pragma once
 
+#ifdef __INTELLISENSE__
+#include <map>
+#define st6 std
+
+#else
+
 // N.B.: Must be included *after* FLHook.hpp; st6_malloc and st6_free must be defined!
 
-#ifdef SERVER
-extern DLL const st6_malloc_t st6_malloc;
-extern DLL const st6_free_t st6_free;
-#else
-extern const st6_malloc_t st6_malloc;
-extern const st6_free_t st6_free;
-#endif
+extern void* (*st6_malloc)(size_t size);
+extern void (*st6_free)(void* ptr);
+#define ST6_MALLOC_FREE_DECLARE(_malloc, _free) \
+void* (*st6_malloc)(size_t size) = (_malloc); \
+void (*st6_free)(void* ptr) = (_free)
 
 #include <yvals.h>
 
@@ -263,7 +267,7 @@ namespace st6
 
             void insert(iterator _P, size_type _M, const _Ty& _X)
             {
-                if (static_cast<uint>(_End - _Last) < _M)
+                if (static_cast<unsigned int>(_End - _Last) < _M)
                 {
                     size_type _N = size() + (_M < size() ? size() : _M);
                     iterator _S = allocator.allocate(_N, (void*)0);
@@ -276,7 +280,7 @@ namespace st6
                     _Last = _S + size() + _M;
                     _First = _S;
                 }
-                else if (static_cast<uint>(_Last - _P) < _M)
+                else if (static_cast<unsigned int>(_Last - _P) < _M)
                 {
                     _Ucopy(_P, _Last, _P + _M);
                     _Ufill(_Last, _M - (_Last - _P), _X);
@@ -2963,3 +2967,5 @@ namespace st6
     typedef basic_string<char, ci_char_traits, allocator<char>> string;
     typedef basic_string<unsigned short, ci_wchar_traits, allocator<unsigned short>> wstring;
 } // namespace st6
+
+#endif // __INTELLISENSE__

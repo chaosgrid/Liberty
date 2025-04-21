@@ -4,6 +4,9 @@
 
 extern "C" __declspec(dllexport) void Liberty() {}
 
+#include <FLHook_st6.h>
+ST6_MALLOC_FREE_DECLARE(&malloc, &free);
+
 _extern _naked void sub_6D158DA() // _DllMain@12
 {
     __DEBUG_ASM(6D158DA);
