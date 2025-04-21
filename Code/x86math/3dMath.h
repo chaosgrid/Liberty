@@ -148,6 +148,11 @@ inline void __stdcall MATH_ENGINE_Uninitialize(void)
 X86MATH_DEC extern I3DMathEngine& MATH_ENGINE;
 X86MATH_DEC I3DMathEngine* __stdcall __MATH_ENGINE(void);
 
+X86MATH_DEC extern "C" 
+{
+	extern void Register_3DMathEngine();
+}
+
 /* ---------- globals */
 
 /* ---------- inline code */
