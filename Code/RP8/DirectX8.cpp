@@ -54,11 +54,11 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_projection, _sub_6D0C438, IRenderP
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_lookat, _sub_6D0C57C, IRenderPipeline8B* _this, float eyex, float eyey, float eyez, float centerx, float centery, float centerz, float upx, float upy, float upz);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_ortho, _sub_6D0C9C2, IRenderPipeline8B* _this, float left, float right, float bottom, float top, float nearval, float farval);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_perspective, _sub_6D0CB25, IRenderPipeline8B* _this, float fovy, float aspect, float znear, float zfar);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_light, _sub_6D0CE57, IRenderPipeline8B* _this, U32 light_index, const _D3DLIGHT8* light_values);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_light, _sub_6D0CF9C, IRenderPipeline8B* _this, U32 light_index);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_light, _sub_6D0D044, IRenderPipeline8B* _this, U32 light_index, _D3DLIGHT8* out_light_values);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_light_enable, _sub_6D0D0D7, IRenderPipeline8B* _this, U32 light_index, U32 enable);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_light_enable, _sub_6D0D157, IRenderPipeline8B* _this, U32 light_index, U32* out_enable);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_light, _sub_6D0CE57, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle, const D3DLIGHT8* light_values);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_light, _sub_6D0CF9C, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_light, _sub_6D0D044, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle, D3DLIGHT8* out_light_values);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_light_enable, _sub_6D0D0D7, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle, U32 enable);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_light_enable, _sub_6D0D157, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle, U32* out_enable);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_material, _sub_6D0D1DC, IRenderPipeline8B* _this, D3DMATERIAL8* material_values);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_material, _sub_6D0D310, IRenderPipeline8B* _this, D3DMATERIAL8* out_material_values);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_texture, _sub_6D0D628, IRenderPipeline8B* _this, int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture);
@@ -89,9 +89,9 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_primitive, _sub_6D1067F, IRenderP
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive, _sub_6D1097D, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, const U16* indices, int num_indices, U32 flags);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_primitive_vb, _sub_6D10C89, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, U32 flags);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive_vb, _sub_6D10E4B, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, const U16* indices, int num_indices, U32 flags);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_add_light, _sub_6D0CCB2, IRenderPipeline8B* _this, U32 light_index);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_remove_light, _sub_6D0CD32, IRenderPipeline8B* _this, U32 light_index);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_update_light, _sub_6D0CDDB, IRenderPipeline8B* _this, U32 light_index);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_add_light, _sub_6D0CCB2, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_remove_light, _sub_6D0CD32, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_update_light, _sub_6D0CDDB, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_world_n, _sub_6D0AF55, IRenderPipeline8B* _this, UNKNOWN a2, Transform* transform);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_UnknownC, _sub_6D11354, IVertexBufferManager* _this, UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_Unknown10, _sub_6D1135D, IVertexBufferManager* _this);
@@ -2216,11 +2216,11 @@ public:
 	DACOM_DEFMETHOD(set_lookat)(float eyex, float eyey, float eyez, float centerx, float centery, float centerz, float upx, float upy, float upz) override;
 	DACOM_DEFMETHOD(set_ortho)(float left, float right, float bottom, float top, float nearval, float farval) override;
 	DACOM_DEFMETHOD(set_perspective)(float fovy, float aspect, float znear, float zfar) override;
-	DACOM_DEFMETHOD(set_light)(U32 light_index, const _D3DLIGHT8* light_values) override;
-	DACOM_DEFMETHOD(destroy_light)(U32 light_index) override;
-	DACOM_DEFMETHOD(get_light)(U32 light_index, _D3DLIGHT8* out_light_values) override;
-	DACOM_DEFMETHOD(set_light_enable)(U32 light_index, U32 enable) override;
-	DACOM_DEFMETHOD(get_light_enable)(U32 light_index, U32* out_enable) override;
+	DACOM_DEFMETHOD(set_light)(IRP_LIGHTHANDLE handle, const D3DLIGHT8* light_values) override;
+	DACOM_DEFMETHOD(destroy_light)(IRP_LIGHTHANDLE handle) override;
+	DACOM_DEFMETHOD(get_light)(IRP_LIGHTHANDLE handle, D3DLIGHT8* out_light_values) override;
+	DACOM_DEFMETHOD(set_light_enable)(IRP_LIGHTHANDLE handle, U32 enable) override;
+	DACOM_DEFMETHOD(get_light_enable)(IRP_LIGHTHANDLE handle, U32* out_enable) override;
 	DACOM_DEFMETHOD(set_material)(D3DMATERIAL8* material_values) override;
 	DACOM_DEFMETHOD(get_material)(D3DMATERIAL8* out_material_values) override;
 	DACOM_DEFMETHOD(create_texture)(int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture) override;
@@ -2251,9 +2251,9 @@ public:
 	DACOM_DEFMETHOD(draw_indexed_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, const U16* indices, int num_indices, U32 flags) override;
 	DACOM_DEFMETHOD(draw_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, U32 flags) override;
 	DACOM_DEFMETHOD(draw_indexed_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, const U16* indices, int num_indices, U32 flags) override;
-	DACOM_DEFMETHOD(add_light)(U32 light_index) override;
-	DACOM_DEFMETHOD(remove_light)(U32 light_index) override;
-	DACOM_DEFMETHOD(update_light)(U32 light_index) override;
+	DACOM_DEFMETHOD(add_light)(IRP_LIGHTHANDLE handle) override;
+	DACOM_DEFMETHOD(remove_light)(IRP_LIGHTHANDLE handle) override;
+	DACOM_DEFMETHOD(update_light)(IRP_LIGHTHANDLE handle) override;
 	DACOM_DEFMETHOD(set_world_n)(UNKNOWN a2, Transform* transform) override;
 
 	// IVertexBufferManager methods
@@ -2548,33 +2548,33 @@ GENRESULT DirectX8::set_perspective(float fovy, float aspect, float znear, float
 	return result;
 }
 
-GENRESULT DirectX8::set_light(U32 light_index, const _D3DLIGHT8* light_values)
+GENRESULT DirectX8::set_light(IRP_LIGHTHANDLE handle, const D3DLIGHT8* light_values)
 {
-	GENRESULT result = DirectX8_set_light(this, light_index, light_values);
+	GENRESULT result = DirectX8_set_light(this, handle, light_values);
 	return result;
 }
 
-GENRESULT DirectX8::destroy_light(U32 light_index)
+GENRESULT DirectX8::destroy_light(IRP_LIGHTHANDLE handle)
 {
-	GENRESULT result = DirectX8_destroy_light(this, light_index);
+	GENRESULT result = DirectX8_destroy_light(this, handle);
 	return result;
 }
 
-GENRESULT DirectX8::get_light(U32 light_index, _D3DLIGHT8* out_light_values)
+GENRESULT DirectX8::get_light(IRP_LIGHTHANDLE handle, D3DLIGHT8* out_light_values)
 {
-	GENRESULT result = DirectX8_get_light(this, light_index, out_light_values);
+	GENRESULT result = DirectX8_get_light(this, handle, out_light_values);
 	return result;
 }
 
-GENRESULT DirectX8::set_light_enable(U32 light_index, U32 enable)
+GENRESULT DirectX8::set_light_enable(IRP_LIGHTHANDLE handle, U32 enable)
 {
-	GENRESULT result = DirectX8_set_light_enable(this, light_index, enable);
+	GENRESULT result = DirectX8_set_light_enable(this, handle, enable);
 	return result;
 }
 
-GENRESULT DirectX8::get_light_enable(U32 light_index, U32* out_enable)
+GENRESULT DirectX8::get_light_enable(IRP_LIGHTHANDLE handle, U32* out_enable)
 {
-	GENRESULT result = DirectX8_get_light_enable(this, light_index, out_enable);
+	GENRESULT result = DirectX8_get_light_enable(this, handle, out_enable);
 	return result;
 }
 
@@ -2758,21 +2758,21 @@ GENRESULT DirectX8::draw_indexed_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXB
 	return result;
 }
 
-GENRESULT DirectX8::add_light(U32 light_index)
+GENRESULT DirectX8::add_light(IRP_LIGHTHANDLE handle)
 {
-	GENRESULT result = DirectX8_add_light(this, light_index);
+	GENRESULT result = DirectX8_add_light(this, handle);
 	return result;
 }
 
-GENRESULT DirectX8::remove_light(U32 light_index)
+GENRESULT DirectX8::remove_light(IRP_LIGHTHANDLE handle)
 {
-	GENRESULT result = DirectX8_remove_light(this, light_index);
+	GENRESULT result = DirectX8_remove_light(this, handle);
 	return result;
 }
 
-GENRESULT DirectX8::update_light(U32 light_index)
+GENRESULT DirectX8::update_light(IRP_LIGHTHANDLE handle)
 {
-	GENRESULT result = DirectX8_update_light(this, light_index);
+	GENRESULT result = DirectX8_update_light(this, handle);
 	return result;
 }
 

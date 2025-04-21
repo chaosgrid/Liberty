@@ -163,6 +163,8 @@ struct RPLOCKDATA
 	PFenum pf;
 };
 
+typedef D3DLIGHT8* IRP_LIGHTHANDLE;
+
 #define IID_IRenderPipeline8B DACOM_MAKE_IID("IRenderPipeline8B")
 struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 {
@@ -516,9 +518,9 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(set_light)(U32 light_index, const _D3DLIGHT8* light_values) = 0;
+	DACOM_DEFMETHOD(set_light)(IRP_LIGHTHANDLE handle, const D3DLIGHT8* light_values) = 0;
 
-	DACOM_DEFMETHOD(destroy_light)(U32 light_index) = 0;
+	DACOM_DEFMETHOD(destroy_light)(IRP_LIGHTHANDLE handle) = 0;
 
 	// get_light
 	//
@@ -527,7 +529,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(get_light)(U32 light_index, _D3DLIGHT8* out_light_values) = 0;
+	DACOM_DEFMETHOD(get_light)(IRP_LIGHTHANDLE handle, D3DLIGHT8* out_light_values) = 0;
 
 	// set_light_enable
 	//
@@ -536,7 +538,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(set_light_enable)(U32 light_index, U32 enable) = 0;
+	DACOM_DEFMETHOD(set_light_enable)(IRP_LIGHTHANDLE handle, U32 enable) = 0;
 
 	// get_light_enable 
 	//
@@ -545,7 +547,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(get_light_enable)(U32 light_index, U32* out_enable) = 0;
+	DACOM_DEFMETHOD(get_light_enable)(IRP_LIGHTHANDLE handle, U32* out_enable) = 0;
 
 	// set_material
 	//
@@ -838,9 +840,9 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	//
 	DACOM_DEFMETHOD(draw_indexed_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, const U16* indices, int num_indices, U32 flags) = 0;
 
-	DACOM_DEFMETHOD(add_light)(U32 light_index) = 0;
-	DACOM_DEFMETHOD(remove_light)(U32 light_index) = 0;
-	DACOM_DEFMETHOD(update_light)(U32 light_index) = 0;
+	DACOM_DEFMETHOD(add_light)(IRP_LIGHTHANDLE handle) = 0;
+	DACOM_DEFMETHOD(remove_light)(IRP_LIGHTHANDLE handle) = 0;
+	DACOM_DEFMETHOD(update_light)(IRP_LIGHTHANDLE handle) = 0;
 	DACOM_DEFMETHOD(set_world_n)(UNKNOWN a2, Transform* transform) = 0;
 };
 

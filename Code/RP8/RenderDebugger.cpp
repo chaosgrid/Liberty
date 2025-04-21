@@ -684,7 +684,7 @@ void rp_rd_texture( U32 stage, IDirectDrawSurface7 *texture )
 	if( texture ) {
 
 		char filename[MAX_PATH];
-		sprintf( filename, "%s\\tex%08X.dds", rp_rd_state.trace_output_dir, texture );
+		sprintf( filename, "%s\\tex%p.dds", rp_rd_state.trace_output_dir, texture );
 
 		if( rp_rd_state.trace_enabled & IRD_ST_TEXTURE ) {
 			rp_rd_add_trace_message( "texture( %d, [[%s]] );", stage, filename );
@@ -713,7 +713,7 @@ void rp_rd_texture_state( U32 stage, D3DTEXTURESTAGESTATETYPE state, U32 value )
 
 //
 
-void rp_rd_light( U32 light_index, const D3DLIGHT8 *value )
+void rp_rd_light( IRP_LIGHTHANDLE handle, const D3DLIGHT8 *value )
 {
 	if( !(rp_rd_state.trace_enabled & IRD_ST_LIGHT) ) {
 		return ;
@@ -727,7 +727,7 @@ void rp_rd_light( U32 light_index, const D3DLIGHT8 *value )
 		"directional"
 	};
 
-	rp_rd_add_trace_message( "light( %d, {  -- %s", light_index, names[value->Type] );
+	rp_rd_add_trace_message( "light( %p, {  -- %s", handle, names[value->Type] );
 	rp_rd_add_trace_message( "              Type = %d,", value->Type );
 	rp_rd_add_trace_message( "              Position = { % 5.3f, % 5.3f, % 5.3f },", value->Position.x, value->Position.y, value->Position.z );
 	rp_rd_add_trace_message( "              Direction= { % 5.3f, % 5.3f, % 5.3f },", value->Direction.x, value->Direction.y, value->Direction.z );
@@ -744,13 +744,13 @@ void rp_rd_light( U32 light_index, const D3DLIGHT8 *value )
 
 //
 
-void rp_rd_light_enable( U32 light_index, U32 value )
+void rp_rd_light_enable( IRP_LIGHTHANDLE handle, U32 value )
 {
 	if( !(rp_rd_state.trace_enabled & IRD_ST_LIGHT) ) {
 		return ;
 	}
 
-	rp_rd_add_trace_message( "lightenable( %d, %d );", light_index, value );
+	rp_rd_add_trace_message( "lightenable( %p, %d );", handle, value );
 }
 
 //
