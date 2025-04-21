@@ -175,7 +175,6 @@ _extern void __thiscall sub_6D2CE6A(void* _this);
 
 TRAMPOLINE(IRenderPipeline8B*, __thiscall, DirectX8_Ctor, _sub_6D01143, IRenderPipeline8B* _this);
 TRAMPOLINE(IRenderPipeline8B*, __thiscall, DirectX8_Dtor, _sub_6D01689, IRenderPipeline8B* _this);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_buffers, _sub_6D08811, IRenderPipeline8B* _this, HWND hwnd, RPBUFFERSINFO* buffersinfo, RPBUFFERSINFO* out_buffersinfo);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_buffers, _sub_6D098F3, IRenderPipeline8B* _this, U32* adapter, RPBUFFERSINFO* out_buffersinfo);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_buffers, _sub_6D09982, IRenderPipeline8B* _this);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_clear_buffers, _sub_6D09B4C, IRenderPipeline8B* _this, U32 rp_clear_flags, RECT* viewport_sub_rect);
@@ -184,7 +183,6 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_lock_buffer, _sub_6D09F96, IRenderPipe
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_buffer, _sub_6D0A6C1, IRenderPipeline8B* _this);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_buffer_interface, _sub_6D0A7EC, IRenderPipeline8B* _this, const char* iid, void** out_iif);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_device_stats, _sub_6D0A863, IRenderPipeline8B* _this, RPDEVICESTATS* stat);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_viewport, _sub_6D0A8D0, IRenderPipeline8B* _this, int x, int y, int w, int h);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_viewport, _sub_6D0AABC, IRenderPipeline8B* _this, int* x, int* y, int* w, int* h);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_depth_range, _sub_6D0ABB2, IRenderPipeline8B* _this, float lower_z_bound, float upper_z_bound);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_depth_range, _sub_6D0ACA6, IRenderPipeline8B* _this, float* lower_z_bound, float* upper_z_bound);
@@ -2814,7 +2812,7 @@ GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinf
 	char* v15; char* v20; char* v22; char* v26; char* v27; char* v28; char* v34; char* v35; char* v36;
 	char v23[8192]; char v41[8192]; char v44[8192]; char v46[8192]; char v48[8192]; char v50[8192]; char v53[8192]; char v55[8192]; char v57[8192]; char Buffer[8192];
 	IDirect3DDevice8* direct3d_device, * direct3d_device_1, * direct3d_device_2;
-	U32 height, width, i, adapter;
+	U32 i, adapter;
 	HWND hwnd_ancestor;
 	D3DCAPS8 direct3d_caps;
 	D3DDISPLAYMODE adapter_display_mode;
@@ -2845,7 +2843,8 @@ GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinf
 	render_target_format = D3DFMT_UNKNOWN;
 	adapter = UINT_MAX;
 	hr = this->direct3d->GetAdapterDisplayMode(this->direct3d_adapter, &adapter_display_mode);
-	if (FAILED(hr)) {
+	if (FAILED(hr)) 
+	{
 		GENERAL_ERROR(TEMPSTR("create_buffers_select_mode: %s", HRESULT_GET_ERROR_STRING(hr)));
 		return (GENRESULT)hr;
 	}
@@ -3039,18 +3038,10 @@ GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinf
 
 	this->unknown22E0_set_to_zero_after_viewport = 0;
 	this->unknown22E1_set_to_zero_after_viewport = 0;
-	width = this->buffers_info.width;
-	height = this->buffers_info.height;
-	this->direct3d_viewport.X = 0;
-	this->direct3d_viewport.Y = 0;
-	this->direct3d_viewport.Width = width;
-	this->direct3d_viewport.Height = height;
-	this->direct3d_viewport.MinZ = 0.0f;
-	this->direct3d_viewport.MaxZ = 1.0f;
-	v19 = this->direct3d_device->SetViewport(&this->direct3d_viewport);
-	if (FAILED(v19)) {
-		GENERAL_ERROR(TEMPSTR("set_viewport: %s", HRESULT_GET_ERROR_STRING(v19)));
-		return (GENRESULT)v19;
+	GENRESULT result = GR_GENERIC;
+	if (FAILED(result = set_viewport(0, 0, this->buffers_info.width, this->buffers_info.height)))
+	{
+		return result;
 	}
 
 	sub_6D2CE6A(&this->unknown21F4);
@@ -3118,7 +3109,51 @@ GENRESULT NewRenderPipeline::get_device_stats(RPDEVICESTATS* stat)
 
 GENRESULT NewRenderPipeline::set_viewport(int x, int y, int w, int h)
 {
-	GENRESULT result = DirectX8_set_viewport(this, x, y, w, h);
+	CHECK_STARTUP();
+
+	GENRESULT result = GR_GENERIC;
+
+	char* v6; // eax
+	char* v7; // [esp+0h] [ebp-201Ch]
+	IDirect3DDevice8* direct3d_device; // [esp+4h] [ebp-2018h]
+	D3DVIEWPORT8* p_direct3d_viewport; // [esp+8h] [ebp-2014h]
+	char Buffer[8192]; // [esp+14h] [ebp-2008h] BYREF
+	int v12; // [esp+2014h] [ebp-8h]
+	HRESULT hr; // [esp+2018h] [ebp-4h] MAPDST
+
+	if (this->direct3d_device)
+	{
+		direct3d_device = this->direct3d_device;
+		p_direct3d_viewport = &this->direct3d_viewport;
+		if (this->unknown22E1_set_to_zero_after_viewport
+			&& x == p_direct3d_viewport->X
+			&& y == this->direct3d_viewport.Y
+			&& w == this->direct3d_viewport.Width
+			&& h == this->direct3d_viewport.Height)
+		{
+			hr = 0;
+		}
+		else
+		{
+			p_direct3d_viewport->X = x;
+			this->direct3d_viewport.Y = y;
+			this->direct3d_viewport.Width = w;
+			this->direct3d_viewport.Height = h;
+			hr = direct3d_device->SetViewport(p_direct3d_viewport);
+			if (hr >= 0)
+				this->unknown22E1_set_to_zero_after_viewport = 1;
+		}
+		if (FAILED(hr))
+		{
+			GENERAL_ERROR(TEMPSTR("create_buffers_select_mode: %s", HRESULT_GET_ERROR_STRING(hr)));
+			return (GENRESULT)hr;
+		}
+		else
+		{
+			result = GR_OK;
+		}
+	}
+	
 	return result;
 }
 
