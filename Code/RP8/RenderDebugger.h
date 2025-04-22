@@ -123,16 +123,16 @@ inline void rp_rd_create_buffers			( U32 width, U32 height, U32 color_bpp, U32 d
 inline void rp_rd_clear						( D3DRECT *rect, U32 flags, U32 color, float depth, U32 stencil ) {}
 inline void rp_rd_begin_scene				( void ) {}
 inline void rp_rd_end_scene					( void ) {}
-inline void rp_rd_viewport					( const D3DVIEWPORT9 *value ) {}
+inline void rp_rd_viewport					( const D3DVIEWPORT8 *value ) {}
 inline void rp_rd_ortho						( float left, float right, float bottom, float top, float nearval, float farval ) {}
 inline void rp_rd_perspective				( float fovy, float aspect, float znear, float zfar ) {}
 inline void rp_rd_transform					( D3DTRANSFORMSTATETYPE which, const D3DMATRIX *value ) {}
 inline void rp_rd_render_state				( D3DRENDERSTATETYPE state, U32 value ) {}
 inline void rp_rd_texture					( U32 stage, LPDIRECTDRAWSURFACE7 texture ) {}
 inline void rp_rd_texture_state				( U32 stage, D3DTEXTURESTAGESTATETYPE state, U32 value ) {}
-inline void rp_rd_light						( U32 light_index, const D3DLIGHT9 *value ) {}
-inline void rp_rd_light_enable				( U32 light_index, U32 value ) {}
-inline void rp_rd_material					( const D3DMATERIAL9 *value ) {}
+inline void rp_rd_light						( IRP_LIGHTHANDLE handle, const D3DLIGHT8 *value ) {}
+inline void rp_rd_light_enable				( IRP_LIGHTHANDLE handle, U32 value ) {}
+inline void rp_rd_material					( const D3DMATERIAL8 *value ) {}
 inline void rp_rd_dp						( D3DPRIMITIVETYPE type, U32 vertex_format, const void *verts, int num_verts, U32 flags  )  {}
 inline void rp_rd_dp_vb						( D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, U32 flags  )  {}
 inline void rp_rd_dip						( D3DPRIMITIVETYPE type, U32 vertex_format, const void *verts, int num_verts, const U16 * indices, int num_indices, U32 flags  )  {}
