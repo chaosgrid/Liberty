@@ -8,6 +8,7 @@
 #include "RPInternal.h"
 #include "CachedMatrix.h"
 #include "CachedViewport.h"
+#include "CachedTexture.h"
 
 #include <Tfuncs.h>
 #include <Matrix4.h>
@@ -64,6 +65,7 @@ _extern D3DFORMAT pf_to_d3d_table[] =
 	D3DFORMAT('4AAD'),
 	D3DFORMAT('8AAD'),
 };
+static_assert(_countof(pf_to_d3d_table) == 22);
 
 #define get_pf_to_d3d_table sub_6D5CC20
 _extern D3DFORMAT* get_pf_to_d3d_table()
@@ -82,7 +84,8 @@ _extern D3DFORMAT pf_to_d3d(PFenum pfenum)
 		return D3DFMT_UNKNOWN;
 	}
 
-	return pf_to_d3d_table[pfenum];
+	D3DFORMAT format = pf_to_d3d_table[pfenum];
+	return format;
 }
 
 #define d3d_to_pf sub_6D5CC30
@@ -160,7 +163,7 @@ _extern D3DFORMAT __cdecl sub_6D159FF(
 	*a4 = v11[1];
 	*a5 = v11[2];
 	D3DFORMAT result = (D3DFORMAT)*v11;
-	 return result;
+	return result;
 }
 
 #define update_device_capabilities sub_6D020AB
@@ -196,18 +199,11 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_light, _sub_6D0CF9C, IRenderPi
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_light, _sub_6D0D044, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle, D3DLIGHT8* out_light_values);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_light_enable, _sub_6D0D0D7, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle, U32 enable);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_light_enable, _sub_6D0D157, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle, U32* out_enable);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_material, _sub_6D0D1DC, IRenderPipeline8B* _this, D3DMATERIAL8* material_values);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_material, _sub_6D0D310, IRenderPipeline8B* _this, D3DMATERIAL8* out_material_values);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_texture, _sub_6D0D628, IRenderPipeline8B* _this, int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_texture, _sub_6D0D997, IRenderPipeline8B* _this, U32 htexture);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_is_texture, _sub_6D0DC51, IRenderPipeline8B* _this, U32 htexture);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_lock_texture, _sub_6D0DCE3, IRenderPipeline8B* _this, U32 htexture, int level, RPLOCKDATA* lockData);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_texture, _sub_6D0E1AF, IRenderPipeline8B* _this, U32 htexture, int level);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_format, _sub_6D0E3D9, IRenderPipeline8B* _this, U32 htexture, PFenum* out_pf);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_dim, _sub_6D0E6D4, IRenderPipeline8B* _this, U32 htexture, U32* out_width, U32* out_height, U32* out_num_lod);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_interface, _sub_6D0EA0B, IRenderPipeline8B* _this, U32 htexture, const char* iid, void** out_iif);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_level_data, _sub_6D0EA78, IRenderPipeline8B* _this, U32 htexture, int level, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_blit_texture, _sub_6D0F1BC, IRenderPipeline8B* _this, U32 hDest, U32 destLevel, RECT destRect, U32 hSrc, U32 srcLevel, RECT srcRect);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_format, _sub_6D0E3D9, IRenderPipeline8B* _this, IRP_TEXTUREHANDLE htexture, PFenum* out_pf);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_dim, _sub_6D0E6D4, IRenderPipeline8B* _this, IRP_TEXTUREHANDLE htexture, U32* out_width, U32* out_height, U32* out_num_lod);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_interface, _sub_6D0EA0B, IRenderPipeline8B* _this, IRP_TEXTUREHANDLE htexture, const char* iid, void** out_iif);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_level_data, _sub_6D0EA78, IRenderPipeline8B* _this, IRP_TEXTUREHANDLE htexture, U32 subsurface, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_blit_texture, _sub_6D0F1BC, IRenderPipeline8B* _this, IRP_TEXTUREHANDLE hDest, U32 destLevel, RECT destRect, IRP_TEXTUREHANDLE hSrc, U32 srcLevel, RECT srcRect);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_render_target, _sub_6D0F698, IRenderPipeline8B* _this, UNKNOWN a2, UNKNOWN a3, UNKNOWN a4);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_render_target, _sub_6D0F70F, IRenderPipeline8B* _this, void* a2);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_begin_scene, _sub_6D0F786, IRenderPipeline8B* _this);
@@ -219,8 +215,8 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_stage_state, _sub_6D0FBCF,
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_stage_state, _sub_6D0FCD5, IRenderPipeline8B* _this, U32 stage, D3DTEXTURESTAGESTATETYPE state, U32* value);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_stage_transform, _sub_6D0FDD2, IRenderPipeline8B* _this, U32 stage, Matrix4* mat4);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_stage_transform, _sub_6D0FF7D, IRenderPipeline8B* _this, U32 stage, Matrix4* mat4);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_stage_texture, _sub_6D100D3, IRenderPipeline8B* _this, U32 stage, U32 htexture);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_stage_texture, _sub_6D10247, IRenderPipeline8B* _this, U32 stage, U32* htexture);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_stage_texture, _sub_6D100D3, IRenderPipeline8B* _this, U32 stage, IRP_TEXTUREHANDLE htexture);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_stage_texture, _sub_6D10247, IRenderPipeline8B* _this, U32 stage, IRP_TEXTUREHANDLE* out_htexture);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_verify_state, _sub_6D10322, IRenderPipeline8B* _this);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_primitive, _sub_6D1067F, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, U32 flags);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive, _sub_6D1097D, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, const U16* indices, int num_indices, U32 flags);
@@ -2121,22 +2117,7 @@ public:
 	DWORD unknown1F88;
 	DWORD unknown1F8C;
 	DWORD unknown1F90;
-	DWORD unknown1F94;
-	DWORD unknown1F98;
-	DWORD unknown1F9C;
-	DWORD unknown1FA0;
-	DWORD unknown1FA4;
-	DWORD unknown1FA8;
-	DWORD unknown1FAC;
-	DWORD unknown1FB0;
-	DWORD unknown1FB4;
-	DWORD unknown1FB8;
-	DWORD unknown1FBC;
-	DWORD unknown1FC0;
-	DWORD unknown1FC4;
-	DWORD unknown1FC8;
-	DWORD unknown1FCC;
-	DWORD unknown1FD0;
+	CACHED_TEXTURE curr_hw_texture[8];
 	DWORD unknown1FD4;
 	DWORD unknown1FD8;
 	DWORD unknown1FDC;
@@ -2366,16 +2347,16 @@ public:
 	DACOM_DEFMETHOD(get_light_enable)(IRP_LIGHTHANDLE handle, U32* out_enable) override;
 	DACOM_DEFMETHOD(set_material)(D3DMATERIAL8* material_values) override;
 	DACOM_DEFMETHOD(get_material)(D3DMATERIAL8* out_material_values) override;
-	DACOM_DEFMETHOD(create_texture)(int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture) override;
-	DACOM_DEFMETHOD(destroy_texture)(U32 htexture) override;
-	DACOM_DEFMETHOD(is_texture)(U32 htexture) override;
-	DACOM_DEFMETHOD(lock_texture)(U32 htexture, int level, RPLOCKDATA* lockData) override;
-	DACOM_DEFMETHOD(unlock_texture)(U32 htexture, int level) override;
-	DACOM_DEFMETHOD(get_texture_format)(U32 htexture, PFenum* out_pf) override;
-	DACOM_DEFMETHOD(get_texture_dim)(U32 htexture, U32* out_width, U32* out_height, U32* out_num_lod) override;
-	DACOM_DEFMETHOD(get_texture_interface)(U32 htexture, const char* iid, void** out_iif) override;
-	DACOM_DEFMETHOD(set_texture_level_data)(U32 htexture, int level, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette) override;
-	DACOM_DEFMETHOD(blit_texture)(U32 hDest, U32 destLevel, RECT destRect, U32 hSrc, U32 srcLevel, RECT srcRect) override;
+	DACOM_DEFMETHOD(create_texture)(int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, IRP_TEXTUREHANDLE* out_htexture) override;
+	DACOM_DEFMETHOD(destroy_texture)(IRP_TEXTUREHANDLE htexture) override;
+	DACOM_DEFMETHOD(is_texture)(IRP_TEXTUREHANDLE htexture) override;
+	DACOM_DEFMETHOD(lock_texture)(IRP_TEXTUREHANDLE htexture, U32 subsurface, RPLOCKDATA* lockData) override;
+	DACOM_DEFMETHOD(unlock_texture)(IRP_TEXTUREHANDLE htexture, U32 subsurface) override;
+	DACOM_DEFMETHOD(get_texture_format)(IRP_TEXTUREHANDLE htexture, PFenum* out_pf) override;
+	DACOM_DEFMETHOD(get_texture_dim)(IRP_TEXTUREHANDLE htexture, U32* out_width, U32* out_height, U32* out_num_lod) override;
+	DACOM_DEFMETHOD(get_texture_interface)(IRP_TEXTUREHANDLE htexture, const char* iid, void** out_iif) override;
+	DACOM_DEFMETHOD(set_texture_level_data)(IRP_TEXTUREHANDLE htexture, U32 subsurface, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette) override;
+	DACOM_DEFMETHOD(blit_texture)(IRP_TEXTUREHANDLE hDest, U32 destLevel, RECT destRect, IRP_TEXTUREHANDLE hSrc, U32 srcLevel, RECT srcRect) override;
 	DACOM_DEFMETHOD(set_render_target)(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4) override;
 	DACOM_DEFMETHOD(get_render_target)(void* a2) override;
 	DACOM_DEFMETHOD(begin_scene)(void) override;
@@ -2387,8 +2368,8 @@ public:
 	DACOM_DEFMETHOD(get_texture_stage_state)(U32 stage, D3DTEXTURESTAGESTATETYPE state, U32* value) override;
 	DACOM_DEFMETHOD(set_texture_stage_transform)(U32 stage, Matrix4* mat4) override;
 	DACOM_DEFMETHOD(get_texture_stage_transform)(U32 stage, Matrix4* mat4) override;
-	DACOM_DEFMETHOD(set_texture_stage_texture)(U32 stage, U32 htexture) override;
-	DACOM_DEFMETHOD(get_texture_stage_texture)(U32 stage, U32* htexture) override;
+	DACOM_DEFMETHOD(set_texture_stage_texture)(U32 stage, IRP_TEXTUREHANDLE htexture) override;
+	DACOM_DEFMETHOD(get_texture_stage_texture)(U32 stage, IRP_TEXTUREHANDLE* out_htexture) override;
 	DACOM_DEFMETHOD(verify_state)(void) override;
 	DACOM_DEFMETHOD(draw_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, U32 flags) override;
 	DACOM_DEFMETHOD(draw_indexed_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, const U16* indices, int num_indices, U32 flags) override;
@@ -2770,7 +2751,7 @@ GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinf
 	debug_point;
 
 	// Local variables
-	
+
 	U32 i, adapter;
 	HWND hwnd_ancestor;
 	D3DCAPS8 direct3d_caps;
@@ -2801,7 +2782,7 @@ GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinf
 	render_target_format = D3DFMT_UNKNOWN;
 	adapter = UINT_MAX;
 	hr = this->direct3d->GetAdapterDisplayMode(this->direct3d_adapter, &adapter_display_mode);
-	if (FAILED(hr)) 
+	if (FAILED(hr))
 	{
 		GENERAL_ERROR(TEMPSTR("create_buffers_select_mode: %s", HRESULT_GET_ERROR_STRING(hr)));
 		return (GENRESULT)hr;
@@ -3077,7 +3058,7 @@ GENRESULT NewRenderPipeline::set_viewport(int x, int y, int w, int h)
 		static_cast<U32>(w),
 		static_cast<U32>(h),
 		true);
-	
+
 	return GR_OK;
 }
 
@@ -3086,7 +3067,7 @@ GENRESULT NewRenderPipeline::get_viewport(int* out_x, int* out_y, int* out_w, in
 	CHECK_DEVICE_LIFETIME();
 
 	curr_hw_viewport.get_viewport(
-		direct3d_device, 
+		direct3d_device,
 		reinterpret_cast<U32*>(out_x),
 		reinterpret_cast<U32*>(out_y),
 		reinterpret_cast<U32*>(out_w),
@@ -3258,7 +3239,7 @@ GENRESULT NewRenderPipeline::set_lookat(float eyex, float eyey, float eyez, floa
 	i.normalize();
 	j = cross_product(k, i);
 	j.normalize();
-	
+
 	Matrix cam2world(i, j, k); // Now we have our basis vectors for the camera's orientation:
 	Matrix world2cam = cam2world.get_transpose(); // Get world --> camera.
 	Vector xlat = -(world2cam * pcam); // Express camera position in camera frame:
@@ -3301,7 +3282,7 @@ GENRESULT NewRenderPipeline::set_perspective(float fovy, float aspect, float zne
 {
 	CHECK_DEVICE_LIFETIME();
 
-	if (znear <= 0.0 || zfar <= 0.0 || zfar == znear) 
+	if (znear <= 0.0 || zfar <= 0.0 || zfar == znear)
 	{
 		GENERAL_TRACE_1("Direct3D_RenderPipeline: set_perspective: invalid parameters\n");
 		return GR_GENERIC;
@@ -3385,72 +3366,600 @@ GENRESULT NewRenderPipeline::get_light_enable(IRP_LIGHTHANDLE handle, U32* out_e
 
 GENRESULT NewRenderPipeline::set_material(D3DMATERIAL8* material_values)
 {
-	GENRESULT result = DirectX8_set_material(this, material_values);
-	return result;
+	CHECK_DEVICE_LIFETIME();
+
+	if (FAILED(direct3d_device->SetMaterial(material_values)))
+	{
+		return GR_GENERIC;
+	}
+
+	rp_rd_material(material_values);
+
+	return GR_OK;
 }
 
 GENRESULT NewRenderPipeline::get_material(D3DMATERIAL8* out_material_values)
 {
-	GENRESULT result = DirectX8_get_material(this, out_material_values);
-	return result;
+	CHECK_DEVICE_LIFETIME();
+
+	if (FAILED(direct3d_device->GetMaterial(out_material_values)))
+	{
+		return GR_GENERIC;
+	}
+
+	return GR_OK;
 }
 
-GENRESULT NewRenderPipeline::create_texture(int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture)
+PFenum last_enum;
+D3DFORMAT last_value;
+
+_extern _naked void sub_6D0D628() // _sub_6D0D628
 {
-	GENRESULT result = DirectX8_create_texture(this, width, height, desiredformat, num_lod, irp_ctf_flags, out_htexture);
-	return result;
+	__DEBUG_ASM(6D0D628);
+	// chunk 0x6D0D628 _sub_6D0D628
+	asm("loc_6D0D628: push %ebp;");
+	asm("loc_6D0D629: mov %esp,%ebp;");
+	asm("loc_6D0D62B: mov $0x2050,%eax;");
+	asm("loc_6D0D630: call _sub_6D2F270;");
+	asm("loc_6D0D635: mov 8(%ebp),%eax;");
+	asm("loc_6D0D638: cmpl $0,0x130(%eax);");
+	asm("loc_6D0D63F: jne loc_6D0D696;");
+	asm("loc_6D0D641: mov $2,%ecx;");
+	asm("loc_6D0D646: and $0xF,%ecx;");
+	asm("loc_6D0D649: mov -0x34(%ebp),%edx;");
+	asm("loc_6D0D64C: and $0xFFFFFFF0,%edx;");
+	asm("loc_6D0D64F: or %ecx,%edx;");
+	asm("loc_6D0D651: mov %edx,-0x34(%ebp);");
+	asm("loc_6D0D654: mov $0x10000,%eax;");
+	asm("loc_6D0D659: and $0xFFFFFFF,%eax;");
+	asm("loc_6D0D65E: shl $4,%eax;");
+	asm("loc_6D0D661: mov -0x34(%ebp),%ecx;");
+	asm("loc_6D0D664: and $0xF,%ecx;");
+	asm("loc_6D0D667: or %eax,%ecx;");
+	asm("loc_6D0D669: mov %ecx,-0x34(%ebp);");
+	asm("loc_6D0D66C: push $_data_6D674A0;");
+	asm("loc_6D0D671: push $0xC1B;");
+	asm("loc_6D0D676: push $_data_6D674D8;");
+	asm("loc_6D0D67B: push $_data_6D67524;");
+	asm("loc_6D0D680: mov -0x34(%ebp),%edx;");
+	asm("loc_6D0D683: push %edx;");
+	asm("loc_6D0D684: mov _import_6D5E018,%eax;");
+	asm("loc_6D0D689: calll *(%eax);");
+	asm("loc_6D0D68B: add $0x14,%esp;");
+	asm("loc_6D0D68E: or $0xFFFFFFFF,%eax;");
+	asm("loc_6D0D691: jmp loc_6D0D991;");
+	asm("loc_6D0D696: mov 0x1C(%ebp),%ecx;");
+	asm("loc_6D0D699: and $1,%ecx;");
+	asm("loc_6D0D69C: neg %ecx;");
+	asm("loc_6D0D69E: sbb %ecx,%ecx;");
+	asm("loc_6D0D6A0: inc %ecx;");
+	asm("loc_6D0D6A1: mov %cl,-0x1E(%ebp);");
+	asm("loc_6D0D6A4: mov 0x1C(%ebp),%edx;");
+	asm("loc_6D0D6A7: and $2,%edx;");
+	asm("loc_6D0D6AA: neg %edx;");
+	asm("loc_6D0D6AC: sbb %edx,%edx;");
+	asm("loc_6D0D6AE: neg %edx;");
+	asm("loc_6D0D6B0: mov %dl,-0x1D(%ebp);");
+	asm("loc_6D0D6B3: movl $0,-0x14(%ebp);");
+	asm("loc_6D0D6BA: push $0;");
+	asm("loc_6D0D6BC: call _sub_6D5CC30;");
+	asm("loc_6D0D6C1: add $4,%esp;");
+	asm("loc_6D0D6C4: mov %eax,-0xC(%ebp);");
+	asm("loc_6D0D6C7: movl $0,-0x1C(%ebp);");
+	asm("loc_6D0D6CE: movl $3,-8(%ebp);");
+	asm("loc_6D0D6D5: movzbl -0x1E(%ebp),%eax;");
+	asm("loc_6D0D6D9: test %eax,%eax;");
+	asm("loc_6D0D6DB: jne loc_6D0D6E7;");
+	asm("loc_6D0D6DD: mov $0xFFFFFFFE,%eax;");
+	asm("loc_6D0D6E2: jmp loc_6D0D991;");
+	asm("loc_6D0D6E7: lea -4(%ebp),%ecx;");
+	asm("loc_6D0D6EA: push %ecx;");
+	asm("loc_6D0D6EB: push $5;");
+	asm("loc_6D0D6ED: mov 8(%ebp),%edx;");
+	asm("loc_6D0D6F0: mov (%edx),%eax;");
+	asm("loc_6D0D6F2: mov 8(%ebp),%ecx;");
+	asm("loc_6D0D6F5: push %ecx;");
+	asm("loc_6D0D6F6: calll *0x20(%eax);");
+	asm("loc_6D0D6F9: mov 0xC(%ebp),%edx;");
+	asm("loc_6D0D6FC: cmp 0x10(%ebp),%edx;");
+	asm("loc_6D0D6FF: je loc_6D0D71D;");
+	asm("loc_6D0D701: cmpl $0,-4(%ebp);");
+	asm("loc_6D0D705: je loc_6D0D71D;");
+	asm("loc_6D0D707: mov 0xC(%ebp),%eax;");
+	asm("loc_6D0D70A: cmp 0x10(%ebp),%eax;");
+	asm("loc_6D0D70D: jle loc_6D0D717;");
+	asm("loc_6D0D70F: mov 0xC(%ebp),%ecx;");
+	asm("loc_6D0D712: mov %ecx,0x10(%ebp);");
+	asm("loc_6D0D715: jmp loc_6D0D71D;");
+	asm("loc_6D0D717: mov 0x10(%ebp),%edx;");
+	asm("loc_6D0D71A: mov %edx,0xC(%ebp);");
+	asm("loc_6D0D71D: mov -8(%ebp),%eax;");
+	asm("loc_6D0D720: push %eax;");
+	asm("loc_6D0D721: mov -0x1C(%ebp),%ecx;");
+	asm("loc_6D0D724: push %ecx;");
+	asm("loc_6D0D725: mov 0x14(%ebp),%edx;");
+	asm("loc_6D0D728: push %edx;");
+	asm("loc_6D0D729: mov 8(%ebp),%ecx;");
+	asm("loc_6D0D72C: call _sub_6D0D444;");
+	asm("loc_6D0D731: mov %al,-0xD(%ebp);");
+	asm("loc_6D0D734: movzbl -0xD(%ebp),%eax;");
+	asm("loc_6D0D738: test %eax,%eax;");
+	asm("loc_6D0D73A: je loc_6D0D749;");
+	asm("loc_6D0D73C: mov 0x14(%ebp),%ecx;");
+	asm("loc_6D0D73F: mov (%ecx),%edx;");
+	asm("loc_6D0D741: mov %edx,-0xC(%ebp);");
+	asm("loc_6D0D744: jmp loc_6D0D7DC;");
+	asm("loc_6D0D749: mov 0x14(%ebp),%eax;");
+	asm("loc_6D0D74C: mov (%eax),%ecx;");
+	asm("loc_6D0D74E: push %ecx;");
+	asm("loc_6D0D74F: call _sub_6D5CC50;");
+	asm("loc_6D0D754: add $4,%esp;");
+	asm("loc_6D0D757: neg %eax;");
+	asm("loc_6D0D759: sbb %eax,%eax;");
+	asm("loc_6D0D75B: neg %eax;");
+	asm("loc_6D0D75D: xor %edx,%edx;");
+	asm("loc_6D0D75F: mov %al,%dl;");
+	asm("loc_6D0D761: test %edx,%edx;");
+	asm("loc_6D0D763: je loc_6D0D7DC;");
+	asm("loc_6D0D765: mov 0x14(%ebp),%eax;");
+	asm("loc_6D0D768: mov (%eax),%ecx;");
+	asm("loc_6D0D76A: push %ecx;");
+	asm("loc_6D0D76B: call _sub_6D5CC50;");
+	asm("loc_6D0D770: add $4,%esp;");
+	asm("loc_6D0D773: push %eax;");
+	asm("loc_6D0D774: mov 8(%ebp),%ecx;");
+	asm("loc_6D0D777: call _sub_6D04693;");
+	asm("loc_6D0D77C: mov %eax,-0x28(%ebp);");
+	asm("loc_6D0D77F: cmpl $0,-0x28(%ebp);");
+	asm("loc_6D0D783: je loc_6D0D7DC;");
+	asm("loc_6D0D785: movl $0,-0x2C(%ebp);");
+	asm("loc_6D0D78C: jmp loc_6D0D797;");
+	asm("loc_6D0D78E: mov -0x2C(%ebp),%edx;");
+	asm("loc_6D0D791: add $1,%edx;");
+	asm("loc_6D0D794: mov %edx,-0x2C(%ebp);");
+	asm("loc_6D0D797: mov -0x28(%ebp),%eax;");
+	asm("loc_6D0D79A: mov -0x2C(%ebp),%ecx;");
+	asm("loc_6D0D79D: cmp 4(%eax),%ecx;");
+	asm("loc_6D0D7A0: jae loc_6D0D7DC;");
+	asm("loc_6D0D7A2: mov -0x28(%ebp),%edx;");
+	asm("loc_6D0D7A5: mov 8(%edx),%eax;");
+	asm("loc_6D0D7A8: mov -0x2C(%ebp),%ecx;");
+	asm("loc_6D0D7AB: lea (%eax,%ecx,4),%edx;");
+	asm("loc_6D0D7AE: mov %edx,-0x30(%ebp);");
+	asm("loc_6D0D7B1: mov -8(%ebp),%eax;");
+	asm("loc_6D0D7B4: push %eax;");
+	asm("loc_6D0D7B5: mov -0x1C(%ebp),%ecx;");
+	asm("loc_6D0D7B8: push %ecx;");
+	asm("loc_6D0D7B9: mov -0x30(%ebp),%edx;");
+	asm("loc_6D0D7BC: push %edx;");
+	asm("loc_6D0D7BD: mov 8(%ebp),%ecx;");
+	asm("loc_6D0D7C0: call _sub_6D0D444;");
+	asm("loc_6D0D7C5: movzbl %al,%eax;");
+	asm("loc_6D0D7C8: test %eax,%eax;");
+	asm("loc_6D0D7CA: je loc_6D0D7DA;");
+	asm("loc_6D0D7CC: movb $1,-0xD(%ebp);");
+	asm("loc_6D0D7D0: mov -0x30(%ebp),%ecx;");
+	asm("loc_6D0D7D3: mov (%ecx),%edx;");
+	asm("loc_6D0D7D5: mov %edx,-0xC(%ebp);");
+	asm("loc_6D0D7D8: jmp loc_6D0D7DC;");
+	asm("loc_6D0D7DA: jmp loc_6D0D78E;");
+	asm("loc_6D0D7DC: movzbl -0xD(%ebp),%eax;");
+	asm("loc_6D0D7E0: test %eax,%eax;");
+	asm("loc_6D0D7E2: jne loc_6D0D839;");
+	asm("loc_6D0D7E4: mov $3,%ecx;");
+	asm("loc_6D0D7E9: and $0xF,%ecx;");
+	asm("loc_6D0D7EC: mov -0x38(%ebp),%edx;");
+	asm("loc_6D0D7EF: and $0xFFFFFFF0,%edx;");
+	asm("loc_6D0D7F2: or %ecx,%edx;");
+	asm("loc_6D0D7F4: mov %edx,-0x38(%ebp);");
+	asm("loc_6D0D7F7: mov $0x10000,%eax;");
+	asm("loc_6D0D7FC: and $0xFFFFFFF,%eax;");
+	asm("loc_6D0D801: shl $4,%eax;");
+	asm("loc_6D0D804: mov -0x38(%ebp),%ecx;");
+	asm("loc_6D0D807: and $0xF,%ecx;");
+	asm("loc_6D0D80A: or %eax,%ecx;");
+	asm("loc_6D0D80C: mov %ecx,-0x38(%ebp);");
+	asm("loc_6D0D80F: push $_data_6D67540;");
+	asm("loc_6D0D814: push $0xC67;");
+	asm("loc_6D0D819: push $_data_6D67580;");
+	asm("loc_6D0D81E: push $_data_6D675CC;");
+	asm("loc_6D0D823: mov -0x38(%ebp),%edx;");
+	asm("loc_6D0D826: push %edx;");
+	asm("loc_6D0D827: mov _import_6D5E018,%eax;");
+	asm("loc_6D0D82C: calll *(%eax);");
+	asm("loc_6D0D82E: add $0x14,%esp;");
+	asm("loc_6D0D831: or $0xFFFFFFFF,%eax;");
+	asm("loc_6D0D834: jmp loc_6D0D991;");
+	asm("loc_6D0D839: movl $0,-0x24(%ebp);");
+	asm("loc_6D0D840: lea -0x24(%ebp),%ecx;");
+	asm("loc_6D0D843: push %ecx;");
+	asm("loc_6D0D844: push $1;");
+	asm("loc_6D0D846: mov -0xC(%ebp),%edx;");
+	asm("loc_6D0D849: push %edx;");
+
+	__asm { mov last_enum, edx };
+
+	asm("loc_6D0D84A: call _sub_6D5CBB0;");
+
+	__asm { mov last_value, eax };
+
+	asm("loc_6D0D84F: add $4,%esp;");
+	asm("loc_6D0D852: push %eax;");
+	asm("loc_6D0D853: mov -0x1C(%ebp),%eax;");
+	asm("loc_6D0D856: push %eax;");
+	asm("loc_6D0D857: mov 0x18(%ebp),%ecx;");
+	asm("loc_6D0D85A: push %ecx;");
+	asm("loc_6D0D85B: mov 0x10(%ebp),%edx;");
+	asm("loc_6D0D85E: push %edx;");
+	asm("loc_6D0D85F: mov 0xC(%ebp),%eax;");
+	asm("loc_6D0D862: push %eax;");
+	asm("loc_6D0D863: mov 8(%ebp),%ecx;");
+	asm("loc_6D0D866: mov 0x130(%ecx),%edx;");
+	asm("loc_6D0D86C: mov 8(%ebp),%eax;");
+	asm("loc_6D0D86F: mov 0x130(%eax),%ecx;");
+	asm("loc_6D0D875: mov (%edx),%edx;");
+	asm("loc_6D0D877: push %ecx;");
+	asm("loc_6D0D878: calll *0x50(%edx);");
+	asm("loc_6D0D87B: mov %eax,-0x18(%ebp);");
+	asm("loc_6D0D87E: cmpl $0,-0x18(%ebp);");
+	asm("loc_6D0D882: jge loc_6D0D90F;");
+	asm("loc_6D0D888: mov -0x18(%ebp),%eax;");
+	asm("loc_6D0D88B: push %eax;");
+	asm("loc_6D0D88C: call _sub_6D2B964;");
+	asm("loc_6D0D891: add $4,%esp;");
+	asm("loc_6D0D894: push %eax;");
+	asm("loc_6D0D895: push $_data_6D675E8;");
+	asm("loc_6D0D89A: lea -0x2038(%ebp),%ecx;");
+	asm("loc_6D0D8A0: push %ecx;");
+	asm("loc_6D0D8A1: call _sub_6D168F0;");
+	asm("loc_6D0D8A6: add $0xC,%esp;");
+	asm("loc_6D0D8A9: mov %eax,-0x2040(%ebp);");
+	asm("loc_6D0D8AF: mov $2,%edx;");
+	asm("loc_6D0D8B4: and $0xF,%edx;");
+	asm("loc_6D0D8B7: mov -0x203C(%ebp),%eax;");
+	asm("loc_6D0D8BD: and $0xFFFFFFF0,%eax;");
+	asm("loc_6D0D8C0: or %edx,%eax;");
+	asm("loc_6D0D8C2: mov %eax,-0x203C(%ebp);");
+	asm("loc_6D0D8C8: mov $0x10000,%ecx;");
+	asm("loc_6D0D8CD: and $0xFFFFFFF,%ecx;");
+	asm("loc_6D0D8D3: shl $4,%ecx;");
+	asm("loc_6D0D8D6: mov -0x203C(%ebp),%edx;");
+	asm("loc_6D0D8DC: and $0xF,%edx;");
+	asm("loc_6D0D8DF: or %ecx,%edx;");
+	asm("loc_6D0D8E1: mov %edx,-0x203C(%ebp);");
+	asm("loc_6D0D8E7: mov -0x2040(%ebp),%eax;");
+	asm("loc_6D0D8ED: push %eax;");
+	asm("loc_6D0D8EE: push $0xC87;");
+	asm("loc_6D0D8F3: push $_data_6D67600;");
+	asm("loc_6D0D8F8: push $_data_6D6764C;");
+	asm("loc_6D0D8FD: mov -0x203C(%ebp),%ecx;");
+	asm("loc_6D0D903: push %ecx;");
+	asm("loc_6D0D904: mov _import_6D5E018,%edx;");
+	asm("loc_6D0D90A: calll *(%edx);");
+	asm("loc_6D0D90C: add $0x14,%esp;");
+	asm("loc_6D0D90F: mov -0x24(%ebp),%eax;");
+	asm("loc_6D0D912: mov %eax,-0x204C(%ebp);");
+	asm("loc_6D0D918: movl $0,-0x2044(%ebp);");
+	asm("loc_6D0D922: cmpl $0,-0x204C(%ebp);");
+	asm("loc_6D0D929: je loc_6D0D983;");
+	asm("loc_6D0D92B: push $8;");
+	asm("loc_6D0D92D: call _sub_6D2F2A0;");
+	asm("loc_6D0D932: add $4,%esp;");
+	asm("loc_6D0D935: mov %eax,-0x2048(%ebp);");
+	asm("loc_6D0D93B: cmpl $0,-0x2048(%ebp);");
+	asm("loc_6D0D942: je loc_6D0D96D;");
+	asm("loc_6D0D944: mov -0x2048(%ebp),%ecx;");
+	asm("loc_6D0D94A: mov -0x204C(%ebp),%edx;");
+	asm("loc_6D0D950: mov %edx,(%ecx);");
+	asm("loc_6D0D952: mov -0x2048(%ebp),%eax;");
+	asm("loc_6D0D958: movl $0,4(%eax);");
+	asm("loc_6D0D95F: mov -0x2048(%ebp),%ecx;");
+	asm("loc_6D0D965: mov %ecx,-0x2050(%ebp);");
+	asm("loc_6D0D96B: jmp loc_6D0D977;");
+	asm("loc_6D0D96D: movl $0,-0x2050(%ebp);");
+	asm("loc_6D0D977: mov -0x2050(%ebp),%edx;");
+	asm("loc_6D0D97D: mov %edx,-0x2044(%ebp);");
+	asm("loc_6D0D983: mov 0x20(%ebp),%eax;");
+	asm("loc_6D0D986: mov -0x2044(%ebp),%ecx;");
+	asm("loc_6D0D98C: mov %ecx,(%eax);");
+	asm("loc_6D0D98E: mov -0x18(%ebp),%eax;");
+	asm("loc_6D0D991: mov %ebp,%esp;");
+	asm("loc_6D0D993: pop %ebp;");
+	asm("loc_6D0D994: ret $0x1C;");
+	asm("int3;"); // unreachable
 }
 
-GENRESULT NewRenderPipeline::destroy_texture(U32 htexture)
+GENRESULT NewRenderPipeline::create_texture(int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, IRP_TEXTUREHANDLE* out_htexture)
 {
-	GENRESULT result = DirectX8_destroy_texture(this, htexture);
-	return result;
+	CHECK_DEVICE_LIFETIME();
+
+	D3DFORMAT format = pf_to_d3d(*desiredformat);
+
+	switch ((U32)format)
+	{
+	case PF_4CC_DAOP:
+		format = D3DFMT_R5G6B5;
+		break;
+	case PF_4CC_DAOT:
+		format = D3DFMT_X8R8G8B8;
+		break;
+	case PF_4CC_DAA1:
+		format = D3DFMT_A1R5G5B5;
+		break;
+	case PF_4CC_DAA4:
+		format = D3DFMT_A4R4G4B4;
+		break;
+	case PF_4CC_DAA8:
+		format = D3DFMT_A8R8G8B8;
+		break;
+	case PF_4CC_DAAA:
+	case PF_4CC_DAAL:
+		// unused and unsupported
+		return GR_GENERIC;
+	}
+
+	IDirect3DTexture8* direct3d_texture;
+	HRESULT hr;
+	if (FAILED(hr = direct3d_device->CreateTexture(
+		width,
+		height,
+		num_lod,
+		0,
+		format,
+		D3DPOOL_MANAGED,
+		&direct3d_texture)))
+	{
+		GENERAL_ERROR(TEMPSTR("create_texture: %s", HRESULT_GET_ERROR_STRING(hr)));
+		return GR_GENERIC;
+	}
+
+	*out_htexture = new RPTEXTUREHANDLE
+	{
+		.direct3d_texture = direct3d_texture
+	};
+
+	return GR_OK;
 }
 
-GENRESULT NewRenderPipeline::is_texture(U32 htexture)
+GENRESULT NewRenderPipeline::destroy_texture(IRP_TEXTUREHANDLE htexture)
 {
-	GENRESULT result = DirectX8_is_texture(this, htexture);
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT result = GR_OK;
+	if (SUCCEEDED(is_texture(htexture)))
+	{
+		for (U32 stage_index = 0; stage_index < _countof(curr_hw_texture); stage_index++)
+		{
+			CACHED_TEXTURE& cached_texture = curr_hw_texture[stage_index];
+			if (cached_texture.value == htexture)
+			{
+				cached_texture.set(direct3d_device, stage_index, NULL);
+			}
+		}
+
+		RPTEXTUREHANDLE* texture = htexture;
+
+		U32 refcount = texture->direct3d_texture->Release();
+		if (refcount > 0)
+		{
+			GENERAL_WARNING(TEMPSTR("direct3d_texture released with %u references", refcount));
+		}
+		texture->direct3d_texture = 0;
+		delete texture;
+	}
+	else
+	{
+		result = GR_INVALID_PARMS;
+	}
+
 	return result;
 }
 
-GENRESULT NewRenderPipeline::lock_texture(U32 htexture, int level, RPLOCKDATA* lockData)
+GENRESULT NewRenderPipeline::is_texture(IRP_TEXTUREHANDLE htexture)
 {
-	GENRESULT result = DirectX8_lock_texture(this, htexture, level, lockData);
-	return result;
+	CHECK_DEVICE_LIFETIME();
+
+	if (htexture && htexture->direct3d_texture)
+	{
+		return GR_OK;
+	}
+	else
+	{
+		return GR_GENERIC;
+	}
 }
 
-GENRESULT NewRenderPipeline::unlock_texture(U32 htexture, int level)
+static GENRESULT get_texture_surface(IRP_TEXTUREHANDLE htexture, U32 subsurface, IDirect3DSurface8** out_direct3d_texture_surface)
 {
-	GENRESULT result = DirectX8_unlock_texture(this, htexture, level);
+	GENRESULT result = GR_GENERIC;
+	HRESULT hr = E_FAIL;
+
+	IDirect3DSurface8* direct3d_texture_surface = nullptr;
+	RPTEXTUREHANDLE* texture = htexture;
+	IDirect3DBaseTexture8* direct3d_basetexture = texture->direct3d_texture;
+	D3DRESOURCETYPE resource_type = direct3d_basetexture->GetType();
+
+	switch (resource_type)
+	{
+	case D3DRTYPE_TEXTURE:
+	{
+		ASSERT(texture->unknown4 == 0);
+
+		IDirect3DTexture8* direct3d_2d_texture;
+		if (SUCCEEDED(hr = direct3d_basetexture->QueryInterface(
+			IID_IDirect3DTexture8,
+			reinterpret_cast<void**>(&direct3d_2d_texture))))
+		{
+			if (FAILED(hr = direct3d_2d_texture->GetSurfaceLevel(subsurface, &direct3d_texture_surface)))
+			{
+				GENERAL_ERROR(TEMPSTR("%s GetSurfaceLevel failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+				result = GR_GENERIC;
+			}
+
+			direct3d_2d_texture->Release();
+			result = GR_OK;
+		}
+		else
+		{
+			GENERAL_ERROR(TEMPSTR("%s QueryInterface for IDirect3DTexture8 failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+			result = GR_GENERIC;
+		}
+	}
+	break;
+	case D3DRTYPE_CUBETEXTURE:
+	{
+		ASSERT(texture->unknown4 == 1);
+
+		IDirect3DCubeTexture8* direct3d_cube_texture;
+		if (SUCCEEDED(hr = direct3d_basetexture->QueryInterface(
+			IID_IDirect3DCubeTexture8,
+			reinterpret_cast<void**>(&direct3d_cube_texture))))
+		{
+			D3DCUBEMAP_FACES face = static_cast<D3DCUBEMAP_FACES>(subsurface);
+			if (FAILED(hr = direct3d_cube_texture->GetCubeMapSurface(face, 0, &direct3d_texture_surface)))
+			{
+				GENERAL_ERROR(TEMPSTR("%s GetCubeMapSurface failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+				result = GR_GENERIC;
+			}
+
+			direct3d_cube_texture->Release();
+			result = GR_OK;
+		}
+		else
+		{
+			GENERAL_ERROR(TEMPSTR("%s QueryInterface for IDirect3DCubeTexture8 failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+			result = GR_GENERIC;
+		}
+	}
+	break;
+	default:
+	{
+		GENERAL_FATAL(TEMPSTR("%s unsupported resource type %u", __FUNCTION__, static_cast<U32>(resource_type)));
+		result = GR_NOT_IMPLEMENTED;
+	}
+	break;
+	}
+
+	if (SUCCEEDED(result))
+	{
+		*out_direct3d_texture_surface = direct3d_texture_surface;
+	}
+	else
+	{
+		GENERAL_ERROR(TEMPSTR("%s failed to get surface", __FUNCTION__));
+		direct3d_texture_surface->Release();
+	}
+
 	return result;
 }
 
-GENRESULT NewRenderPipeline::get_texture_format(U32 htexture, PFenum* out_pf)
+GENRESULT NewRenderPipeline::lock_texture(IRP_TEXTUREHANDLE htexture, U32 subsurface, RPLOCKDATA* lockData)
+{
+	GENRESULT result = GR_OK;
+	HRESULT hr = E_FAIL;
+	if (FAILED(is_texture(htexture)))
+	{
+		GENERAL_ERROR(TEMPSTR("%s invalid texture handle", __FUNCTION__));
+		result = GR_INVALID_PARMS;
+	}
+	else
+	{
+		IDirect3DSurface8* direct3d_texture_surface;
+		if (SUCCEEDED(result = get_texture_surface(htexture, subsurface, &direct3d_texture_surface)))
+		{
+			ASSERT(direct3d_texture_surface != nullptr);
+
+			D3DSURFACE_DESC desc;
+			if (SUCCEEDED(hr = direct3d_texture_surface->GetDesc(&desc)))
+			{
+				D3DLOCKED_RECT rect;
+				DWORD flags = 0;
+				if (unknown128 & 2)
+				{
+					flags |= D3DLOCK_NOSYSLOCK;
+				}
+				if (SUCCEEDED(hr = direct3d_texture_surface->LockRect(&rect, NULL, flags)))
+				{
+					lockData->pf = d3d_to_pf(desc.Format);
+					lockData->width = desc.Width;
+					lockData->height = desc.Height;
+					lockData->pitch = rect.Pitch;
+					lockData->pixels = rect.pBits;
+
+					result = GR_OK;
+				}
+				else
+				{
+					GENERAL_ERROR(TEMPSTR("%s LockRect failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+					result = GR_GENERIC;
+				}
+
+				direct3d_texture_surface->Release();
+			}
+			else
+			{
+				GENERAL_ERROR(TEMPSTR("%s GetDesc failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+				result = GR_GENERIC;
+			}
+		}
+	}
+
+	return result;
+}
+
+GENRESULT NewRenderPipeline::unlock_texture(IRP_TEXTUREHANDLE htexture, U32 subsurface)
+{
+	GENRESULT result = GR_OK;
+	HRESULT hr = E_FAIL;
+	if (FAILED(is_texture(htexture)))
+	{
+		GENERAL_ERROR(TEMPSTR("%s invalid texture handle", __FUNCTION__));
+		result = GR_INVALID_PARMS;
+	}
+	else
+	{
+		IDirect3DSurface8* direct3d_texture_surface;
+		if (SUCCEEDED(result = get_texture_surface(htexture, subsurface, &direct3d_texture_surface)))
+		{
+			ASSERT(direct3d_texture_surface != nullptr);
+
+			if (FAILED(hr = direct3d_texture_surface->UnlockRect()))
+			{
+				GENERAL_ERROR(TEMPSTR("%s UnlockRect failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+				result = GR_GENERIC;
+			}
+		}
+	}
+
+	return result;
+}
+
+GENRESULT NewRenderPipeline::get_texture_format(IRP_TEXTUREHANDLE htexture, PFenum* out_pf)
 {
 	GENRESULT result = DirectX8_get_texture_format(this, htexture, out_pf);
 	return result;
 }
 
-GENRESULT NewRenderPipeline::get_texture_dim(U32 htexture, U32* out_width, U32* out_height, U32* out_num_lod)
+GENRESULT NewRenderPipeline::get_texture_dim(IRP_TEXTUREHANDLE htexture, U32* out_width, U32* out_height, U32* out_num_lod)
 {
 	GENRESULT result = DirectX8_get_texture_dim(this, htexture, out_width, out_height, out_num_lod);
 	return result;
 }
 
-GENRESULT NewRenderPipeline::get_texture_interface(U32 htexture, const char* iid, void** out_iif)
+GENRESULT NewRenderPipeline::get_texture_interface(IRP_TEXTUREHANDLE htexture, const char* iid, void** out_iif)
 {
 	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_get_texture_interface(this, htexture, iid, out_iif);
 	return result;
 }
 
-GENRESULT NewRenderPipeline::set_texture_level_data(U32 htexture, int level, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette)
+GENRESULT NewRenderPipeline::set_texture_level_data(IRP_TEXTUREHANDLE htexture, U32 subsurface, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette)
 {
-	GENRESULT result = DirectX8_set_texture_level_data(this, htexture, level, src_width, src_height, src_stride, src_format, src_pixel, src_alpha, src_palette);
+	GENRESULT result = DirectX8_set_texture_level_data(this, htexture, subsurface, src_width, src_height, src_stride, src_format, src_pixel, src_alpha, src_palette);
 	return result;
 }
 
-GENRESULT NewRenderPipeline::blit_texture(U32 hDest, U32 destLevel, RECT destRect, U32 hSrc, U32 srcLevel, RECT srcRect)
+GENRESULT NewRenderPipeline::blit_texture(IRP_TEXTUREHANDLE hDest, U32 destLevel, RECT destRect, IRP_TEXTUREHANDLE hSrc, U32 srcLevel, RECT srcRect)
 {
 	NOT_IMPLEMENTED;
 	GENRESULT result = DirectX8_blit_texture(this, hDest, destLevel, destRect, hSrc, srcLevel, srcRect);
@@ -3527,16 +4036,16 @@ GENRESULT NewRenderPipeline::get_texture_stage_transform(U32 stage, Matrix4* mat
 	return result;
 }
 
-GENRESULT NewRenderPipeline::set_texture_stage_texture(U32 stage, U32 htexture)
+GENRESULT NewRenderPipeline::set_texture_stage_texture(U32 stage, IRP_TEXTUREHANDLE htexture)
 {
 	GENRESULT result = DirectX8_set_texture_stage_texture(this, stage, htexture);
 	return result;
 }
 
-GENRESULT NewRenderPipeline::get_texture_stage_texture(U32 stage, U32* htexture)
+GENRESULT NewRenderPipeline::get_texture_stage_texture(U32 stage, IRP_TEXTUREHANDLE* out_htexture)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_get_texture_stage_texture(this, stage, htexture);
+	GENRESULT result = DirectX8_get_texture_stage_texture(this, stage, out_htexture);
 	return result;
 }
 

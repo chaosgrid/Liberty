@@ -65,9 +65,9 @@ void rp_rd_set_frustum_view_options	( void ) ;
 void rp_rd_set_sb_delay				( float milliseconds ) ;	// swap_buffers(), <0.0 means pause
 void rp_rd_set_dp_delay				( float milliseconds ) ;	// draw_*_primitive_*(), <0.0 means pause
 
-void rp_rd_save_surface_dds			( const char *filename, LPDIRECTDRAWSURFACE7 surface ) ;
-void rp_rd_save_surface_bmp			( const char *filename, LPDIRECTDRAWSURFACE7 surface ) ;
-void rp_rd_save_screen_capture		( const char *filename, LPDIRECTDRAWSURFACE7 render_target, bool at_next_swap_buffers ) ;
+void rp_rd_save_surface_dds			( const char *filename, LPDIRECT3DBASETEXTURE8 surface ) ;
+void rp_rd_save_surface_bmp			( const char *filename, LPDIRECT3DBASETEXTURE8 surface ) ;
+void rp_rd_save_screen_capture		( const char *filename, LPDIRECT3DBASETEXTURE8 render_target, bool at_next_swap_buffers ) ;
 
 void rp_rd_begin_pick_2d			( void ) ;
 void rp_rd_pick_2d					( float screen_pt_x, float screen_y, bool render_triangle ) ;
@@ -85,7 +85,7 @@ void rp_rd_ortho					( float left, float right, float bottom, float top, float n
 void rp_rd_perspective				( float fovy, float aspect, float znear, float zfar );
 void rp_rd_transform				( D3DTRANSFORMSTATETYPE which, const D3DMATRIX *value );
 void rp_rd_render_state				( D3DRENDERSTATETYPE state, U32 value );
-void rp_rd_texture					( U32 stage, IDirectDrawSurface7 *texture );
+void rp_rd_texture					( U32 stage, LPDIRECT3DBASETEXTURE8 texture );
 void rp_rd_texture_state			( U32 stage, D3DTEXTURESTAGESTATETYPE state, U32 value );
 void rp_rd_light					( IRP_LIGHTHANDLE handle, const D3DLIGHT8 *value );
 void rp_rd_light_enable				( IRP_LIGHTHANDLE handle, U32 value );
@@ -111,9 +111,9 @@ inline void rp_rd_set_frustum_view_enable	( bool onoff )  {}
 inline void rp_rd_set_frustum_view_options	( void )  {}
 inline void rp_rd_set_sb_delay				( float milliseconds )  {}
 inline void rp_rd_set_dp_delay				( float milliseconds )  {}
-inline void rp_rd_save_surface_dds			( const char *filename, LPDIRECTDRAWSURFACE7 surface ) {}
-inline void rp_rd_save_surface_bmp			( const char *filename, LPDIRECTDRAWSURFACE7 surface ) {}
-inline void rp_rd_save_screen_capture		( const char *filename, bool at_next_swap_buffers )  {}
+inline void rp_rd_save_surface_dds			( const char *filename, LPDIRECT3DBASETEXTURE8 surface ) {}
+inline void rp_rd_save_surface_bmp			( const char *filename, LPDIRECT3DBASETEXTURE8 surface ) {}
+inline void rp_rd_save_screen_capture		( const char *filename, LPDIRECT3DBASETEXTURE8 render_target, bool at_next_swap_buffers ) {}
 inline void rp_rd_begin_pick_2d				( void )  {}
 inline void rp_rd_pick_2d					( float screen_pt_x, float screen_y, bool render_triangle )  {}
 inline void rp_rd_end_pick_2d				( void )  {}
@@ -128,7 +128,7 @@ inline void rp_rd_ortho						( float left, float right, float bottom, float top,
 inline void rp_rd_perspective				( float fovy, float aspect, float znear, float zfar ) {}
 inline void rp_rd_transform					( D3DTRANSFORMSTATETYPE which, const D3DMATRIX *value ) {}
 inline void rp_rd_render_state				( D3DRENDERSTATETYPE state, U32 value ) {}
-inline void rp_rd_texture					( U32 stage, LPDIRECTDRAWSURFACE7 texture ) {}
+inline void rp_rd_texture					( U32 stage, LPDIRECT3DBASETEXTURE8 texture ) {}
 inline void rp_rd_texture_state				( U32 stage, D3DTEXTURESTAGESTATETYPE state, U32 value ) {}
 inline void rp_rd_light						( IRP_LIGHTHANDLE handle, const D3DLIGHT8 *value ) {}
 inline void rp_rd_light_enable				( IRP_LIGHTHANDLE handle, U32 value ) {}

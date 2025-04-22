@@ -8,6 +8,7 @@
 #include "RPInternal.h"
 #include "CachedMatrix.h"
 #include "CachedViewport.h"
+#include "CachedTexture.h"
 #include "StateInfo.h"
 
 #include <d3d8.h>
@@ -61,16 +62,16 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_light_enable, _sub_6D0D0D7, IRende
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_light_enable, _sub_6D0D157, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle, U32* out_enable);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_material, _sub_6D0D1DC, IRenderPipeline8B* _this, D3DMATERIAL8* material_values);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_material, _sub_6D0D310, IRenderPipeline8B* _this, D3DMATERIAL8* out_material_values);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_texture, _sub_6D0D628, IRenderPipeline8B* _this, int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_texture, _sub_6D0D997, IRenderPipeline8B* _this, U32 htexture);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_is_texture, _sub_6D0DC51, IRenderPipeline8B* _this, U32 htexture);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_lock_texture, _sub_6D0DCE3, IRenderPipeline8B* _this, U32 htexture, int level, RPLOCKDATA* lockData);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_texture, _sub_6D0E1AF, IRenderPipeline8B* _this, U32 htexture, int level);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_format, _sub_6D0E3D9, IRenderPipeline8B* _this, U32 htexture, PFenum* out_pf);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_dim, _sub_6D0E6D4, IRenderPipeline8B* _this, U32 htexture, U32* out_width, U32* out_height, U32* out_num_lod);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_interface, _sub_6D0EA0B, IRenderPipeline8B* _this, U32 htexture, const char* iid, void** out_iif);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_level_data, _sub_6D0EA78, IRenderPipeline8B* _this, U32 htexture, int level, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_blit_texture, _sub_6D0F1BC, IRenderPipeline8B* _this, U32 hDest, U32 destLevel, RECT destRect, U32 hSrc, U32 srcLevel, RECT srcRect);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_texture, _sub_6D0D628, IRenderPipeline8B* _this, int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, IRP_TEXTUREHANDLE* out_htexture);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_texture, _sub_6D0D997, IRenderPipeline8B* _this, IRP_TEXTUREHANDLE htexture);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_is_texture, _sub_6D0DC51, IRenderPipeline8B* _this, IRP_TEXTUREHANDLE htexture);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_lock_texture, _sub_6D0DCE3, IRenderPipeline8B* _this, IRP_TEXTUREHANDLE htexture, U32 subsurface, RPLOCKDATA* lockData);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_texture, _sub_6D0E1AF, IRenderPipeline8B* _this, IRP_TEXTUREHANDLE htexture, U32 subsurface);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_format, _sub_6D0E3D9, IRenderPipeline8B* _this, IRP_TEXTUREHANDLE htexture, PFenum* out_pf);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_dim, _sub_6D0E6D4, IRenderPipeline8B* _this, IRP_TEXTUREHANDLE htexture, U32* out_width, U32* out_height, U32* out_num_lod);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_interface, _sub_6D0EA0B, IRenderPipeline8B* _this, IRP_TEXTUREHANDLE htexture, const char* iid, void** out_iif);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_level_data, _sub_6D0EA78, IRenderPipeline8B* _this, IRP_TEXTUREHANDLE htexture, U32 subsurface, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_blit_texture, _sub_6D0F1BC, IRenderPipeline8B* _this, IRP_TEXTUREHANDLE hDest, U32 destLevel, RECT destRect, IRP_TEXTUREHANDLE hSrc, U32 srcLevel, RECT srcRect);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_render_target, _sub_6D0F698, IRenderPipeline8B* _this, UNKNOWN a2, UNKNOWN a3, UNKNOWN a4);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_render_target, _sub_6D0F70F, IRenderPipeline8B* _this, void* a2);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_begin_scene, _sub_6D0F786, IRenderPipeline8B* _this);
@@ -82,8 +83,8 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_stage_state, _sub_6D0FBCF,
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_stage_state, _sub_6D0FCD5, IRenderPipeline8B* _this, U32 stage, D3DTEXTURESTAGESTATETYPE state, U32* value);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_stage_transform, _sub_6D0FDD2, IRenderPipeline8B* _this, U32 stage, Matrix4* mat4);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_stage_transform, _sub_6D0FF7D, IRenderPipeline8B* _this, U32 stage, Matrix4* mat4);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_stage_texture, _sub_6D100D3, IRenderPipeline8B* _this, U32 stage, U32 htexture);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_stage_texture, _sub_6D10247, IRenderPipeline8B* _this, U32 stage, U32* htexture);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_stage_texture, _sub_6D100D3, IRenderPipeline8B* _this, U32 stage, IRP_TEXTUREHANDLE htexture);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_stage_texture, _sub_6D10247, IRenderPipeline8B* _this, U32 stage, IRP_TEXTUREHANDLE* out_htexture);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_verify_state, _sub_6D10322, IRenderPipeline8B* _this);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_primitive, _sub_6D1067F, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, U32 flags);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive, _sub_6D1097D, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, const U16* indices, int num_indices, U32 flags);
@@ -1983,22 +1984,7 @@ public:
 	DWORD unknown1F88;
 	DWORD unknown1F8C;
 	DWORD unknown1F90;
-	DWORD unknown1F94;
-	DWORD unknown1F98;
-	DWORD unknown1F9C;
-	DWORD unknown1FA0;
-	DWORD unknown1FA4;
-	DWORD unknown1FA8;
-	DWORD unknown1FAC;
-	DWORD unknown1FB0;
-	DWORD unknown1FB4;
-	DWORD unknown1FB8;
-	DWORD unknown1FBC;
-	DWORD unknown1FC0;
-	DWORD unknown1FC4;
-	DWORD unknown1FC8;
-	DWORD unknown1FCC;
-	DWORD unknown1FD0;
+	CACHED_TEXTURE curr_hw_texture[8];
 	DWORD unknown1FD4;
 	DWORD unknown1FD8;
 	DWORD unknown1FDC;
@@ -2223,16 +2209,16 @@ public:
 	DACOM_DEFMETHOD(get_light_enable)(IRP_LIGHTHANDLE handle, U32* out_enable) override;
 	DACOM_DEFMETHOD(set_material)(D3DMATERIAL8* material_values) override;
 	DACOM_DEFMETHOD(get_material)(D3DMATERIAL8* out_material_values) override;
-	DACOM_DEFMETHOD(create_texture)(int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture) override;
-	DACOM_DEFMETHOD(destroy_texture)(U32 htexture) override;
-	DACOM_DEFMETHOD(is_texture)(U32 htexture) override;
-	DACOM_DEFMETHOD(lock_texture)(U32 htexture, int level, RPLOCKDATA* lockData) override;
-	DACOM_DEFMETHOD(unlock_texture)(U32 htexture, int level) override;
-	DACOM_DEFMETHOD(get_texture_format)(U32 htexture, PFenum* out_pf) override;
-	DACOM_DEFMETHOD(get_texture_dim)(U32 htexture, U32* out_width, U32* out_height, U32* out_num_lod) override;
-	DACOM_DEFMETHOD(get_texture_interface)(U32 htexture, const char* iid, void** out_iif) override;
-	DACOM_DEFMETHOD(set_texture_level_data)(U32 htexture, int level, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette) override;
-	DACOM_DEFMETHOD(blit_texture)(U32 hDest, U32 destLevel, RECT destRect, U32 hSrc, U32 srcLevel, RECT srcRect) override;
+	DACOM_DEFMETHOD(create_texture)(int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, IRP_TEXTUREHANDLE* out_htexture) override;
+	DACOM_DEFMETHOD(destroy_texture)(IRP_TEXTUREHANDLE htexture) override;
+	DACOM_DEFMETHOD(is_texture)(IRP_TEXTUREHANDLE htexture) override;
+	DACOM_DEFMETHOD(lock_texture)(IRP_TEXTUREHANDLE htexture, U32 subsurface, RPLOCKDATA* lockData) override;
+	DACOM_DEFMETHOD(unlock_texture)(IRP_TEXTUREHANDLE htexture, U32 subsurface) override;
+	DACOM_DEFMETHOD(get_texture_format)(IRP_TEXTUREHANDLE htexture, PFenum* out_pf) override;
+	DACOM_DEFMETHOD(get_texture_dim)(IRP_TEXTUREHANDLE htexture, U32* out_width, U32* out_height, U32* out_num_lod) override;
+	DACOM_DEFMETHOD(get_texture_interface)(IRP_TEXTUREHANDLE htexture, const char* iid, void** out_iif) override;
+	DACOM_DEFMETHOD(set_texture_level_data)(IRP_TEXTUREHANDLE htexture, U32 subsurface, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette) override;
+	DACOM_DEFMETHOD(blit_texture)(IRP_TEXTUREHANDLE hDest, U32 destLevel, RECT destRect, IRP_TEXTUREHANDLE hSrc, U32 srcLevel, RECT srcRect) override;
 	DACOM_DEFMETHOD(set_render_target)(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4) override;
 	DACOM_DEFMETHOD(get_render_target)(void* a2) override;
 	DACOM_DEFMETHOD(begin_scene)(void) override;
@@ -2244,8 +2230,8 @@ public:
 	DACOM_DEFMETHOD(get_texture_stage_state)(U32 stage, D3DTEXTURESTAGESTATETYPE state, U32* value) override;
 	DACOM_DEFMETHOD(set_texture_stage_transform)(U32 stage, Matrix4* mat4) override;
 	DACOM_DEFMETHOD(get_texture_stage_transform)(U32 stage, Matrix4* mat4) override;
-	DACOM_DEFMETHOD(set_texture_stage_texture)(U32 stage, U32 htexture) override;
-	DACOM_DEFMETHOD(get_texture_stage_texture)(U32 stage, U32* htexture) override;
+	DACOM_DEFMETHOD(set_texture_stage_texture)(U32 stage, IRP_TEXTUREHANDLE htexture) override;
+	DACOM_DEFMETHOD(get_texture_stage_texture)(U32 stage, IRP_TEXTUREHANDLE* out_htexture) override;
 	DACOM_DEFMETHOD(verify_state)(void) override;
 	DACOM_DEFMETHOD(draw_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, U32 flags) override;
 	DACOM_DEFMETHOD(draw_indexed_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, const U16* indices, int num_indices, U32 flags) override;
@@ -2590,61 +2576,61 @@ GENRESULT DirectX8::get_material(D3DMATERIAL8* out_material_values)
 	return result;
 }
 
-GENRESULT DirectX8::create_texture(int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture)
+GENRESULT DirectX8::create_texture(int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, IRP_TEXTUREHANDLE* out_htexture)
 {
 	GENRESULT result = DirectX8_create_texture(this, width, height, desiredformat, num_lod, irp_ctf_flags, out_htexture);
 	return result;
 }
 
-GENRESULT DirectX8::destroy_texture(U32 htexture)
+GENRESULT DirectX8::destroy_texture(IRP_TEXTUREHANDLE htexture)
 {
 	GENRESULT result = DirectX8_destroy_texture(this, htexture);
 	return result;
 }
 
-GENRESULT DirectX8::is_texture(U32 htexture)
+GENRESULT DirectX8::is_texture(IRP_TEXTUREHANDLE htexture)
 {
 	GENRESULT result = DirectX8_is_texture(this, htexture);
 	return result;
 }
 
-GENRESULT DirectX8::lock_texture(U32 htexture, int level, RPLOCKDATA* lockData)
+GENRESULT DirectX8::lock_texture(IRP_TEXTUREHANDLE htexture, U32 subsurface, RPLOCKDATA* lockData)
 {
-	GENRESULT result = DirectX8_lock_texture(this, htexture, level, lockData);
+	GENRESULT result = DirectX8_lock_texture(this, htexture, subsurface, lockData);
 	return result;
 }
 
-GENRESULT DirectX8::unlock_texture(U32 htexture, int level)
+GENRESULT DirectX8::unlock_texture(IRP_TEXTUREHANDLE htexture, U32 subsurface)
 {
-	GENRESULT result = DirectX8_unlock_texture(this, htexture, level);
+	GENRESULT result = DirectX8_unlock_texture(this, htexture, subsurface);
 	return result;
 }
 
-GENRESULT DirectX8::get_texture_format(U32 htexture, PFenum* out_pf)
+GENRESULT DirectX8::get_texture_format(IRP_TEXTUREHANDLE htexture, PFenum* out_pf)
 {
 	GENRESULT result = DirectX8_get_texture_format(this, htexture, out_pf);
 	return result;
 }
 
-GENRESULT DirectX8::get_texture_dim(U32 htexture, U32* out_width, U32* out_height, U32* out_num_lod)
+GENRESULT DirectX8::get_texture_dim(IRP_TEXTUREHANDLE htexture, U32* out_width, U32* out_height, U32* out_num_lod)
 {
 	GENRESULT result = DirectX8_get_texture_dim(this, htexture, out_width, out_height, out_num_lod);
 	return result;
 }
 
-GENRESULT DirectX8::get_texture_interface(U32 htexture, const char* iid, void** out_iif)
+GENRESULT DirectX8::get_texture_interface(IRP_TEXTUREHANDLE htexture, const char* iid, void** out_iif)
 {
 	GENRESULT result = DirectX8_get_texture_interface(this, htexture, iid, out_iif);
 	return result;
 }
 
-GENRESULT DirectX8::set_texture_level_data(U32 htexture, int level, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette)
+GENRESULT DirectX8::set_texture_level_data(IRP_TEXTUREHANDLE htexture, U32 subsurface, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette)
 {
-	GENRESULT result = DirectX8_set_texture_level_data(this, htexture, level, src_width, src_height, src_stride, src_format, src_pixel, src_alpha, src_palette);
+	GENRESULT result = DirectX8_set_texture_level_data(this, htexture, subsurface, src_width, src_height, src_stride, src_format, src_pixel, src_alpha, src_palette);
 	return result;
 }
 
-GENRESULT DirectX8::blit_texture(U32 hDest, U32 destLevel, RECT destRect, U32 hSrc, U32 srcLevel, RECT srcRect)
+GENRESULT DirectX8::blit_texture(IRP_TEXTUREHANDLE hDest, U32 destLevel, RECT destRect, IRP_TEXTUREHANDLE hSrc, U32 srcLevel, RECT srcRect)
 {
 	GENRESULT result = DirectX8_blit_texture(this, hDest, destLevel, destRect, hSrc, srcLevel, srcRect);
 	return result;
@@ -2716,15 +2702,15 @@ GENRESULT DirectX8::get_texture_stage_transform(U32 stage, Matrix4* mat4)
 	return result;
 }
 
-GENRESULT DirectX8::set_texture_stage_texture(U32 stage, U32 htexture)
+GENRESULT DirectX8::set_texture_stage_texture(U32 stage, IRP_TEXTUREHANDLE htexture)
 {
 	GENRESULT result = DirectX8_set_texture_stage_texture(this, stage, htexture);
 	return result;
 }
 
-GENRESULT DirectX8::get_texture_stage_texture(U32 stage, U32* htexture)
+GENRESULT DirectX8::get_texture_stage_texture(U32 stage, IRP_TEXTUREHANDLE* out_htexture)
 {
-	GENRESULT result = DirectX8_get_texture_stage_texture(this, stage, htexture);
+	GENRESULT result = DirectX8_get_texture_stage_texture(this, stage, out_htexture);
 	return result;
 }
 

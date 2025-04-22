@@ -24,7 +24,16 @@ typedef struct IRenderPipeline8B* LPRENDERPIPELINE;
 enum PFenum
 {
 	PF_UNKNOWN = 0,
+	// #TODO: Standard formats
 	PF_MAX_VALUE = 0x16,
+
+	PF_4CC_DAOP = MAKEFOURCC('D', 'A', 'O', 'P'),
+	PF_4CC_DAOT = MAKEFOURCC('D', 'A', 'O', 'T'),
+	PF_4CC_DAAA = MAKEFOURCC('D', 'A', 'A', 'A'),
+	PF_4CC_DAAL = MAKEFOURCC('D', 'A', 'A', 'L'),
+	PF_4CC_DAA1 = MAKEFOURCC('D', 'A', 'A', '1'),
+	PF_4CC_DAA4 = MAKEFOURCC('D', 'A', 'A', '4'),
+	PF_4CC_DAA8 = MAKEFOURCC('D', 'A', 'A', '8'),
 };
 
 struct PixelFormat
@@ -134,25 +143,25 @@ struct RPBUFFERSINFO
 };
 
 struct RPDEVICESTATS
-/*{
-	// note for this structure that "last frame" means the
-	// time between the last begin_scene() and end_scene().
+	/*{
+	 // note for this structure that "last frame" means the
+	 // time between the last begin_scene() and end_scene().
 
-	U32	is_thrashing;					// non-zero if last frame caused thrashing.
-	U32	num_texture_managed;			// number of textures currently being managed by the system.
-	U32	num_texture_activated;			// number of textures that were activated (used) last frame.
-	U32	num_texture_vidmem_activated;	// number of textures that were activated (used) last frame that were in video memory.
-	U32	num_texture_vidmem_created;		// number of textures that were created in video memory last frame.
-	U32	num_texture_vidmem_evicted;		// number of textures that were removed from video memory last frame.
-	U32	num_texture_vidmem;				// number of textures currently in video memory.
-	U32	sizeof_texture_vidmem;			// number of video memory bytes used by current textures.
-	U32	sizeof_texture_sysmem;			// number of system memory bytes used by current textures.
+	 U32 is_thrashing; // non-zero if last frame caused thrashing.
+	 U32 num_texture_managed; // number of textures currently being managed by the system.
+	 U32 num_texture_activated; // number of textures that were activated (used) last frame.
+	 U32 num_texture_vidmem_activated; // number of textures that were activated (used) last frame that were in video memory.
+	 U32 num_texture_vidmem_created; // number of textures that were created in video memory last frame.
+	 U32 num_texture_vidmem_evicted; // number of textures that were removed from video memory last frame.
+	 U32 num_texture_vidmem; // number of textures currently in video memory.
+	 U32 sizeof_texture_vidmem; // number of video memory bytes used by current textures.
+	 U32 sizeof_texture_sysmem; // number of system memory bytes used by current textures.
 
-	U32	num_dp_calls;					// number of draw_primitive calls
-	U32	num_dp_primitives;				// number of primitives submitted (tris+points+lines)
-	U32	num_dip_calls;					// number of draw_indexed_primitive calls
-	U32	num_dip_primitives;				// number of primitives submitted (tris+points+lines)
-}*/;
+	 U32 num_dp_calls; // number of draw_primitive calls
+	 U32 num_dp_primitives; // number of primitives submitted (tris+points+lines)
+	 U32 num_dip_calls; // number of draw_indexed_primitive calls
+	 U32 num_dip_primitives; // number of primitives submitted (tris+points+lines)
+	}*/;
 
 struct RPLOCKDATA
 {
@@ -176,16 +185,16 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 
 	// IRenderPipeline8B methods
 
-		// startup
+	// startup
 	//
-	// "Start up" a rendering device.  Note that this does not 
+	// "Start up" a rendering device. Note that this does not 
 	// actually create any buffers (or the actual device), but it
 	// does collect metadata about the device (abilities, names, etc.).
 	//
 	// profile_name defines an optional section in the profile (.ini)
-	// that contains the device id and type to use.  If profile_name
+	// that contains the device id and type to use. If profile_name
 	// is NULL, the section that is pre-defined in the profile will
-	// be used.  i.e. Suppose the profile contains the following:
+	// be used. i.e. Suppose the profile contains the following:
 	//
 	// [System]
 	// IRenderPipeline = PimpedOut
@@ -216,7 +225,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// successful shutdown(), doing so will cause undefined behavior.
 	//
 	// shutdown() will automatically be called before the component
-	// that implements this interface is destroyed.  Hence, it is not
+	// that implements this interface is destroyed. Hence, it is not
 	// strictly necessary to call shutdown() unless you want to explicitly
 	// shutdown the current device (i.e. to clear all of the device data out).
 	//
@@ -224,7 +233,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 
 	// set_pipeline_state
 	//
-	// Set the current value of a piece of pipeline state.  
+	// Set the current value of a piece of pipeline state. 
 	//
 	DACOM_DEFMETHOD(set_pipeline_state)(RPPIPELINESTATE state, U32 value) = 0;
 
@@ -246,7 +255,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// Determine whether the current device supports a given feature (ability).
 	// 
 	// ability is one of the defined device abilities.
-	// out_answer points to the buffer to place the response into.  The length
+	// out_answer points to the buffer to place the response into. The length
 	// of this buffer depends on the ability being queried.
 	//
 	DACOM_DEFMETHOD(query_device_ability)(RPDEVICEABILITY ability, U32* out_answer) = 0;
@@ -279,10 +288,10 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// given window, and sets all of the transform and render state to their 
 	// default values.
 	//
-	// Note that any previously created buffers are destroyed.  
+	// Note that any previously created buffers are destroyed. 
 	//
 	// **NOTE** Some methods on this interface are **ONLY** available (i.e.
-	// return success) after a successful create_buffers call.  Such methods
+	// return success) after a successful create_buffers call. Such methods
 	// are noted in their description.
 	//
 	// If this method returns failure, then there are no render buffers 
@@ -297,7 +306,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// Destroy the render buffers created with a previous call to create_buffers.
 	//
 	// **NOTE** Some methods on this interface are **NO LONGER** available (i.e.
-	// always return failure) after a successful destroy_buffers call.  Such 
+	// always return failure) after a successful destroy_buffers call. Such 
 	// methods are noted in their description.
 	//
 	DACOM_DEFMETHOD(destroy_buffers)(void) = 0;
@@ -321,7 +330,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// swap_buffers
 	//
 	// This is called when a client wants to make the current frame's 
-	// rendering visible.  One should always call this at the end of a frame
+	// rendering visible. One should always call this at the end of a frame
 	// after everything has been rendered and end_scene() is called.
 	//
 	// This method will always return failure 'outside' of successful create_buffers
@@ -350,7 +359,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// get_buffer_interface
 	//
 	// Acquire an interface to some extended functionality attached
-	// to the render buffers.  i.e. The video stream control, etc...
+	// to the render buffers. i.e. The video stream control, etc...
 	//
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
@@ -360,7 +369,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// get_device_stats
 	//
 	// Retrieves statistics about the current device such as texture
-	// usage, primitive counts, etc.  Note that this method can stall
+	// usage, primitive counts, etc. Note that this method can stall
 	// the pipeline and may have other performance side effects.
 	//
 	// This method will always return failure 'outside' of successful create_buffers
@@ -509,11 +518,11 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 
 	// set_light
 	//
-	// Set the light properties associated with the given light_index.  The specified
+	// Set the light properties associated with the given light_index. The specified
 	// index can be any valid unsigned 32-bit value.
 	//
 	// NOTE: this method does not affect whether the given light is enabled or 
-	// NOTE: not...  i.e. lights can be set and enabled orthogonally.
+	// NOTE: not... i.e. lights can be set and enabled orthogonally.
 	//
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
@@ -569,33 +578,33 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 
 	// create_texture
 	//
-	// Create a texture surface.  
+	// Create a texture surface. 
 	//
-	// width, height - The dimensions of the texture.  If these values are larger
-	//                 than the maximum dimensions supported by the device, this  
-	//                 method will fail.
+	// width, height - The dimensions of the texture. If these values are larger
+	// than the maximum dimensions supported by the device, this 
+	// method will fail.
 	//
-	// desiredformat - The desired format of the new texture.  This can either be
-	//                 a fully-specified PixelFormat or a PixelFormat that specifies
-	//                 a texture format class.  If no suitable format is available
-	//                 (i.e. the fully-specified format is not available nor are any
-	//                 of the formats in the texture format class), this method will 
-	//                 fail.
+	// desiredformat - The desired format of the new texture. This can either be
+	// a fully-specified PixelFormat or a PixelFormat that specifies
+	// a texture format class. If no suitable format is available
+	// (i.e. the fully-specified format is not available nor are any
+	// of the formats in the texture format class), this method will 
+	// fail.
 	//
-	// num_lod       - The number of levels of detail in the texture.  If this value
-	//                 is non-zero, a mipmap chain of num_lod length will be created.
-	//                 If this value is zero, a non-mipmapped texture will be created.
-	//                 
-	// irp_ctf_flags - Flags that control the type of texture to create.  This can 
-	//                 either be zero (0) to create a normal texture, or a combination
-	//                 of the IRP_CTF_* flags defined above.
+	// num_lod - The number of levels of detail in the texture. If this value
+	// is non-zero, a mipmap chain of num_lod length will be created.
+	// If this value is zero, a non-mipmapped texture will be created.
+	// 
+	// irp_ctf_flags - Flags that control the type of texture to create. This can 
+	// either be zero (0) to create a normal texture, or a combination
+	// of the IRP_CTF_* flags defined above.
 	//
-	// out_handle    - Reference to the place to store the handle to the created texture.
+	// out_handle - Reference to the place to store the handle to the created texture.
 	//
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(create_texture)(int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, U32* out_htexture) = 0;
+	DACOM_DEFMETHOD(create_texture)(int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, IRP_TEXTUREHANDLE* out_htexture) = 0;
 
 	// destroy_texture
 	//
@@ -606,7 +615,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(destroy_texture)(U32 htexture) = 0;
+	DACOM_DEFMETHOD(destroy_texture)(IRP_TEXTUREHANDLE htexture) = 0;
 
 	// is_texture
 	//
@@ -617,7 +626,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(is_texture)(U32 htexture) = 0;
+	DACOM_DEFMETHOD(is_texture)(IRP_TEXTUREHANDLE htexture) = 0;
 
 	// lock_texture
 	//
@@ -627,7 +636,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(lock_texture)(U32 htexture, int level, RPLOCKDATA* lockData) = 0;
+	DACOM_DEFMETHOD(lock_texture)(IRP_TEXTUREHANDLE htexture, U32 subsurface, RPLOCKDATA* lockData) = 0;
 
 	// unlock_texture
 	//
@@ -636,7 +645,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(unlock_texture)(U32 htexture, int level) = 0;
+	DACOM_DEFMETHOD(unlock_texture)(IRP_TEXTUREHANDLE htexture, U32 subsurface) = 0;
 
 	// get_texture_format
 	//
@@ -645,7 +654,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(get_texture_format)(U32 htexture, PFenum* out_pf) = 0;
+	DACOM_DEFMETHOD(get_texture_format)(IRP_TEXTUREHANDLE htexture, PFenum* out_pf) = 0;
 
 	// get_texture_dim
 	//
@@ -654,7 +663,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(get_texture_dim)(U32 htexture, U32* out_width, U32* out_height, U32* out_num_lod) = 0;
+	DACOM_DEFMETHOD(get_texture_dim)(IRP_TEXTUREHANDLE htexture, U32* out_width, U32* out_height, U32* out_num_lod) = 0;
 
 	// get_texture_interface
 	//
@@ -663,29 +672,29 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(get_texture_interface)(U32 htexture, const char* iid, void** out_iif) = 0;
+	DACOM_DEFMETHOD(get_texture_interface)(IRP_TEXTUREHANDLE htexture, const char* iid, void** out_iif) = 0;
 
 	// set_texture_level_data
 	//
 	// Set the texel data for the given level of detail of the given texture. 
 	//
 	// src_width, src_height - The width and height (in texels) of the source texel and alpha data.
-	// src_stride            - The width (in bytes) of the source texel data.
-	// src_format            - The format of the source texel data.
-	// src_pixel             - The source texel data.
-	// src_alpha             - The source alpha data.  If not NULL, the 8-bit values in this buffer
-	//                         are used as the alpha channel of the texel data (even if src_pixels 
-	//                         contains alpha data.)  If this value is NULL and src_format specifies
-	//                         a format with an alpha channel, alpha values of 255 will be generated.
-	// src_palette           - The palette for the source data.  If src_format specifies palettized
-	//                         data, this palette is used.  It is the responsibility of the client
-	//                         to make sure that the data in src_pixel does not reference any entry
-	//                         that does not exist in src_palette.
+	// src_stride - The width (in bytes) of the source texel data.
+	// src_format - The format of the source texel data.
+	// src_pixel - The source texel data.
+	// src_alpha - The source alpha data. If not NULL, the 8-bit values in this buffer
+	// are used as the alpha channel of the texel data (even if src_pixels 
+	// contains alpha data.) If this value is NULL and src_format specifies
+	// a format with an alpha channel, alpha values of 255 will be generated.
+	// src_palette - The palette for the source data. If src_format specifies palettized
+	// data, this palette is used. It is the responsibility of the client
+	// to make sure that the data in src_pixel does not reference any entry
+	// that does not exist in src_palette.
 	//
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(set_texture_level_data)(U32 htexture, int level, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette) = 0;
+	DACOM_DEFMETHOD(set_texture_level_data)(IRP_TEXTUREHANDLE htexture, U32 subsurface, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette) = 0;
 
 	// blit_texture
 	//
@@ -694,14 +703,14 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(blit_texture)(U32 hDest, U32 destLevel, RECT destRect, U32 hSrc, U32 srcLevel, RECT srcRect) = 0;
+	DACOM_DEFMETHOD(blit_texture)(IRP_TEXTUREHANDLE hDest, U32 destLevel, RECT destRect, IRP_TEXTUREHANDLE hSrc, U32 srcLevel, RECT srcRect) = 0;
 
 	DACOM_DEFMETHOD(set_render_target)(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4) = 0;
 	DACOM_DEFMETHOD(get_render_target)(void* a2) = 0;
 
 	// begin_scene
 	//
-	// Delimits the beginning of a scene frame.  Call this only once
+	// Delimits the beginning of a scene frame. Call this only once
 	// per frame per render target.
 	//
 	// This method will always return failure 'outside' of successful create_buffers
@@ -711,7 +720,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 
 	// end_scene
 	//
-	// Delimits the end of a scene frame.  Call this only once per 
+	// Delimits the end of a scene frame. Call this only once per 
 	// frame per render target.
 	//
 	// This method will always return failure 'outside' of successful create_buffers
@@ -777,13 +786,13 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 
 	// set_texture_stage_texture
 	//
-	// Set the current texture of a texture stage.  
+	// Set the current texture of a texture stage. 
 	// If htexture == 0, no texture is available in the stage.
 	//
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(set_texture_stage_texture)(U32 stage, U32 htexture) = 0;
+	DACOM_DEFMETHOD(set_texture_stage_texture)(U32 stage, IRP_TEXTUREHANDLE htexture) = 0;
 
 	// get_texture_stage_texture
 	//
@@ -792,7 +801,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(get_texture_stage_texture)(U32 stage, U32* htexture) = 0;
+	DACOM_DEFMETHOD(get_texture_stage_texture)(U32 stage, IRP_TEXTUREHANDLE* out_htexture) = 0;
 
 	// verify_state
 	//

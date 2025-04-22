@@ -66,11 +66,12 @@ void CACHED_VIEWPORT::get_viewport(IDirect3DDevice8* device, U32* out_x, U32* ou
 
 void CACHED_VIEWPORT::set_viewport(IDirect3DDevice8* device, U32 x, U32 y, U32 w, U32 h, bool force_to_hw)
 {
-	if (vp_valid && !force_to_hw && (x == value.X) && (y == value.Y) && (w == value.Width) && (h == value.Height)) {
-#if !RP_DISABLE_CACHES 
+#if defined(RP_DISABLE_CACHES) && !RP_DISABLE_CACHES 
+	if (vp_valid && !force_to_hw && (x == value.X) && (y == value.Y) && (w == value.Width) && (h == value.Height))
+	{
 		return;
-#endif
 	}
+#endif
 
 	HRESULT hr;
 
@@ -115,11 +116,12 @@ void CACHED_VIEWPORT::get_depth_range(IDirect3DDevice8* device, float* out_min, 
 
 void CACHED_VIEWPORT::set_depth_range(IDirect3DDevice8* device, float min, float max, bool force_to_hw)
 {
-	if (dr_valid && !force_to_hw && (min == value.MinZ) && (max == value.MaxZ)) {
-#if !RP_DISABLE_CACHES 
+#if defined(RP_DISABLE_CACHES) && !RP_DISABLE_CACHES 
+	if (dr_valid && !force_to_hw && (min == value.MinZ) && (max == value.MaxZ))
+	{
 		return;
-#endif
 	}
+#endif
 
 	HRESULT hr;
 

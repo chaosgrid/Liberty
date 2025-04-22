@@ -5,14 +5,19 @@
 
 #include <DACOM.h>
 
-#include <d3d8types.h>
-
 //--------------------------------------------------------------------------//
 //----------------------------IRPTexture Interface--------------------------//
 //--------------------------------------------------------------------------//
 
 typedef struct IRPTexture* LPRPTEXTURE;
-typedef void* IRP_TEXTUREHANDLE;
+//typedef void* IRP_TEXTUREHANDLE;
+struct IDirect3DBaseTexture8;
+struct RPTEXTUREHANDLE
+{
+	IDirect3DBaseTexture8* direct3d_texture;
+	UNKNOWN unknown4;
+};
+typedef RPTEXTUREHANDLE* IRP_TEXTUREHANDLE;
 
 struct IFileSystem;
 
