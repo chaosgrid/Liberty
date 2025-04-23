@@ -773,7 +773,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(set_texture_stage_transform)(U32 stage, Matrix4* mat4) = 0;
+	DACOM_DEFMETHOD(set_texture_stage_transform)(U32 stage, Matrix4 const& mat4) = 0;
 
 	// get_texture_stage_transform
 	//
@@ -782,7 +782,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(get_texture_stage_transform)(U32 stage, Matrix4* mat4) = 0;
+	DACOM_DEFMETHOD(get_texture_stage_transform)(U32 stage, Matrix4& out_mat4) = 0;
 
 	// set_texture_stage_texture
 	//
@@ -820,7 +820,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(draw_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, U32 flags) = 0;
+	DACOM_DEFMETHOD(draw_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, U32 flags) = 0;
 
 	// draw_indexed_primitive
 	//
@@ -829,7 +829,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(draw_indexed_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, const U16* indices, int num_indices, U32 flags) = 0;
+	DACOM_DEFMETHOD(draw_indexed_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, const U16* indices, U32 num_indices, U32 flags) = 0;
 
 	// draw_primitive
 	//
@@ -838,7 +838,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(draw_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, U32 flags) = 0;
+	DACOM_DEFMETHOD(draw_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, U32 flags) = 0;
 
 	// draw_indexed_primitive
 	//
@@ -847,7 +847,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(draw_indexed_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, const U16* indices, int num_indices, U32 flags) = 0;
+	DACOM_DEFMETHOD(draw_indexed_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, const U16* indices, U32 num_indices, U32 flags) = 0;
 
 	DACOM_DEFMETHOD(add_light)(IRP_LIGHTHANDLE handle) = 0;
 	DACOM_DEFMETHOD(remove_light)(IRP_LIGHTHANDLE handle) = 0;

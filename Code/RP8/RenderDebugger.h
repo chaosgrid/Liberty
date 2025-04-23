@@ -91,9 +91,9 @@ void rp_rd_light					( IRP_LIGHTHANDLE handle, const D3DLIGHT8 *value );
 void rp_rd_light_enable				( IRP_LIGHTHANDLE handle, U32 value );
 void rp_rd_material					( const D3DMATERIAL8 *value );
 void rp_rd_dp						( D3DPRIMITIVETYPE type, U32 vertex_format, const void *verts, int num_verts, U32 flags  ) ;
-void rp_rd_dp_vb					( D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, U32 flags  ) ;
-void rp_rd_dip						( D3DPRIMITIVETYPE type, U32 vertex_format, const void *verts, int num_verts, const U16 * indices, int num_indices, U32 flags  ) ;
-void rp_rd_dip_vb					( D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, const U16 * indices, int num_indices, U32 flags  ) ;
+void rp_rd_dp_vb					( D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, U32 flags  ) ;
+void rp_rd_dip						( D3DPRIMITIVETYPE type, U32 vertex_format, const void *verts, int num_verts, const U16 * indices, U32 num_indices, U32 flags  ) ;
+void rp_rd_dip_vb					( D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, const U16 * indices, U32 num_indices, U32 flags  ) ;
 void rp_rd_swap						( void );
 
 #else
@@ -134,9 +134,9 @@ inline void rp_rd_light						( IRP_LIGHTHANDLE handle, const D3DLIGHT8 *value ) 
 inline void rp_rd_light_enable				( IRP_LIGHTHANDLE handle, U32 value ) {}
 inline void rp_rd_material					( const D3DMATERIAL8 *value ) {}
 inline void rp_rd_dp						( D3DPRIMITIVETYPE type, U32 vertex_format, const void *verts, int num_verts, U32 flags  )  {}
-inline void rp_rd_dp_vb						( D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, U32 flags  )  {}
-inline void rp_rd_dip						( D3DPRIMITIVETYPE type, U32 vertex_format, const void *verts, int num_verts, const U16 * indices, int num_indices, U32 flags  )  {}
-inline void rp_rd_dip_vb					( D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, const U16 * indices, int num_indices, U32 flags  )  {}
+inline void rp_rd_dp_vb						( D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, U32 flags  )  {}
+inline void rp_rd_dip						( D3DPRIMITIVETYPE type, U32 vertex_format, const void *verts, int num_verts, const U16 * indices, U32 num_indices, U32 flags  )  {}
+inline void rp_rd_dip_vb					( D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, const U16 * indices, U32 num_indices, U32 flags  )  {}
 inline void rp_rd_swap						( void ) {}
 
 #endif // RP_RD_DEBUG

@@ -12,7 +12,7 @@
 //--------------------------------------------------------------------------//
 
 typedef struct IRPIndexBuffer* LPRPINDEXBUFFER;
-typedef void* IRP_INDEXBUFFERHANDLE;
+DECLARE_HANDLE(IRP_INDEXBUFFERHANDLE);
 
 #define IID_IRPIndexBuffer DACOM_MAKE_IID("IRPIndexBuffer")
 struct DACOM_NO_VTABLE IRPIndexBuffer : public IDAComponent

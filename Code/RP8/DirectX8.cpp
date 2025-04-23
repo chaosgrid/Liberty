@@ -9,6 +9,7 @@
 #include "CachedMatrix.h"
 #include "CachedViewport.h"
 #include "CachedTexture.h"
+#include "CachedGeometry.h"
 #include "StateInfo.h"
 
 #include <d3d8.h>
@@ -81,15 +82,15 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_render_state, _sub_6D0FA68, IRende
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_render_state, _sub_6D0FB44, IRenderPipeline8B* _this, D3DRENDERSTATETYPE state, U32* value);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_stage_state, _sub_6D0FBCF, IRenderPipeline8B* _this, U32 stage, D3DTEXTURESTAGESTATETYPE state, U32 value);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_stage_state, _sub_6D0FCD5, IRenderPipeline8B* _this, U32 stage, D3DTEXTURESTAGESTATETYPE state, U32* value);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_stage_transform, _sub_6D0FDD2, IRenderPipeline8B* _this, U32 stage, Matrix4* mat4);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_stage_transform, _sub_6D0FF7D, IRenderPipeline8B* _this, U32 stage, Matrix4* mat4);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_stage_transform, _sub_6D0FDD2, IRenderPipeline8B* _this, U32 stage, Matrix4 const& mat4);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_stage_transform, _sub_6D0FF7D, IRenderPipeline8B* _this, U32 stage, Matrix4& out_mat4);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_stage_texture, _sub_6D100D3, IRenderPipeline8B* _this, U32 stage, IRP_TEXTUREHANDLE htexture);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_stage_texture, _sub_6D10247, IRenderPipeline8B* _this, U32 stage, IRP_TEXTUREHANDLE* out_htexture);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_verify_state, _sub_6D10322, IRenderPipeline8B* _this);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_primitive, _sub_6D1067F, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, U32 flags);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive, _sub_6D1097D, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, const U16* indices, int num_indices, U32 flags);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_primitive_vb, _sub_6D10C89, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, U32 flags);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive_vb, _sub_6D10E4B, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, const U16* indices, int num_indices, U32 flags);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_primitive, _sub_6D1067F, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, U32 flags);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive, _sub_6D1097D, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, const U16* indices, U32 num_indices, U32 flags);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_primitive_vb, _sub_6D10C89, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, U32 flags);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive_vb, _sub_6D10E4B, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, const U16* indices, U32 num_indices, U32 flags);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_add_light, _sub_6D0CCB2, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_remove_light, _sub_6D0CD32, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_update_light, _sub_6D0CDDB, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle);
@@ -152,15 +153,8 @@ public:
 	LPDIRECT3D8 direct3d;
 	IDirect3DDevice8* direct3d_device;
 	IDirect3DSurface8* direct3d_surface;
-	DWORD unknown138;
-	IRP_VERTEXBUFFERHANDLE unknown13C_vbhandle;
-	RPIndexBufferInternal* unknown140;
-	DWORD unknown144;
-	BYTE unknown148;
-	BYTE unknown149;
-	BYTE unknown14A;
-	BYTE unknown14B;
-	RPIndexBufferInternal index_buffer_internal;
+	CACHED_GEOMETRY curr_hw_geometry;
+	RPIndexBufferInternal scratchIB;
 	DWORD unknown168;
 	DWORD unknown16C;
 	DWORD unknown170;
@@ -2228,15 +2222,15 @@ public:
 	DACOM_DEFMETHOD(get_render_state)(D3DRENDERSTATETYPE state, U32* value) override;
 	DACOM_DEFMETHOD(set_texture_stage_state)(U32 stage, D3DTEXTURESTAGESTATETYPE state, U32 value) override;
 	DACOM_DEFMETHOD(get_texture_stage_state)(U32 stage, D3DTEXTURESTAGESTATETYPE state, U32* value) override;
-	DACOM_DEFMETHOD(set_texture_stage_transform)(U32 stage, Matrix4* mat4) override;
-	DACOM_DEFMETHOD(get_texture_stage_transform)(U32 stage, Matrix4* mat4) override;
+	DACOM_DEFMETHOD(set_texture_stage_transform)(U32 stage, Matrix4 const& mat4) override;
+	DACOM_DEFMETHOD(get_texture_stage_transform)(U32 stage, Matrix4& out_mat4) override;
 	DACOM_DEFMETHOD(set_texture_stage_texture)(U32 stage, IRP_TEXTUREHANDLE htexture) override;
 	DACOM_DEFMETHOD(get_texture_stage_texture)(U32 stage, IRP_TEXTUREHANDLE* out_htexture) override;
 	DACOM_DEFMETHOD(verify_state)(void) override;
-	DACOM_DEFMETHOD(draw_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, U32 flags) override;
-	DACOM_DEFMETHOD(draw_indexed_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, const U16* indices, int num_indices, U32 flags) override;
-	DACOM_DEFMETHOD(draw_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, U32 flags) override;
-	DACOM_DEFMETHOD(draw_indexed_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, const U16* indices, int num_indices, U32 flags) override;
+	DACOM_DEFMETHOD(draw_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, U32 flags) override;
+	DACOM_DEFMETHOD(draw_indexed_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, const U16* indices, U32 num_indices, U32 flags) override;
+	DACOM_DEFMETHOD(draw_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, U32 flags) override;
+	DACOM_DEFMETHOD(draw_indexed_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, const U16* indices, U32 num_indices, U32 flags) override;
 	DACOM_DEFMETHOD(add_light)(IRP_LIGHTHANDLE handle) override;
 	DACOM_DEFMETHOD(remove_light)(IRP_LIGHTHANDLE handle) override;
 	DACOM_DEFMETHOD(update_light)(IRP_LIGHTHANDLE handle) override;
@@ -2690,15 +2684,15 @@ GENRESULT DirectX8::get_texture_stage_state(U32 stage, D3DTEXTURESTAGESTATETYPE 
 	return result;
 }
 
-GENRESULT DirectX8::set_texture_stage_transform(U32 stage, Matrix4* mat4)
+GENRESULT DirectX8::set_texture_stage_transform(U32 stage, Matrix4 const& mat4)
 {
 	GENRESULT result = DirectX8_set_texture_stage_transform(this, stage, mat4);
 	return result;
 }
 
-GENRESULT DirectX8::get_texture_stage_transform(U32 stage, Matrix4* mat4)
+GENRESULT DirectX8::get_texture_stage_transform(U32 stage, Matrix4& out_mat4)
 {
-	GENRESULT result = DirectX8_get_texture_stage_transform(this, stage, mat4);
+	GENRESULT result = DirectX8_get_texture_stage_transform(this, stage, out_mat4);
 	return result;
 }
 
@@ -2720,25 +2714,25 @@ GENRESULT DirectX8::verify_state(void)
 	return result;
 }
 
-GENRESULT DirectX8::draw_primitive(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, U32 flags)
+GENRESULT DirectX8::draw_primitive(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, U32 flags)
 {
 	GENRESULT result = DirectX8_draw_primitive(this, type, vertex_format, verts, num_verts, flags);
 	return result;
 }
 
-GENRESULT DirectX8::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, const U16* indices, int num_indices, U32 flags)
+GENRESULT DirectX8::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, const U16* indices, U32 num_indices, U32 flags)
 {
 	GENRESULT result = DirectX8_draw_indexed_primitive(this, type, vertex_format, verts, num_verts, indices, num_indices, flags);
 	return result;
 }
 
-GENRESULT DirectX8::draw_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, U32 flags)
+GENRESULT DirectX8::draw_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, U32 flags)
 {
 	GENRESULT result = DirectX8_draw_primitive_vb(this, type, vbhandle, start_vert, num_verts, flags);
 	return result;
 }
 
-GENRESULT DirectX8::draw_indexed_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, const U16* indices, int num_indices, U32 flags)
+GENRESULT DirectX8::draw_indexed_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, const U16* indices, U32 num_indices, U32 flags)
 {
 	GENRESULT result = DirectX8_draw_indexed_primitive_vb(this, type, vbhandle, start_vert, num_verts, indices, num_indices, flags);
 	return result;

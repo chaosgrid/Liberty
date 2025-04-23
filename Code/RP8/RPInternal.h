@@ -8,6 +8,8 @@
 
 #include <d3d8.h>
 
+#define HRESULT_GET_ERROR_STRING(...) (explode(), (const char*)0)
+
 struct RPIndexBufferInternal
 {
 	DWORD unknown0_flags_or_usage;

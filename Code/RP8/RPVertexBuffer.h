@@ -12,7 +12,7 @@
 //--------------------------------------------------------------------------//
 
 typedef struct IRPVertexBuffer* LPRPVERTEXBUFFER;
-typedef void* IRP_VERTEXBUFFERHANDLE;
+DECLARE_HANDLE(IRP_VERTEXBUFFERHANDLE);
 
 #define IID_IRPVertexBuffer DACOM_MAKE_IID("IRPVertexBuffer")
 struct DACOM_NO_VTABLE IRPVertexBuffer : public IDAComponent

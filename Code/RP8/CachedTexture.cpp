@@ -13,7 +13,7 @@ void CACHED_TEXTURE::invalidate(void)
 	valid = false;
 }
 
-U32 CACHED_TEXTURE::get(IDirect3DDevice8* device, U32 stage_idx, IRP_TEXTUREHANDLE* out_htexture)
+GENRESULT CACHED_TEXTURE::get(IDirect3DDevice8* device, U32 stage_idx, IRP_TEXTUREHANDLE* out_htexture)
 {
 	GENRESULT result = GR_OK;
 	if (HRESULT hr = E_FAIL; FAILED(hr = device->GetTexture(stage_idx, (IDirect3DBaseTexture8**)&value)))

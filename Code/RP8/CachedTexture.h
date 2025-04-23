@@ -18,7 +18,7 @@ struct CACHED_TEXTURE
 	bool valid; // texture is valid
 
 	void invalidate(void);
-	U32 get(IDirect3DDevice8* device, U32 stage_idx, IRP_TEXTUREHANDLE* out_htexture);
+	GENRESULT get(IDirect3DDevice8* device, U32 stage_idx, IRP_TEXTUREHANDLE* out_htexture);
 	GENRESULT set(IDirect3DDevice8* device, U32 stage_idx, IRP_TEXTUREHANDLE new_value, bool force_to_hw = false);
 };
 

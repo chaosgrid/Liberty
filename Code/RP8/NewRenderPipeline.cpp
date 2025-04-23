@@ -9,6 +9,7 @@
 #include "CachedMatrix.h"
 #include "CachedViewport.h"
 #include "CachedTexture.h"
+#include "CachedGeometry.h"
 
 #include <Tfuncs.h>
 #include <Matrix4.h>
@@ -17,11 +18,14 @@
 #include <Dump.h>
 #include <3dMath.h>
 #include <FLHook_st6.h>
+#include <FVF.h>
+
 
 static void Transform2D3D(D3DMATRIX& dst, const Transform& src);
 static void D3D2Transform(const D3DMATRIX& src, Transform& dest);
 static void Matrix2D3D(D3DMATRIX& dst, const Matrix4& src);
 static void D3D2Matrix(const D3DMATRIX& src, Matrix4& dest);
+static U32 GetPrimCount(D3DPRIMITIVETYPE type, U32 indexCount);
 
 #define CHECK_STARTUP() \
 if (direct3d_adapter == -1) \
@@ -36,8 +40,6 @@ if (direct3d_device == NULL) \
 	GENERAL_ERROR(TEMPSTR("%s() called outside of device lifetime", __FUNCTION__)); \
 	return GR_GENERIC; \
 }
-
-#define HRESULT_GET_ERROR_STRING(...) (explode(), (const char*)0)
 
 #define pf_to_d3d_table data_6D6FFA8
 _extern D3DFORMAT pf_to_d3d_table[] =
@@ -199,29 +201,8 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_light, _sub_6D0CF9C, IRenderPi
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_light, _sub_6D0D044, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle, D3DLIGHT8* out_light_values);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_light_enable, _sub_6D0D0D7, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle, U32 enable);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_light_enable, _sub_6D0D157, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle, U32* out_enable);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_format, _sub_6D0E3D9, IRenderPipeline8B* _this, IRP_TEXTUREHANDLE htexture, PFenum* out_pf);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_dim, _sub_6D0E6D4, IRenderPipeline8B* _this, IRP_TEXTUREHANDLE htexture, U32* out_width, U32* out_height, U32* out_num_lod);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_interface, _sub_6D0EA0B, IRenderPipeline8B* _this, IRP_TEXTUREHANDLE htexture, const char* iid, void** out_iif);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_level_data, _sub_6D0EA78, IRenderPipeline8B* _this, IRP_TEXTUREHANDLE htexture, U32 subsurface, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_blit_texture, _sub_6D0F1BC, IRenderPipeline8B* _this, IRP_TEXTUREHANDLE hDest, U32 destLevel, RECT destRect, IRP_TEXTUREHANDLE hSrc, U32 srcLevel, RECT srcRect);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_render_target, _sub_6D0F698, IRenderPipeline8B* _this, UNKNOWN a2, UNKNOWN a3, UNKNOWN a4);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_render_target, _sub_6D0F70F, IRenderPipeline8B* _this, void* a2);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_begin_scene, _sub_6D0F786, IRenderPipeline8B* _this);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_end_scene, _sub_6D0F8B5, IRenderPipeline8B* _this);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_reset_render_states_to_defaults, _sub_6D0F9E4, IRenderPipeline8B* _this);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_render_state, _sub_6D0FA68, IRenderPipeline8B* _this, D3DRENDERSTATETYPE state, U32 value);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_render_state, _sub_6D0FB44, IRenderPipeline8B* _this, D3DRENDERSTATETYPE state, U32* value);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_stage_state, _sub_6D0FBCF, IRenderPipeline8B* _this, U32 stage, D3DTEXTURESTAGESTATETYPE state, U32 value);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_stage_state, _sub_6D0FCD5, IRenderPipeline8B* _this, U32 stage, D3DTEXTURESTAGESTATETYPE state, U32* value);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_stage_transform, _sub_6D0FDD2, IRenderPipeline8B* _this, U32 stage, Matrix4* mat4);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_stage_transform, _sub_6D0FF7D, IRenderPipeline8B* _this, U32 stage, Matrix4* mat4);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_stage_texture, _sub_6D100D3, IRenderPipeline8B* _this, U32 stage, IRP_TEXTUREHANDLE htexture);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_stage_texture, _sub_6D10247, IRenderPipeline8B* _this, U32 stage, IRP_TEXTUREHANDLE* out_htexture);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_verify_state, _sub_6D10322, IRenderPipeline8B* _this);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_primitive, _sub_6D1067F, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, U32 flags);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive, _sub_6D1097D, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, const U16* indices, int num_indices, U32 flags);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_primitive_vb, _sub_6D10C89, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, U32 flags);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive_vb, _sub_6D10E4B, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, const U16* indices, int num_indices, U32 flags);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_add_light, _sub_6D0CCB2, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_remove_light, _sub_6D0CD32, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_update_light, _sub_6D0CDDB, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle);
@@ -284,16 +265,8 @@ public:
 	LPDIRECT3D8 direct3d;
 	IDirect3DDevice8* direct3d_device;
 	IDirect3DSurface8* direct3d_surface;
-	DWORD unknown138;
-	IRP_VERTEXBUFFERHANDLE unknown13C_vbhandle;
-	RPIndexBufferInternal* unknown140;
-	DWORD unknown144;
-	DWORD unknown148;
-	//BYTE unknown148;
-	//BYTE unknown149;
-	//BYTE unknown14A;
-	//BYTE unknown14B;
-	RPIndexBufferInternal index_buffer_internal;
+	CACHED_GEOMETRY curr_hw_geometry;
+	RPIndexBufferInternal scratchIB;
 	DWORD unknown168;
 	DWORD unknown16C;
 	DWORD unknown170;
@@ -2366,15 +2339,15 @@ public:
 	DACOM_DEFMETHOD(get_render_state)(D3DRENDERSTATETYPE state, U32* value) override;
 	DACOM_DEFMETHOD(set_texture_stage_state)(U32 stage, D3DTEXTURESTAGESTATETYPE state, U32 value) override;
 	DACOM_DEFMETHOD(get_texture_stage_state)(U32 stage, D3DTEXTURESTAGESTATETYPE state, U32* value) override;
-	DACOM_DEFMETHOD(set_texture_stage_transform)(U32 stage, Matrix4* mat4) override;
-	DACOM_DEFMETHOD(get_texture_stage_transform)(U32 stage, Matrix4* mat4) override;
+	DACOM_DEFMETHOD(set_texture_stage_transform)(U32 stage, Matrix4 const& mat4) override;
+	DACOM_DEFMETHOD(get_texture_stage_transform)(U32 stage, Matrix4& out_mat4) override;
 	DACOM_DEFMETHOD(set_texture_stage_texture)(U32 stage, IRP_TEXTUREHANDLE htexture) override;
 	DACOM_DEFMETHOD(get_texture_stage_texture)(U32 stage, IRP_TEXTUREHANDLE* out_htexture) override;
 	DACOM_DEFMETHOD(verify_state)(void) override;
-	DACOM_DEFMETHOD(draw_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, U32 flags) override;
-	DACOM_DEFMETHOD(draw_indexed_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, const U16* indices, int num_indices, U32 flags) override;
-	DACOM_DEFMETHOD(draw_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, U32 flags) override;
-	DACOM_DEFMETHOD(draw_indexed_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, const U16* indices, int num_indices, U32 flags) override;
+	DACOM_DEFMETHOD(draw_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, U32 flags) override;
+	DACOM_DEFMETHOD(draw_indexed_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, const U16* indices, U32 num_indices, U32 flags) override;
+	DACOM_DEFMETHOD(draw_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, U32 flags) override;
+	DACOM_DEFMETHOD(draw_indexed_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, const U16* indices, U32 num_indices, U32 flags) override;
 	DACOM_DEFMETHOD(add_light)(IRP_LIGHTHANDLE handle) override;
 	DACOM_DEFMETHOD(remove_light)(IRP_LIGHTHANDLE handle) override;
 	DACOM_DEFMETHOD(update_light)(IRP_LIGHTHANDLE handle) override;
@@ -2931,23 +2904,23 @@ GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinf
 	}
 
 	// Index buffer setup
-	if (this->index_buffer_internal.direct3d_index_buffer) {
-		if (this->index_buffer_internal.locked_data_ptr) {
-			this->index_buffer_internal.direct3d_index_buffer->Unlock();
-			this->index_buffer_internal.locked_data_ptr = nullptr;
+	if (this->scratchIB.direct3d_index_buffer) {
+		if (this->scratchIB.locked_data_ptr) {
+			this->scratchIB.direct3d_index_buffer->Unlock();
+			this->scratchIB.locked_data_ptr = nullptr;
 		}
-		this->index_buffer_internal.direct3d_index_buffer->Release();
-		this->index_buffer_internal.direct3d_index_buffer = nullptr;
+		this->scratchIB.direct3d_index_buffer->Release();
+		this->scratchIB.direct3d_index_buffer = nullptr;
 	}
-	this->index_buffer_internal.element_count = 0x4000;
-	this->index_buffer_internal.unknown14 = 0;
+	this->scratchIB.element_count = 0x4000;
+	this->scratchIB.unknown14 = 0;
 	index_buffer_length = 0x8000;
 	create_index_buffer_result = this->direct3d_device->CreateIndexBuffer(
 		index_buffer_length,
-		this->index_buffer_internal.unknown0_flags_or_usage,
+		this->scratchIB.unknown0_flags_or_usage,
 		D3DFMT_INDEX16,
 		D3DPOOL_DEFAULT,
-		&this->index_buffer_internal.direct3d_index_buffer);
+		&this->scratchIB.direct3d_index_buffer);
 	if (FAILED(create_index_buffer_result)) {
 		GENERAL_ERROR(TEMPSTR("couldn't create ib (err:%x) %d bytes", create_index_buffer_result, index_buffer_length));
 		return (GENRESULT)create_index_buffer_result;
@@ -2985,11 +2958,8 @@ GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinf
 	}
 
 	sub_6D2CE6A(&this->unknown21F4);
-	this->unknown138 = 0;
-	this->unknown13C_vbhandle = 0;
-	this->unknown140 = 0;
-	this->unknown144 = -1;
-	this->unknown148 = 0;
+
+	curr_hw_geometry.invalidate();
 
 	return (GENRESULT)hr;
 }
@@ -3795,9 +3765,11 @@ static GENRESULT get_texture_surface(IRP_TEXTUREHANDLE htexture, U32 subsurface,
 				GENERAL_ERROR(TEMPSTR("%s GetSurfaceLevel failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
 				result = GR_GENERIC;
 			}
-
+			else
+			{
+				result = GR_OK;
+			}
 			direct3d_2d_texture->Release();
-			result = GR_OK;
 		}
 		else
 		{
@@ -3821,9 +3793,11 @@ static GENRESULT get_texture_surface(IRP_TEXTUREHANDLE htexture, U32 subsurface,
 				GENERAL_ERROR(TEMPSTR("%s GetCubeMapSurface failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
 				result = GR_GENERIC;
 			}
-
+			else
+			{
+				result = GR_OK;
+			}
 			direct3d_cube_texture->Release();
-			result = GR_OK;
 		}
 		else
 		{
@@ -3847,7 +3821,10 @@ static GENRESULT get_texture_surface(IRP_TEXTUREHANDLE htexture, U32 subsurface,
 	else
 	{
 		GENERAL_ERROR(TEMPSTR("%s failed to get surface", __FUNCTION__));
-		direct3d_texture_surface->Release();
+		if (direct3d_texture_surface != nullptr)
+		{
+			direct3d_texture_surface->Release();
+		}
 	}
 
 	return result;
@@ -3867,8 +3844,6 @@ GENRESULT NewRenderPipeline::lock_texture(IRP_TEXTUREHANDLE htexture, U32 subsur
 		IDirect3DSurface8* direct3d_texture_surface;
 		if (SUCCEEDED(result = get_texture_surface(htexture, subsurface, &direct3d_texture_surface)))
 		{
-			ASSERT(direct3d_texture_surface != nullptr);
-
 			D3DSURFACE_DESC desc;
 			if (SUCCEEDED(hr = direct3d_texture_surface->GetDesc(&desc)))
 			{
@@ -3893,14 +3868,13 @@ GENRESULT NewRenderPipeline::lock_texture(IRP_TEXTUREHANDLE htexture, U32 subsur
 					GENERAL_ERROR(TEMPSTR("%s LockRect failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
 					result = GR_GENERIC;
 				}
-
-				direct3d_texture_surface->Release();
 			}
 			else
 			{
 				GENERAL_ERROR(TEMPSTR("%s GetDesc failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
 				result = GR_GENERIC;
 			}
+			direct3d_texture_surface->Release();
 		}
 	}
 
@@ -3921,8 +3895,6 @@ GENRESULT NewRenderPipeline::unlock_texture(IRP_TEXTUREHANDLE htexture, U32 subs
 		IDirect3DSurface8* direct3d_texture_surface;
 		if (SUCCEEDED(result = get_texture_surface(htexture, subsurface, &direct3d_texture_surface)))
 		{
-			ASSERT(direct3d_texture_surface != nullptr);
-
 			if (FAILED(hr = direct3d_texture_surface->UnlockRect()))
 			{
 				GENERAL_ERROR(TEMPSTR("%s UnlockRect failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
@@ -3936,21 +3908,131 @@ GENRESULT NewRenderPipeline::unlock_texture(IRP_TEXTUREHANDLE htexture, U32 subs
 
 GENRESULT NewRenderPipeline::get_texture_format(IRP_TEXTUREHANDLE htexture, PFenum* out_pf)
 {
-	GENRESULT result = DirectX8_get_texture_format(this, htexture, out_pf);
+	GENRESULT result = GR_OK;
+	HRESULT hr = E_FAIL;
+	if (FAILED(is_texture(htexture)))
+	{
+		GENERAL_ERROR(TEMPSTR("%s invalid texture handle", __FUNCTION__));
+		result = GR_INVALID_PARMS;
+	}
+	else
+	{
+		IDirect3DSurface8* direct3d_texture_surface;
+		if (SUCCEEDED(result = get_texture_surface(htexture, 0, &direct3d_texture_surface)))
+		{
+			ASSERT(direct3d_texture_surface != nullptr);
+
+			D3DSURFACE_DESC desc;
+			if (SUCCEEDED(hr = direct3d_texture_surface->GetDesc(&desc)))
+			{
+				*out_pf = d3d_to_pf(desc.Format);
+				result = GR_OK;
+			}
+			else
+			{
+				GENERAL_ERROR(TEMPSTR("%s GetDesc failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+				result = GR_GENERIC;
+			}
+			direct3d_texture_surface->Release();
+		}
+	}
+
 	return result;
 }
 
 GENRESULT NewRenderPipeline::get_texture_dim(IRP_TEXTUREHANDLE htexture, U32* out_width, U32* out_height, U32* out_num_lod)
 {
-	GENRESULT result = DirectX8_get_texture_dim(this, htexture, out_width, out_height, out_num_lod);
+	GENRESULT result = GR_OK;
+	HRESULT hr = E_FAIL;
+	if (FAILED(is_texture(htexture)))
+	{
+		GENERAL_ERROR(TEMPSTR("%s invalid texture handle", __FUNCTION__));
+		result = GR_INVALID_PARMS;
+	}
+	else
+	{
+		RPTEXTUREHANDLE* texture = htexture;
+		IDirect3DBaseTexture8* direct3d_basetexture = texture->direct3d_texture;
+		D3DRESOURCETYPE resource_type = direct3d_basetexture->GetType();
+
+		switch (resource_type)
+		{
+		case D3DRTYPE_TEXTURE:
+		{
+			ASSERT(texture->unknown4 == 0);
+
+			IDirect3DTexture8* direct3d_2d_texture;
+			if (SUCCEEDED(hr = direct3d_basetexture->QueryInterface(
+				IID_IDirect3DTexture8,
+				reinterpret_cast<void**>(&direct3d_2d_texture))))
+			{
+				D3DSURFACE_DESC desc;
+				if (SUCCEEDED(direct3d_2d_texture->GetLevelDesc(0, &desc)))
+				{
+					*out_width = desc.Width;
+					*out_height = desc.Height;
+					*out_num_lod = direct3d_2d_texture->GetLevelCount();
+				}
+				else
+				{
+					GENERAL_ERROR(TEMPSTR("%s GetLevelDesc failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+					result = GR_GENERIC;
+				}
+				direct3d_2d_texture->Release();
+			}
+			else
+			{
+				GENERAL_ERROR(TEMPSTR("%s QueryInterface for IDirect3DTexture8 failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+				result = GR_GENERIC;
+			}
+		}
+		break;
+		case D3DRTYPE_CUBETEXTURE:
+		{
+			ASSERT(texture->unknown4 == 1);
+
+			IDirect3DCubeTexture8* direct3d_cube_texture;
+			if (SUCCEEDED(hr = direct3d_basetexture->QueryInterface(
+				IID_IDirect3DCubeTexture8,
+				reinterpret_cast<void**>(&direct3d_cube_texture))))
+			{
+				D3DSURFACE_DESC desc;
+				if (SUCCEEDED(direct3d_cube_texture->GetLevelDesc(0, &desc)))
+				{
+					*out_width = desc.Width;
+					*out_height = desc.Height;
+					*out_num_lod = 6;
+				}
+				else
+				{
+					GENERAL_ERROR(TEMPSTR("%s GetLevelDesc failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+					result = GR_GENERIC;
+				}
+				direct3d_cube_texture->Release();
+			}
+			else
+			{
+				GENERAL_ERROR(TEMPSTR("%s QueryInterface for IDirect3DCubeTexture8 failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+				result = GR_GENERIC;
+			}
+		}
+		break;
+		default:
+		{
+			GENERAL_FATAL(TEMPSTR("%s unsupported resource type %u", __FUNCTION__, static_cast<U32>(resource_type)));
+			result = GR_NOT_IMPLEMENTED;
+		}
+		break;
+		}
+	}
+
 	return result;
 }
 
 GENRESULT NewRenderPipeline::get_texture_interface(IRP_TEXTUREHANDLE htexture, const char* iid, void** out_iif)
 {
-	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_get_texture_interface(this, htexture, iid, out_iif);
-	return result;
+	CHECK_DEVICE_LIFETIME();
+	return GR_NOT_IMPLEMENTED;
 }
 
 GENRESULT NewRenderPipeline::set_texture_level_data(IRP_TEXTUREHANDLE htexture, U32 subsurface, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette)
@@ -3961,34 +4043,47 @@ GENRESULT NewRenderPipeline::set_texture_level_data(IRP_TEXTUREHANDLE htexture, 
 
 GENRESULT NewRenderPipeline::blit_texture(IRP_TEXTUREHANDLE hDest, U32 destLevel, RECT destRect, IRP_TEXTUREHANDLE hSrc, U32 srcLevel, RECT srcRect)
 {
-	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_blit_texture(this, hDest, destLevel, destRect, hSrc, srcLevel, srcRect);
-	return result;
+	CHECK_DEVICE_LIFETIME();
+	return GR_NOT_IMPLEMENTED;
 }
 
 GENRESULT NewRenderPipeline::set_render_target(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4)
 {
-	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_set_render_target(this, a2, a3, a4);
-	return result;
+	CHECK_DEVICE_LIFETIME();
+	return GR_NOT_IMPLEMENTED;
 }
 
 GENRESULT NewRenderPipeline::get_render_target(void* a2)
 {
-	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_get_render_target(this, a2);
-	return result;
+	CHECK_DEVICE_LIFETIME();
+	return GR_NOT_IMPLEMENTED;
 }
 
 GENRESULT NewRenderPipeline::begin_scene(void)
 {
-	GENRESULT result = DirectX8_begin_scene(this);
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT result = GR_OK;
+	HRESULT hr;
+	if (FAILED(hr = direct3d_device->BeginScene()))
+	{
+		GENERAL_ERROR(TEMPSTR("begin_scene: %s", HRESULT_GET_ERROR_STRING(hr)));
+		result = GR_GENERIC;
+	}
 	return result;
 }
 
 GENRESULT NewRenderPipeline::end_scene(void)
 {
-	GENRESULT result = DirectX8_end_scene(this);
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT result = GR_OK;
+	HRESULT hr;
+	if (FAILED(hr = direct3d_device->EndScene()))
+	{
+		GENERAL_ERROR(TEMPSTR("end_scene: %s", HRESULT_GET_ERROR_STRING(hr)));
+		result = GR_GENERIC;
+	}
 	return result;
 }
 
@@ -4001,81 +4096,678 @@ GENRESULT NewRenderPipeline::reset_render_states_to_defaults(void)
 
 GENRESULT NewRenderPipeline::set_render_state(D3DRENDERSTATETYPE state, U32 value)
 {
-	GENRESULT result = DirectX8_set_render_state(this, state, value);
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT result = GR_OK;
+	HRESULT hr;
+	if (FAILED(hr = direct3d_device->SetRenderState(state, value)))
+	{
+		GENERAL_ERROR(TEMPSTR("SetRenderState: %s", HRESULT_GET_ERROR_STRING(hr)));
+		result = GR_GENERIC;
+	}
 	return result;
 }
 
 GENRESULT NewRenderPipeline::get_render_state(D3DRENDERSTATETYPE state, U32* value)
 {
-	GENRESULT result = DirectX8_get_render_state(this, state, value);
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT result = GR_OK;
+	HRESULT hr;
+	if (FAILED(hr = direct3d_device->GetRenderState(state, reinterpret_cast<DWORD*>(value))))
+	{
+		GENERAL_ERROR(TEMPSTR("SetRenderState: %s", HRESULT_GET_ERROR_STRING(hr)));
+		result = GR_GENERIC;
+	}
 	return result;
 }
 
 GENRESULT NewRenderPipeline::set_texture_stage_state(U32 stage, D3DTEXTURESTAGESTATETYPE state, U32 value)
 {
-	GENRESULT result = DirectX8_set_texture_stage_state(this, stage, state, value);
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT result = GR_OK;
+	HRESULT hr;
+	if (FAILED(hr = direct3d_device->SetTextureStageState(stage, state, value)))
+	{
+		GENERAL_ERROR(TEMPSTR("SetRenderState: %s", HRESULT_GET_ERROR_STRING(hr)));
+		result = GR_GENERIC;
+	}
 	return result;
 }
 
 GENRESULT NewRenderPipeline::get_texture_stage_state(U32 stage, D3DTEXTURESTAGESTATETYPE state, U32* value)
 {
-	GENRESULT result = DirectX8_get_texture_stage_state(this, stage, state, value);
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT result = GR_OK;
+	HRESULT hr;
+	if (FAILED(hr = direct3d_device->GetTextureStageState(stage, state, reinterpret_cast<DWORD*>(value))))
+	{
+		GENERAL_ERROR(TEMPSTR("SetRenderState: %s", HRESULT_GET_ERROR_STRING(hr)));
+		result = GR_GENERIC;
+	}
 	return result;
 }
 
-GENRESULT NewRenderPipeline::set_texture_stage_transform(U32 stage, Matrix4* mat4)
+GENRESULT NewRenderPipeline::set_texture_stage_transform(U32 stage, Matrix4 const& mat4)
 {
-	GENRESULT result = DirectX8_set_texture_stage_transform(this, stage, mat4);
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT result = GR_OK;
+
+	D3DMATRIX M;
+	Matrix2D3D(M, mat4);
+
+	HRESULT hr;
+	D3DTRANSFORMSTATETYPE state = static_cast<D3DTRANSFORMSTATETYPE>(stage + 16);
+	if (FAILED(hr = direct3d_device->SetTransform(state, &M)))
+	{
+		GENERAL_ERROR(TEMPSTR("SetRenderState: %s", HRESULT_GET_ERROR_STRING(hr)));
+		result = GR_GENERIC;
+	}
 	return result;
 }
 
-GENRESULT NewRenderPipeline::get_texture_stage_transform(U32 stage, Matrix4* mat4)
+GENRESULT NewRenderPipeline::get_texture_stage_transform(U32 stage, Matrix4& out_mat4)
 {
-	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_get_texture_stage_transform(this, stage, mat4);
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT result = GR_OK;
+
+	D3DMATRIX M;
+
+	HRESULT hr;
+	D3DTRANSFORMSTATETYPE state = static_cast<D3DTRANSFORMSTATETYPE>(stage);
+	if (FAILED(hr = direct3d_device->GetTransform(state, &M)))
+	{
+		GENERAL_ERROR(TEMPSTR("SetRenderState: %s", HRESULT_GET_ERROR_STRING(hr)));
+		result = GR_GENERIC;
+	}
+
+	D3D2Matrix(M, out_mat4);
+
 	return result;
 }
 
 GENRESULT NewRenderPipeline::set_texture_stage_texture(U32 stage, IRP_TEXTUREHANDLE htexture)
 {
-	GENRESULT result = DirectX8_set_texture_stage_texture(this, stage, htexture);
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT result = curr_hw_texture->set(direct3d_device, stage, htexture);
 	return result;
 }
 
 GENRESULT NewRenderPipeline::get_texture_stage_texture(U32 stage, IRP_TEXTUREHANDLE* out_htexture)
 {
-	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_get_texture_stage_texture(this, stage, out_htexture);
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT result = curr_hw_texture->get(direct3d_device, stage, out_htexture);
 	return result;
 }
 
 GENRESULT NewRenderPipeline::verify_state(void)
 {
-	GENRESULT result = DirectX8_verify_state(this);
+	return GR_OK;
+}
+
+_extern _naked int __thiscall sub_6D04138_OLD(NewRenderPipeline* _this)
+{
+	__DEBUG_ASM(6D04138);
+	// chunk 0x6D04138 _sub_6D04138
+	asm("loc_6D04138: push %ebp;");
+	asm("loc_6D04139: mov %esp,%ebp;");
+	asm("loc_6D0413B: mov $0x6074,%eax;");
+	asm("loc_6D04140: call _sub_6D2F270;");
+	asm("loc_6D04145: push %esi;");
+	asm("loc_6D04146: push %edi;");
+	asm("loc_6D04147: mov %ecx,-0x6070(%ebp);");
+	asm("loc_6D0414D: mov -0x6070(%ebp),%eax;");
+	asm("loc_6D04153: mov 0x130(%eax),%ecx;");
+	asm("loc_6D04159: push %ecx;");
+	asm("loc_6D0415A: mov -0x6070(%ebp),%ecx;");
+	asm("loc_6D04160: add $0x44C,%ecx;");
+	asm("loc_6D04166: call _sub_6D2BBBA;");
+	asm("loc_6D0416B: mov -0x6070(%ebp),%edx;");
+	asm("loc_6D04171: mov 0x130(%edx),%eax;");
+	asm("loc_6D04177: mov %eax,-0x603C(%ebp);");
+	asm("loc_6D0417D: mov -0x6070(%ebp),%ecx;");
+	asm("loc_6D04183: add $0x138,%ecx;");
+	asm("loc_6D04189: mov %ecx,-0x6038(%ebp);");
+	asm("loc_6D0418F: movl $0,-8(%ebp);");
+	/*asm("loc_6D04196: mov -0x6038(%ebp),%edx;");
+	asm("loc_6D0419C: mov 0x10(%edx),%al;");
+	asm("loc_6D0419F: shr $1,%al;");
+	asm("loc_6D041A1: and $1,%al;");
+	asm("loc_6D041A3: xor %ecx,%ecx;");
+	asm("loc_6D041A5: mov %al,%cl;");
+	asm("loc_6D041A7: test %ecx,%ecx;");
+	asm("loc_6D041A9: je loc_6D042AE;");
+	asm("loc_6D041AF: mov -0x6038(%ebp),%edx;");
+	asm("loc_6D041B5: mov 0x10(%edx),%al;");
+	asm("loc_6D041B8: and $0xFD,%al;");
+	asm("loc_6D041BA: mov -0x6038(%ebp),%ecx;");
+	asm("loc_6D041C0: mov %al,0x10(%ecx);");
+	asm("loc_6D041C3: mov -0x6038(%ebp),%edx;");
+	asm("loc_6D041C9: cmpl $0,8(%edx);");
+	asm("loc_6D041CD: je loc_6D041E3;");
+	asm("loc_6D041CF: mov -0x6038(%ebp),%eax;");
+	asm("loc_6D041D5: mov 8(%eax),%ecx;");
+	asm("loc_6D041D8: mov 4(%ecx),%edx;");
+	asm("loc_6D041DB: mov %edx,-0x6074(%ebp);");
+	asm("loc_6D041E1: jmp loc_6D041ED;");
+	asm("loc_6D041E3: movl $0,-0x6074(%ebp);");
+	asm("loc_6D041ED: mov -0x6074(%ebp),%eax;");
+	asm("loc_6D041F3: mov %eax,-0xC(%ebp);");
+	asm("loc_6D041F6: mov -0x6038(%ebp),%ecx;");
+	asm("loc_6D041FC: mov 0xC(%ecx),%edx;");
+	asm("loc_6D041FF: push %edx;");
+	asm("loc_6D04200: mov -0xC(%ebp),%eax;");
+	asm("loc_6D04203: push %eax;");
+	asm("loc_6D04204: mov -0x603C(%ebp),%ecx;");
+	asm("loc_6D0420A: mov (%ecx),%edx;");
+	asm("loc_6D0420C: mov -0x603C(%ebp),%eax;");
+	asm("loc_6D04212: push %eax;");
+	asm("loc_6D04213: calll *0x154(%edx);");
+	asm("loc_6D04219: mov %eax,-8(%ebp);");
+	asm("loc_6D0421C: cmpl $0,-8(%ebp);");
+	asm("loc_6D04220: jge loc_6D042AE;");
+	asm("loc_6D04226: mov -8(%ebp),%ecx;");
+	asm("loc_6D04229: push %ecx;");
+	asm("loc_6D0422A: call _sub_6D2B964;");
+	asm("loc_6D0422F: add $4,%esp;");
+	asm("loc_6D04232: push %eax;");
+	asm("loc_6D04233: push $_data_6D6AF04;");
+	asm("loc_6D04238: lea -0x2018(%ebp),%edx;");
+	asm("loc_6D0423E: push %edx;");
+	asm("loc_6D0423F: call _sub_6D168F0;");
+	asm("loc_6D04244: add $0xC,%esp;");
+	asm("loc_6D04247: mov %eax,-0x6028(%ebp);");
+	asm("loc_6D0424D: mov $2,%eax;");
+	asm("loc_6D04252: and $0xF,%eax;");
+	asm("loc_6D04255: mov -0x201C(%ebp),%ecx;");
+	asm("loc_6D0425B: and $0xFFFFFFF0,%ecx;");
+	asm("loc_6D0425E: or %eax,%ecx;");
+	asm("loc_6D04260: mov %ecx,-0x201C(%ebp);");
+	asm("loc_6D04266: mov $0x10000,%edx;");
+	asm("loc_6D0426B: and $0xFFFFFFF,%edx;");
+	asm("loc_6D04271: shl $4,%edx;");
+	asm("loc_6D04274: mov -0x201C(%ebp),%eax;");
+	asm("loc_6D0427A: and $0xF,%eax;");
+	asm("loc_6D0427D: or %edx,%eax;");
+	asm("loc_6D0427F: mov %eax,-0x201C(%ebp);");
+	asm("loc_6D04285: mov -0x6028(%ebp),%ecx;");
+	asm("loc_6D0428B: push %ecx;");
+	asm("loc_6D0428C: push $0x34;");
+	asm("loc_6D0428E: push $_data_6D6AEB0;");
+	asm("loc_6D04293: push $_data_6D6ADE0;");
+	asm("loc_6D04298: mov -0x201C(%ebp),%edx;");
+	asm("loc_6D0429E: push %edx;");
+	asm("loc_6D0429F: mov _import_6D5E018,%eax;");
+	asm("loc_6D042A4: calll *(%eax);");
+	asm("loc_6D042A6: add $0x14,%esp;");
+	asm("loc_6D042A9: jmp loc_6D044C3;");*/
+	asm("loc_6D042AE: mov -0x6038(%ebp),%ecx;");
+	asm("loc_6D042B4: mov 0x10(%ecx),%dl;");
+	asm("loc_6D042B7: and $1,%dl;");
+	asm("loc_6D042BA: xor %eax,%eax;");
+	asm("loc_6D042BC: mov %dl,%al;");
+	asm("loc_6D042BE: test %eax,%eax;");
+	asm("loc_6D042C0: je loc_6D044C3;");
+	asm("loc_6D042C6: mov -0x6038(%ebp),%ecx;");
+	asm("loc_6D042CC: mov 0x10(%ecx),%dl;");
+	asm("loc_6D042CF: and $0xFE,%dl;");
+	asm("loc_6D042D2: mov -0x6038(%ebp),%eax;");
+	asm("loc_6D042D8: mov %dl,0x10(%eax);");
+	asm("loc_6D042DB: mov -0x6038(%ebp),%ecx;");
+	asm("loc_6D042E1: cmpl $0,4(%ecx);");
+	asm("loc_6D042E5: jne loc_6D042FB;");
+	asm("loc_6D042E7: movl $0,-0x14(%ebp);");
+	asm("loc_6D042EE: mov -0x6038(%ebp),%edx;");
+	asm("loc_6D042F4: mov (%edx),%eax;");
+	asm("loc_6D042F6: mov %eax,-0x18(%ebp);");
+	asm("loc_6D042F9: jmp loc_6D04331;");
+	asm("loc_6D042FB: mov -0x6038(%ebp),%ecx;");
+	asm("loc_6D04301: mov 4(%ecx),%edx;");
+	asm("loc_6D04304: mov 0x20(%edx),%eax;");
+	asm("loc_6D04307: mov %eax,-0x14(%ebp);");
+	asm("loc_6D0430A: mov -0x6038(%ebp),%ecx;");
+	asm("loc_6D04310: cmpl $0,(%ecx);");
+	asm("loc_6D04313: je loc_6D04322;");
+	asm("loc_6D04315: mov -0x6038(%ebp),%edx;");
+	asm("loc_6D0431B: mov (%edx),%eax;");
+	asm("loc_6D0431D: mov %eax,-0x18(%ebp);");
+	asm("loc_6D04320: jmp loc_6D04331;");
+	asm("loc_6D04322: mov -0x6038(%ebp),%ecx;");
+	asm("loc_6D04328: mov 4(%ecx),%edx;");
+	asm("loc_6D0432B: mov 4(%edx),%eax;");
+	asm("loc_6D0432E: mov %eax,-0x18(%ebp);");
+	asm("loc_6D04331: cmpl $0,-0x18(%ebp);");
+	asm("loc_6D04335: je loc_6D043E9;");
+	asm("loc_6D0433B: mov -0x18(%ebp),%ecx;");
+	asm("loc_6D0433E: push %ecx;");
+	asm("loc_6D0433F: mov -0x603C(%ebp),%edx;");
+	asm("loc_6D04345: mov (%edx),%eax;");
+	asm("loc_6D04347: mov -0x603C(%ebp),%ecx;");
+	asm("loc_6D0434D: push %ecx;");
+	asm("loc_6D0434E: calll *0x130(%eax);");
+	asm("loc_6D04354: mov %eax,-8(%ebp);");
+	asm("loc_6D04357: cmpl $0,-8(%ebp);");
+	asm("loc_6D0435B: jge loc_6D043E9;");
+	asm("loc_6D04361: mov -8(%ebp),%edx;");
+	asm("loc_6D04364: push %edx;");
+	asm("loc_6D04365: call _sub_6D2B964;");
+	asm("loc_6D0436A: add $4,%esp;");
+	asm("loc_6D0436D: push %eax;");
+	asm("loc_6D0436E: push $_data_6D6AE94;");
+	asm("loc_6D04373: lea -0x401C(%ebp),%eax;");
+	asm("loc_6D04379: push %eax;");
+	asm("loc_6D0437A: call _sub_6D168F0;");
+	asm("loc_6D0437F: add $0xC,%esp;");
+	asm("loc_6D04382: mov %eax,-0x602C(%ebp);");
+	asm("loc_6D04388: mov $2,%ecx;");
+	asm("loc_6D0438D: and $0xF,%ecx;");
+	asm("loc_6D04390: mov -0x4020(%ebp),%edx;");
+	asm("loc_6D04396: and $0xFFFFFFF0,%edx;");
+	asm("loc_6D04399: or %ecx,%edx;");
+	asm("loc_6D0439B: mov %edx,-0x4020(%ebp);");
+	asm("loc_6D043A1: mov $0x10000,%eax;");
+	asm("loc_6D043A6: and $0xFFFFFFF,%eax;");
+	asm("loc_6D043AB: shl $4,%eax;");
+	asm("loc_6D043AE: mov -0x4020(%ebp),%ecx;");
+	asm("loc_6D043B4: and $0xF,%ecx;");
+	asm("loc_6D043B7: or %eax,%ecx;");
+	asm("loc_6D043B9: mov %ecx,-0x4020(%ebp);");
+	asm("loc_6D043BF: mov -0x602C(%ebp),%edx;");
+	asm("loc_6D043C5: push %edx;");
+	asm("loc_6D043C6: push $0x4F;");
+	asm("loc_6D043C8: push $_data_6D6AEB0;");
+	asm("loc_6D043CD: push $_data_6D6ADE0;");
+	asm("loc_6D043D2: mov -0x4020(%ebp),%eax;");
+	asm("loc_6D043D8: push %eax;");
+	asm("loc_6D043D9: mov _import_6D5E018,%ecx;");
+	asm("loc_6D043DF: calll *(%ecx);");
+	asm("loc_6D043E1: add $0x14,%esp;");
+	asm("loc_6D043E4: jmp loc_6D044C3;");
+	asm("loc_6D043E9: movl $0,-0x6030(%ebp);");
+	asm("loc_6D043F3: mov -0x18(%ebp),%edx;");
+	asm("loc_6D043F6: and $0x10,%edx;");
+	asm("loc_6D043F9: test %edx,%edx;");
+	asm("loc_6D043FB: je loc_6D0440C;");
+	asm("loc_6D043FD: mov -0x6030(%ebp),%eax;");
+	asm("loc_6D04403: add $0xC,%eax;");
+	asm("loc_6D04406: mov %eax,-0x6030(%ebp);");
+	asm("loc_6D0440C: mov -0x18(%ebp),%ecx;");
+	asm("loc_6D0440F: push %ecx;");
+	asm("loc_6D04410: call _sub_6D16310;");
+	asm("loc_6D04415: add $4,%esp;");
+	asm("loc_6D04418: mov %eax,%esi;");
+	asm("loc_6D0441A: mov -0x18(%ebp),%edx;");
+	asm("loc_6D0441D: push %edx;");
+	asm("loc_6D0441E: call _sub_6D163B0;");
+	asm("loc_6D04423: add $4,%esp;");
+	asm("loc_6D04426: mov %eax,%edi;");
+	asm("loc_6D04428: mov -0x18(%ebp),%eax;");
+	asm("loc_6D0442B: push %eax;");
+	asm("loc_6D0442C: call _sub_6D162B0;");
+	asm("loc_6D04431: add $4,%esp;");
+	asm("loc_6D04434: add -0x6030(%ebp),%eax;");
+	asm("loc_6D0443A: add %edi,%eax;");
+	asm("loc_6D0443C: add %esi,%eax;");
+	asm("loc_6D0443E: mov %eax,-0x10(%ebp);");
+	asm("loc_6D04441: mov -0x10(%ebp),%ecx;");
+	asm("loc_6D04444: push %ecx;");
+	asm("loc_6D04445: mov -0x14(%ebp),%edx;");
+	asm("loc_6D04448: push %edx;");
+	asm("loc_6D04449: push $0;");
+	asm("loc_6D0444B: mov -0x603C(%ebp),%eax;");
+	asm("loc_6D04451: mov (%eax),%ecx;");
+	asm("loc_6D04453: mov -0x603C(%ebp),%edx;");
+	asm("loc_6D04459: push %edx;");
+	asm("loc_6D0445A: calll *0x14C(%ecx);");
+	asm("loc_6D04460: mov %eax,-8(%ebp);");
+	asm("loc_6D04463: cmpl $0,-8(%ebp);");
+	asm("loc_6D04467: jge loc_6D044C3;");
+	asm("loc_6D04469: mov -8(%ebp),%eax;");
+	asm("loc_6D0446C: push %eax;");
+	asm("loc_6D0446D: call _sub_6D2B964;");
+	asm("loc_6D04472: add $4,%esp;");
+	asm("loc_6D04475: push %eax;");
+	asm("loc_6D04476: push $_data_6D6AE7C;");
+	asm("loc_6D0447B: lea -0x6020(%ebp),%ecx;");
+	asm("loc_6D04481: push %ecx;");
+	asm("loc_6D04482: call _sub_6D168F0;");
+	asm("loc_6D04487: add $0xC,%esp;");
+	asm("loc_6D0448A: mov %eax,-0x6034(%ebp);");
+	asm("loc_6D04490: mov -0x6034(%ebp),%edx;");
+	asm("loc_6D04496: push %edx;");
+	asm("loc_6D04497: push $0x54;");
+	asm("loc_6D04499: push $_data_6D6AEB0;");
+	asm("loc_6D0449E: push $_data_6D6ADE0;");
+	asm("loc_6D044A3: push $2;");
+	asm("loc_6D044A5: push $0x10000;");
+	asm("loc_6D044AA: lea -0x6024(%ebp),%ecx;");
+	asm("loc_6D044B0: call _sub_6D15B80;");
+	asm("loc_6D044B5: mov (%eax),%eax;");
+	asm("loc_6D044B7: push %eax;");
+	asm("loc_6D044B8: mov _import_6D5E018,%ecx;");
+	asm("loc_6D044BE: calll *(%ecx);");
+	asm("loc_6D044C0: add $0x14,%esp;");
+	asm("loc_6D044C3: movl $3,-0x604C(%ebp);");
+	asm("loc_6D044CD: mov -0x6070(%ebp),%edx;");
+	asm("loc_6D044D3: mov 0x130(%edx),%eax;");
+	asm("loc_6D044D9: mov %eax,-0x6048(%ebp);");
+	asm("loc_6D044DF: mov -0x6070(%ebp),%ecx;");
+	asm("loc_6D044E5: add $0x2284,%ecx;");
+	asm("loc_6D044EB: mov %ecx,-0x6044(%ebp);");
+	asm("loc_6D044F1: mov -0x6044(%ebp),%edx;");
+	asm("loc_6D044F7: movzbl 0x40(%edx),%eax;");
+	asm("loc_6D044FB: test %eax,%eax;");
+	asm("loc_6D044FD: jne loc_6D04551;");
+	asm("loc_6D044FF: mov -0x6044(%ebp),%ecx;");
+	asm("loc_6D04505: movb $0,0x41(%ecx);");
+	asm("loc_6D04509: mov -0x6044(%ebp),%edx;");
+	asm("loc_6D0450F: movb $1,0x40(%edx);");
+	asm("loc_6D04513: mov -0x6044(%ebp),%eax;");
+	asm("loc_6D04519: push %eax;");
+	asm("loc_6D0451A: mov -0x604C(%ebp),%ecx;");
+	asm("loc_6D04520: push %ecx;");
+	asm("loc_6D04521: mov -0x6048(%ebp),%edx;");
+	asm("loc_6D04527: mov (%edx),%eax;");
+	asm("loc_6D04529: mov -0x6048(%ebp),%ecx;");
+	asm("loc_6D0452F: push %ecx;");
+	asm("loc_6D04530: calll *0x94(%eax);");
+	asm("loc_6D04536: mov %eax,-0x6040(%ebp);");
+	asm("loc_6D0453C: xor %edx,%edx;");
+	asm("loc_6D0453E: cmpl $0,-0x6040(%ebp);");
+	asm("loc_6D04545: setge %dl;");
+	asm("loc_6D04548: mov -0x6044(%ebp),%eax;");
+	asm("loc_6D0454E: mov %dl,0x40(%eax);");
+	asm("loc_6D04551: movl $2,-0x605C(%ebp);");
+	asm("loc_6D0455B: mov -0x6070(%ebp),%eax;");
+	asm("loc_6D04561: mov 0x130(%eax),%ecx;");
+	asm("loc_6D04567: mov %ecx,-0x6058(%ebp);");
+	asm("loc_6D0456D: mov -0x6070(%ebp),%edx;");
+	asm("loc_6D04573: add $0x21FC,%edx;");
+	asm("loc_6D04579: mov %edx,-0x6054(%ebp);");
+	asm("loc_6D0457F: mov -0x6054(%ebp),%eax;");
+	asm("loc_6D04585: movzbl 0x40(%eax),%ecx;");
+	asm("loc_6D04589: test %ecx,%ecx;");
+	asm("loc_6D0458B: jne loc_6D045DF;");
+	asm("loc_6D0458D: mov -0x6054(%ebp),%edx;");
+	asm("loc_6D04593: movb $0,0x41(%edx);");
+	asm("loc_6D04597: mov -0x6054(%ebp),%eax;");
+	asm("loc_6D0459D: movb $1,0x40(%eax);");
+	asm("loc_6D045A1: mov -0x6054(%ebp),%ecx;");
+	asm("loc_6D045A7: push %ecx;");
+	asm("loc_6D045A8: mov -0x605C(%ebp),%edx;");
+	asm("loc_6D045AE: push %edx;");
+	asm("loc_6D045AF: mov -0x6058(%ebp),%eax;");
+	asm("loc_6D045B5: mov (%eax),%ecx;");
+	asm("loc_6D045B7: mov -0x6058(%ebp),%edx;");
+	asm("loc_6D045BD: push %edx;");
+	asm("loc_6D045BE: calll *0x94(%ecx);");
+	asm("loc_6D045C4: mov %eax,-0x6050(%ebp);");
+	asm("loc_6D045CA: xor %eax,%eax;");
+	asm("loc_6D045CC: cmpl $0,-0x6050(%ebp);");
+	asm("loc_6D045D3: setge %al;");
+	asm("loc_6D045D6: mov -0x6054(%ebp),%ecx;");
+	asm("loc_6D045DC: mov %al,0x40(%ecx);");
+	asm("loc_6D045DF: movl $0x100,-0x606C(%ebp);");
+	asm("loc_6D045E9: mov -0x6070(%ebp),%ecx;");
+	asm("loc_6D045EF: mov 0x130(%ecx),%edx;");
+	asm("loc_6D045F5: mov %edx,-0x6068(%ebp);");
+	asm("loc_6D045FB: mov -0x6070(%ebp),%eax;");
+	asm("loc_6D04601: add $0x2240,%eax;");
+	asm("loc_6D04606: mov %eax,-0x6064(%ebp);");
+	asm("loc_6D0460C: mov -0x6064(%ebp),%ecx;");
+	asm("loc_6D04612: movzbl 0x40(%ecx),%edx;");
+	asm("loc_6D04616: test %edx,%edx;");
+	asm("loc_6D04618: jne loc_6D0466C;");
+	asm("loc_6D0461A: mov -0x6064(%ebp),%eax;");
+	asm("loc_6D04620: movb $0,0x41(%eax);");
+	asm("loc_6D04624: mov -0x6064(%ebp),%ecx;");
+	asm("loc_6D0462A: movb $1,0x40(%ecx);");
+	asm("loc_6D0462E: mov -0x6064(%ebp),%edx;");
+	asm("loc_6D04634: push %edx;");
+	asm("loc_6D04635: mov -0x606C(%ebp),%eax;");
+	asm("loc_6D0463B: push %eax;");
+	asm("loc_6D0463C: mov -0x6068(%ebp),%ecx;");
+	asm("loc_6D04642: mov (%ecx),%edx;");
+	asm("loc_6D04644: mov -0x6068(%ebp),%eax;");
+	asm("loc_6D0464A: push %eax;");
+	asm("loc_6D0464B: calll *0x94(%edx);");
+	asm("loc_6D04651: mov %eax,-0x6060(%ebp);");
+	asm("loc_6D04657: xor %ecx,%ecx;");
+	asm("loc_6D04659: cmpl $0,-0x6060(%ebp);");
+	asm("loc_6D04660: setge %cl;");
+	asm("loc_6D04663: mov -0x6064(%ebp),%edx;");
+	asm("loc_6D04669: mov %cl,0x40(%edx);");
+	asm("loc_6D0466C: mov -0x6070(%ebp),%edx;");
+	asm("loc_6D04672: mov 0x130(%edx),%eax;");
+	asm("loc_6D04678: push %eax;");
+	asm("loc_6D04679: mov -0x6070(%ebp),%ecx;");
+	asm("loc_6D0467F: add $0x21F4,%ecx;");
+	asm("loc_6D04685: call _sub_6D2D032;");
+	asm("loc_6D0468A: mov %eax,-4(%ebp);");
+	asm("loc_6D0468D: pop %edi;");
+	asm("loc_6D0468E: pop %esi;");
+	asm("loc_6D0468F: mov %ebp,%esp;");
+	asm("loc_6D04691: pop %ebp;");
+	asm("loc_6D04692: ret;");
+	asm("int3;"); // unreachable
+}
+
+_extern int __thiscall sub_6D04138(NewRenderPipeline* _this)
+{
+	_this->curr_hw_geometry.flush_indices(_this->direct3d_device);
+
+
+	int result = sub_6D04138_OLD(_this);
 	return result;
 }
 
-GENRESULT NewRenderPipeline::draw_primitive(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, U32 flags)
+
+_extern int __cdecl sub_6D010CF(int a1, int a2);
+_extern int __cdecl sub_6D163B0(char a1);
+_extern int __cdecl sub_6D162B0(char a1);
+_extern int __cdecl sub_6D16310(unsigned int a1);
+_extern HRESULT __thiscall sub_6D1C660(RPIndexBufferInternal* _this, DWORD offset, DWORD num_indices, void** out_locked_data_ptr, DWORD* out_start_index, bool a6);
+#define copy_indices_sub_6D1C660 sub_6D1C660
+GENRESULT copy_indices2(NewRenderPipeline* _this, const U16* indices, U32 num_indices, U32* out_start_index)
 {
-	GENRESULT result = DirectX8_draw_primitive(this, type, vertex_format, verts, num_verts, flags);
+	GENRESULT result = GR_GENERIC;
+
+	void* locked_data_ptr;
+	DWORD start_index;
+
+	bool unknown = (_this->unknown128 & 2) != 0; // #TODO Better name for this bit, it's set in initialization
+	HRESULT hr = copy_indices_sub_6D1C660(
+		&_this->scratchIB,
+		0,
+		num_indices,
+		&locked_data_ptr,
+		&start_index,
+		unknown);
+
+	if (SUCCEEDED(hr))
+	{
+		memcpy(locked_data_ptr, indices, 2 * num_indices);
+		_this->scratchIB.locked_data_ptr = 0;
+		_this->scratchIB.direct3d_index_buffer->Unlock();
+		if (out_start_index)
+		{
+			*out_start_index = start_index;
+		}
+		result = GR_OK;
+	}
+	else
+	{
+		GENERAL_ERROR(TEMPSTR("%s: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+		result = GR_GENERIC;
+	}
 	return result;
 }
 
-GENRESULT NewRenderPipeline::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, int num_verts, const U16* indices, int num_indices, U32 flags)
+GENRESULT NewRenderPipeline::draw_primitive(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, U32 flags)
 {
-	GENRESULT result = DirectX8_draw_indexed_primitive(this, type, vertex_format, verts, num_verts, indices, num_indices, flags);
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT result = GR_GENERIC;
+	if (!verts || !num_verts || !direct3d_device)
+	{
+		return GR_INVALID_PARMS;
+	}
+	else if (unknown184_is_locked & 1)
+	{
+		if (num_verts > 0)
+		{
+			U32 primCount = GetPrimCount(type, num_verts);
+			if (primCount > 0)
+			{
+				curr_hw_geometry.set_vertex_buffer(NULL, vertex_format);
+				sub_6D04138(this);
+
+				U32 stride = FVF_SIZEOF_VERT(vertex_format);
+				ASSERT(stride > 0);
+				HRESULT hr;
+				if (SUCCEEDED(hr = direct3d_device->DrawPrimitiveUP(type, primCount, verts, stride)))
+				{
+					result = GR_OK;
+				}
+				else
+				{
+					GENERAL_ERROR(TEMPSTR("DrawPrimitiveUP: %s", HRESULT_GET_ERROR_STRING(hr)));
+					result = GR_GENERIC;
+				}
+
+				curr_hw_geometry.invalidate();
+			}
+		}
+	}
 	return result;
 }
 
-GENRESULT NewRenderPipeline::draw_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, U32 flags)
+GENRESULT NewRenderPipeline::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, const U16* indices, U32 num_indices, U32 flags)
 {
-	GENRESULT result = DirectX8_draw_primitive_vb(this, type, vbhandle, start_vert, num_verts, flags);
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT result = GR_GENERIC;
+	if (!verts || !num_verts || !indices || !num_indices || !direct3d_device)
+	{
+		return GR_INVALID_PARMS;
+	}
+	else if (unknown184_is_locked & 1)
+	{
+		if (num_indices > 0)
+		{
+			U32 primCount = GetPrimCount(type, num_indices);
+			if (primCount > 0)
+			{
+				curr_hw_geometry.set_vertex_buffer(NULL, vertex_format);
+				sub_6D04138(this);
+
+				U32 stride = FVF_SIZEOF_VERT(vertex_format);
+				ASSERT(stride > 0);
+				HRESULT hr;
+				if (SUCCEEDED(hr = direct3d_device->DrawIndexedPrimitiveUP(type, 0, num_verts, primCount, indices, D3DFMT_INDEX16, verts, stride)))
+				{
+					result = GR_OK;
+				}
+				else
+				{
+					GENERAL_ERROR(TEMPSTR("DrawIndexedPrimitiveUP: %s", HRESULT_GET_ERROR_STRING(hr)));
+					result = GR_GENERIC;
+				}
+
+				curr_hw_geometry.invalidate();
+			}
+		}
+	}
 	return result;
 }
 
-GENRESULT NewRenderPipeline::draw_indexed_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, int start_vert, int num_verts, const U16* indices, int num_indices, U32 flags)
+GENRESULT NewRenderPipeline::draw_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, U32 flags)
 {
-	GENRESULT result = DirectX8_draw_indexed_primitive_vb(this, type, vbhandle, start_vert, num_verts, indices, num_indices, flags);
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT result = GR_GENERIC;
+
+	if (!vbhandle || !num_verts || !direct3d_device)
+	{
+		return GR_INVALID_PARMS;
+	}
+	else if (unknown184_is_locked & 1)
+	{
+		if (num_verts > 0)
+		{
+			U32 primCount = GetPrimCount(type, num_verts);
+			if (primCount > 0)
+			{
+
+				curr_hw_geometry.set_vertex_buffer(vbhandle, D3DFMT_UNKNOWN);
+				sub_6D04138(this);
+
+				HRESULT hr;
+				if (SUCCEEDED(hr = direct3d_device->DrawPrimitive(type, start_vert, primCount)))
+				{
+					result = GR_OK;
+				}
+				else
+				{
+					GENERAL_ERROR(TEMPSTR("DrawPrimitive: %s", HRESULT_GET_ERROR_STRING(hr)));
+					result = GR_GENERIC;
+				}
+
+				curr_hw_geometry.invalidate();
+			}
+		}
+	}
+	return result;
+}
+
+GENRESULT NewRenderPipeline::draw_indexed_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, const U16* indices, U32 num_indices, U32 flags)
+{
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT result = GR_GENERIC;
+	if (vbhandle && !num_verts && !indices && !num_indices && !direct3d_device)
+	{
+		return GR_INVALID_PARMS;
+	}
+	else if (unknown184_is_locked & 1)
+	{
+		if (num_verts > 0)
+		{
+			U32 primCount = GetPrimCount(type, num_indices);
+			if (primCount > 0)
+			{
+				U32 start_index;
+				if (SUCCEEDED(result = copy_indices2(this, indices, num_indices, &start_index)))
+				{
+					IRP_INDEXBUFFERHANDLE index_buffer = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB); // #TODO This is nasty, is there a better way to do this?
+
+					curr_hw_geometry.set_vertex_buffer(vbhandle, 0);
+					curr_hw_geometry.set_index_buffer(index_buffer, start_vert);
+
+					sub_6D04138(this);
+
+					HRESULT hr;
+					if (SUCCEEDED(hr = direct3d_device->DrawIndexedPrimitive(type, 0, num_verts, start_index, primCount)))
+					{
+						result = GR_OK;
+					}
+					else
+					{
+						GENERAL_ERROR(TEMPSTR("DrawPrimitive: %s", HRESULT_GET_ERROR_STRING(hr)));
+						result = GR_GENERIC;
+					}
+
+					curr_hw_geometry.invalidate();
+				}
+			}
+		}
+	}
 	return result;
 }
 
@@ -4450,4 +5142,26 @@ static void D3D2Matrix(const D3DMATRIX& src, Matrix4& dest)
 	dest.d[3][1] = src.m[1][3];
 	dest.d[3][2] = src.m[2][3];
 	dest.d[3][3] = src.m[3][3];
+}
+
+static U32 GetPrimCount(D3DPRIMITIVETYPE type, U32 indexCount)
+{
+	switch (type)
+	{
+	case D3DPT_POINTLIST:
+		return indexCount;
+	case D3DPT_LINELIST:
+		return indexCount / 2;
+	case D3DPT_LINESTRIP:
+		return indexCount - 1;
+	case D3DPT_TRIANGLELIST:
+		return indexCount / 3;
+	case D3DPT_TRIANGLESTRIP:
+		return indexCount - 2;
+	case D3DPT_TRIANGLEFAN:
+		return indexCount - 2;
+	default:
+		ASSERT(false);
+	}
+	return 0;
 }

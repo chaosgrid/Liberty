@@ -2,6 +2,7 @@
 
 #ifdef __INTELLISENSE__
 #include <map>
+#include <vector>
 #define st6 std
 
 #else
