@@ -174,6 +174,13 @@ struct RPLOCKDATA
 
 typedef D3DLIGHT8* IRP_LIGHTHANDLE;
 
+// Flags used with irp_vbf_flags parameter of create_vertex_buffer()
+// #define IRP_VBF_READ	(1<<0)		// client would like read access to the vertex buffer
+// #define IRP_VBF_NO_CLIP	(1<<1)		// no need to clip data in the vertex buffer
+// #define IRP_VBF_SYSTEM	(1<<2)		// force buffer into system memory
+#define IRP_VBF_UNKNOWN (1<<0)
+#define IRP_VBF_SOFTWAREPROCESSING (1<<1)		// buffer used with software vertex processing
+
 #define IID_IRenderPipeline8B DACOM_MAKE_IID("IRenderPipeline8B")
 struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 {

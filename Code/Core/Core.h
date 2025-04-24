@@ -20,6 +20,8 @@
 #define unused(expression) debug_point; (void)(expression)
 #define UNKNOWN unsigned int
 
+#define ROUND_UP_TO_MULTIPLE(value, multiple) (((value) + (multiple) - 1) / (multiple) * (multiple))
+
 #ifdef __INTELLISENSE__
 // Shut the fuck up IntelliSense
 #define __thiscall __fastcall
