@@ -15,14 +15,14 @@ void CACHED_TEXTURE::invalidate(void)
 
 GENRESULT CACHED_TEXTURE::get(IDirect3DDevice8* device, U32 stage_idx, IRP_TEXTUREHANDLE* out_htexture)
 {
-	GENRESULT result = GR_OK;
+	GENRESULT gr = GR_OK;
 	if (HRESULT hr = E_FAIL; FAILED(hr = device->GetTexture(stage_idx, (IDirect3DBaseTexture8**)&value)))
 	{
 		GENERAL_TRACE_1(TEMPSTR("CACHED_TEXTURE: get: GetTexture( %d, out ) failed: %s\n", stage_idx, rp_rd_ddmessage(hr)));
 		*out_htexture = NULL;
-		result = GR_GENERIC;
+		gr = GR_GENERIC;
 	}
-	return result;
+	return gr;
 }
 
 GENRESULT CACHED_TEXTURE::set(IDirect3DDevice8* device, U32 stage_idx, IRP_TEXTUREHANDLE new_value, bool force_to_hw)
@@ -40,17 +40,17 @@ GENRESULT CACHED_TEXTURE::set(IDirect3DDevice8* device, U32 stage_idx, IRP_TEXTU
 		direct3d_texture = new_value->direct3d_texture;
 	}
 
-	GENRESULT result = GR_OK;
+	GENRESULT gr = GR_OK;
 	if (HRESULT hr = E_FAIL; FAILED(hr = device->SetTexture(stage_idx, direct3d_texture)))
 	{
 		GENERAL_TRACE_1(TEMPSTR("CACHED_TEXTURE: set: SetTexture( %d, %d ) failed: %s\n", stage_idx, new_value, rp_rd_ddmessage(hr)));
-		result = GR_GENERIC;
+		gr = GR_GENERIC;
 	}
-	return result;
+	return gr;
 
 	rp_rd_texture(stage_idx, direct3d_texture);
 	value = new_value;
 	valid = !force_to_hw;
 
-	return result;
+	return gr;
 }

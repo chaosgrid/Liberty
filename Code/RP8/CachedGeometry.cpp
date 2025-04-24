@@ -35,7 +35,7 @@ GENRESULT CACHED_GEOMETRY::flush_indices(IDirect3DDevice8* direct3d_device)
 {
 	RPIndexBufferInternal* index_buffer = reinterpret_cast<RPIndexBufferInternal*>(current_index_buffer_handle);
 
-	GENRESULT result = GR_OK;
+	GENRESULT gr = GR_OK;
 	if (index_dirty)
 	{
 		HRESULT hr;
@@ -50,10 +50,10 @@ GENRESULT CACHED_GEOMETRY::flush_indices(IDirect3DDevice8* direct3d_device)
 		if (FAILED(hr))
 		{
 			GENERAL_ERROR(TEMPSTR("%s: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-			result = GR_GENERIC;
+			gr = GR_GENERIC;
 		}
 	}
-	return result;
+	return gr;
 }
 
 GENRESULT CACHED_GEOMETRY::invalidate()

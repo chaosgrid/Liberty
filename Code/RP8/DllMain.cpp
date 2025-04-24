@@ -24,7 +24,7 @@ _naked BOOL __stdcall EntryPoint(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpR
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
-	BOOL Result = EntryPoint(hinstDLL, fdwReason, lpvReserved); // CRT Initialization
+	BOOL gr = EntryPoint(hinstDLL, fdwReason, lpvReserved); // CRT Initialization
 
 	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
@@ -32,5 +32,5 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		Register_NewRenderPipeline();
 	}
 
-	return Result;
+	return gr;
 }

@@ -98,8 +98,8 @@ _extern PFenum d3d_to_pf(D3DFORMAT d3d_format)
 	{
 		if (pf_to_d3d_table[index] == d3d_format)
 		{
-			PFenum result = static_cast<PFenum>(index);
-			return result;
+			PFenum gr = static_cast<PFenum>(index);
+			return gr;
 		}
 	}
 	return PF_UNKNOWN;
@@ -119,9 +119,9 @@ _extern PixelFormat* __cdecl pf_to_pixel_format(PFenum pixel_format)
 #define validate_depth_stencil_format sub_6D159A6
 _extern bool validate_depth_stencil_format(LPDIRECT3D8 direct3d, D3DFORMAT depth_stencil_format, D3DFORMAT adapter_format, D3DFORMAT render_target_format)
 {
-	HRESULT check_device_format_result = direct3d->CheckDeviceFormat(0, D3DDEVTYPE_HAL, adapter_format, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, depth_stencil_format);
-	HRESULT check_depth_stencil_match_result = direct3d->CheckDepthStencilMatch(0, D3DDEVTYPE_HAL, adapter_format, render_target_format, depth_stencil_format);
-	bool result = SUCCEEDED(check_device_format_result) && SUCCEEDED(check_depth_stencil_match_result);
+	HRESULT check_device_format_hr = direct3d->CheckDeviceFormat(0, D3DDEVTYPE_HAL, adapter_format, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, depth_stencil_format);
+	HRESULT check_depth_stencil_match_hr = direct3d->CheckDepthStencilMatch(0, D3DDEVTYPE_HAL, adapter_format, render_target_format, depth_stencil_format);
+	bool result = SUCCEEDED(check_device_format_hr) && SUCCEEDED(check_depth_stencil_match_hr);
 	return result;
 }
 
@@ -164,8 +164,8 @@ _extern D3DFORMAT __cdecl sub_6D159FF(
 		return D3DFMT_UNKNOWN;
 	*a4 = v11[1];
 	*a5 = v11[2];
-	D3DFORMAT result = (D3DFORMAT)*v11;
-	return result;
+	D3DFORMAT gr = (D3DFORMAT)*v11;
+	return gr;
 }
 
 #define update_device_capabilities sub_6D020AB
@@ -212,11 +212,11 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_Unknown10, _sub_6D
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_acquire_vertex_buffer, _sub_6D114EA, IVertexBufferManager* _this, UNKNOWN vertex_format, U32 num_verts, VertexBufferAcquire* out_result);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_release_vertex_buffer, _sub_6D11877, IVertexBufferManager* _this, VertexBufferAcquire* vbacquire);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_Unknown1C, _sub_6D118BC, IVertexBufferManager* _this);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_Unknown20, _sub_6D114C5, IVertexBufferManager* _this, UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_vertex_buffer_desc, _sub_6D114C5, IVertexBufferManager* _this, void* dst_buffer, U32 dst_vertex_format, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive2, _sub_6D111E1, IRPDraw* _this, D3DPRIMITIVETYPE type, U32 min_index, U32 num_verts, U32 start_index, U32 count);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_index_buffer, _sub_6D12D4E, IRPIndexBuffer* _this, U32 count, IRP_INDEXBUFFERHANDLE* out_ibhandle, BYTE flags);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_index_buffer, _sub_6D13002, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_vertices, _sub_6D1228C, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, U32 start_vertex, U32 num_vertices);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_vertices, _sub_6D1228C, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_lock_vb, _sub_6D126BB, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32& offset, void** locked_data, U32 count);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_vb, _sub_6D12A8B, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_RPVertexBuffer_Unknown24, _sub_6D12B30, IRPVertexBuffer* _this, UNKNOWN);
@@ -2234,6 +2234,7 @@ public:
 	HMODULE d3d8_module;
 	//typedef st6::map<U32, U32>	LightInfoMap;
 	//LightInfoMap				lights;
+	IRP_VERTEXBUFFERHANDLE scratchVB;
 
 	BEGIN_DACOM_MAP_INBOUND(NewRenderPipeline)
 		DACOM_INTERFACE_ENTRY(IRenderPipeline8B)
@@ -2350,7 +2351,7 @@ public:
 	DACOM_DEFMETHOD(acquire_vertex_buffer)(UNKNOWN vertex_format, U32 num_verts, VertexBufferAcquire* out_result) override;
 	DACOM_DEFMETHOD(release_vertex_buffer)(VertexBufferAcquire* vbacquire) override;
 	DACOM_DEFMETHOD(VertexBufferManager_Unknown1C)() override;
-	DACOM_DEFMETHOD(VertexBufferManager_Unknown20)(UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN) override;
+	DACOM_DEFMETHOD(copy_vertex_buffer_desc)(void* dst_buffer, U32 dst_vertex_format, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices) override;
 
 	// IRPDraw methods
 
@@ -2370,10 +2371,10 @@ public:
 
 	// IRPVertexBuffer methods
 
-	DACOM_DEFMETHOD(create_vb)(D3DFORMAT format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, U8 irp_vbf_flags) override;
+	DACOM_DEFMETHOD(create_vb)(U32 format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, U8 irp_vbf_flags) override;
 	DACOM_DEFMETHOD(destroy_vb)(IRP_VERTEXBUFFERHANDLE& vbhandle) override;
-	DACOM_DEFMETHOD(ressize_vb)(IRP_VERTEXBUFFERHANDLE vbhandle, D3DFORMAT format, U32 num_verts) override;
-	DACOM_DEFMETHOD(copy_vertices)(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, U32 start_vertex, U32 num_vertices) override;
+	DACOM_DEFMETHOD(ressize_vb)(IRP_VERTEXBUFFERHANDLE vbhandle, U32 format, U32 num_verts) override;
+	DACOM_DEFMETHOD(copy_vertices)(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices) override;
 	DACOM_DEFMETHOD(lock_vb)(IRP_VERTEXBUFFERHANDLE vbhandle, U32& offset, void** locked_data, U32 count) override;
 	DACOM_DEFMETHOD(unlock_vb)(IRP_VERTEXBUFFERHANDLE vbhandle) override;
 	DACOM_DEFMETHOD(RPVertexBuffer_Unknown24)(UNKNOWN) override;
@@ -2627,14 +2628,14 @@ GENRESULT NewRenderPipeline::get_device_info(RPDEVICEINFO* info)
 {
 	CHECK_STARTUP();
 
-	GENRESULT result = GR_GENERIC;
+	GENRESULT gr = GR_GENERIC;
 	if (direct3d_adapter < unknown198.size())
 	{
 		*info = unknown198[direct3d_adapter];
-		result = GR_OK;
+		gr = GR_OK;
 	}
 
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::query_device_ability(RPDEVICEABILITY ability, U32* out_answer)
@@ -2685,7 +2686,7 @@ GENRESULT NewRenderPipeline::select_mode(RPBUFFERSINFO* mode, U32* adapter)
 {
 	CHECK_STARTUP();
 
-	GENRESULT result = GR_GENERIC;
+	GENRESULT gr = GR_GENERIC;
 
 	U32 mode_count = direct3d->GetAdapterModeCount(direct3d_adapter);
 	for (U32 mode_index = 0; mode_index < mode_count; ++mode_index)
@@ -2700,13 +2701,13 @@ GENRESULT NewRenderPipeline::select_mode(RPBUFFERSINFO* mode, U32* adapter)
 				(device_abilities[RP_A_DEVICE_BAD_MODE] == 0 || current_mode.Width < device_abilities[RP_A_DEVICE_BAD_MODE]))
 			{
 				*adapter = static_cast<U32>(mode_index);
-				result = GR_OK;
+				gr = GR_OK;
 				break;
 			}
 		}
 	}
 
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinfo, RPBUFFERSINFO* out_buffersinfo)
@@ -2727,7 +2728,7 @@ GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinf
 	int v63, v73;
 	DWORD a5, a4;
 	unsigned int v79, v86;
-	HRESULT v67, v69, v72, hr, create_index_buffer_result;
+	HRESULT v67, v69, v72, hr, create_index_buffer_hr;
 	int index_buffer_length;
 	RPBUFFERSINFO selected_mode;
 	GENRESULT v71;
@@ -2905,17 +2906,17 @@ GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinf
 	this->scratchIB.element_count = 0x4000;
 	this->scratchIB.unknown14 = 0;
 	index_buffer_length = 0x8000;
-	create_index_buffer_result = this->direct3d_device->CreateIndexBuffer(
+	create_index_buffer_hr = this->direct3d_device->CreateIndexBuffer(
 		index_buffer_length,
 		this->scratchIB.unknown0_flags_or_usage,
 		D3DFMT_INDEX16,
 		D3DPOOL_DEFAULT,
 		&this->scratchIB.direct3d_index_buffer);
-	if (FAILED(create_index_buffer_result)) {
-		GENERAL_ERROR(TEMPSTR("couldn't create ib (err:%x) %d bytes", create_index_buffer_result, index_buffer_length));
-		return (GENRESULT)create_index_buffer_result;
+	if (FAILED(create_index_buffer_hr)) {
+		GENERAL_ERROR(TEMPSTR("couldn't create ib (err:%x) %d bytes", create_index_buffer_hr, index_buffer_length));
+		return (GENRESULT)create_index_buffer_hr;
 	}
-	hr = create_index_buffer_result;
+	hr = create_index_buffer_hr;
 
 	// Final state setup
 	this->unknown184_is_locked |= 1;
@@ -2941,10 +2942,10 @@ GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinf
 
 	curr_hw_viewport.invalidate();
 
-	GENRESULT result = GR_GENERIC;
-	if (FAILED(result = set_viewport(0, 0, this->buffers_info.width, this->buffers_info.height)))
+	GENRESULT gr = GR_GENERIC;
+	if (FAILED(gr = set_viewport(0, 0, this->buffers_info.width, this->buffers_info.height)))
 	{
-		return result;
+		return gr;
 	}
 
 	sub_6D2CE6A(&this->unknown21F4);
@@ -2957,54 +2958,54 @@ GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinf
 GENRESULT NewRenderPipeline::get_buffers(U32* adapter, RPBUFFERSINFO* out_buffersinfo)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_get_buffers(this, adapter, out_buffersinfo);
-	return result;
+	GENRESULT gr = DirectX8_get_buffers(this, adapter, out_buffersinfo);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::destroy_buffers(void)
 {
-	GENRESULT result = DirectX8_destroy_buffers(this);
-	return result;
+	GENRESULT gr = DirectX8_destroy_buffers(this);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::clear_buffers(U32 rp_clear_flags, RECT* viewport_sub_rect)
 {
-	GENRESULT result = DirectX8_clear_buffers(this, rp_clear_flags, viewport_sub_rect);
-	return result;
+	GENRESULT gr = DirectX8_clear_buffers(this, rp_clear_flags, viewport_sub_rect);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::swap_buffers(void)
 {
-	GENRESULT result = DirectX8_swap_buffers(this);
-	return result;
+	GENRESULT gr = DirectX8_swap_buffers(this);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::lock_buffer(RPLOCKDATA* lockData)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_lock_buffer(this, lockData);
-	return result;
+	GENRESULT gr = DirectX8_lock_buffer(this, lockData);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::unlock_buffer(void)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_unlock_buffer(this);
-	return result;
+	GENRESULT gr = DirectX8_unlock_buffer(this);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::get_buffer_interface(const char* iid, void** out_iif)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_get_buffer_interface(this, iid, out_iif);
-	return result;
+	GENRESULT gr = DirectX8_get_buffer_interface(this, iid, out_iif);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::get_device_stats(RPDEVICESTATS* stat)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_get_device_stats(this, stat);
-	return result;
+	GENRESULT gr = DirectX8_get_device_stats(this, stat);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::set_viewport(int x, int y, int w, int h)
@@ -3057,15 +3058,15 @@ GENRESULT NewRenderPipeline::get_depth_range(float* lower_z_bound, float* upper_
 GENRESULT NewRenderPipeline::set_window(HWND hwnd, int x, int y, int w, int h)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_set_window(this, hwnd, x, y, w, h);
-	return result;
+	GENRESULT gr = DirectX8_set_window(this, hwnd, x, y, w, h);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::get_window(HWND* out_hwnd, int* out_x, int* out_y, int* out_w, int* out_h)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_get_window(this, out_hwnd, out_x, out_y, out_w, out_h);
-	return result;
+	GENRESULT gr = DirectX8_get_window(this, out_hwnd, out_x, out_y, out_w, out_h);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::set_world(const Transform& world)
@@ -3293,9 +3294,9 @@ GENRESULT NewRenderPipeline::set_light(IRP_LIGHTHANDLE handle, const D3DLIGHT8* 
 
 GENRESULT NewRenderPipeline::destroy_light(IRP_LIGHTHANDLE handle)
 {
-	GENRESULT result = DirectX8_destroy_light(this, handle);
+	GENRESULT gr = DirectX8_destroy_light(this, handle);
 
-	return result;
+	return gr;
 
 	//CHECK_DEVICE_LIFETIME();
 	//sub_6D2CB6F(&this->unknown21F4, handle, 0);
@@ -3307,21 +3308,21 @@ GENRESULT NewRenderPipeline::destroy_light(IRP_LIGHTHANDLE handle)
 GENRESULT NewRenderPipeline::get_light(IRP_LIGHTHANDLE handle, D3DLIGHT8* out_light_values)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_get_light(this, handle, out_light_values);
-	return result;
+	GENRESULT gr = DirectX8_get_light(this, handle, out_light_values);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::set_light_enable(IRP_LIGHTHANDLE handle, U32 enable)
 {
-	GENRESULT result = DirectX8_set_light_enable(this, handle, enable);
-	return result;
+	GENRESULT gr = DirectX8_set_light_enable(this, handle, enable);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::get_light_enable(IRP_LIGHTHANDLE handle, U32* out_enable)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_get_light_enable(this, handle, out_enable);
-	return result;
+	GENRESULT gr = DirectX8_get_light_enable(this, handle, out_enable);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::set_material(D3DMATERIAL8* material_values)
@@ -3685,7 +3686,7 @@ GENRESULT NewRenderPipeline::destroy_texture(IRP_TEXTUREHANDLE htexture)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT result = GR_OK;
+	GENRESULT gr = GR_OK;
 	if (SUCCEEDED(is_texture(htexture)))
 	{
 		for (U32 stage_index = 0; stage_index < _countof(curr_hw_texture); stage_index++)
@@ -3709,10 +3710,10 @@ GENRESULT NewRenderPipeline::destroy_texture(IRP_TEXTUREHANDLE htexture)
 	}
 	else
 	{
-		result = GR_INVALID_PARMS;
+		gr = GR_INVALID_PARMS;
 	}
 
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::is_texture(IRP_TEXTUREHANDLE htexture)
@@ -3731,7 +3732,7 @@ GENRESULT NewRenderPipeline::is_texture(IRP_TEXTUREHANDLE htexture)
 
 static GENRESULT get_texture_surface(IRP_TEXTUREHANDLE htexture, U32 subsurface, IDirect3DSurface8** out_direct3d_texture_surface)
 {
-	GENRESULT result = GR_GENERIC;
+	GENRESULT gr = GR_GENERIC;
 	HRESULT hr = E_FAIL;
 
 	IDirect3DSurface8* direct3d_texture_surface = nullptr;
@@ -3753,18 +3754,18 @@ static GENRESULT get_texture_surface(IRP_TEXTUREHANDLE htexture, U32 subsurface,
 			if (FAILED(hr = direct3d_2d_texture->GetSurfaceLevel(subsurface, &direct3d_texture_surface)))
 			{
 				GENERAL_ERROR(TEMPSTR("%s GetSurfaceLevel failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-				result = GR_GENERIC;
+				gr = GR_GENERIC;
 			}
 			else
 			{
-				result = GR_OK;
+				gr = GR_OK;
 			}
 			direct3d_2d_texture->Release();
 		}
 		else
 		{
 			GENERAL_ERROR(TEMPSTR("%s QueryInterface for IDirect3DTexture8 failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-			result = GR_GENERIC;
+			gr = GR_GENERIC;
 		}
 	}
 	break;
@@ -3781,30 +3782,30 @@ static GENRESULT get_texture_surface(IRP_TEXTUREHANDLE htexture, U32 subsurface,
 			if (FAILED(hr = direct3d_cube_texture->GetCubeMapSurface(face, 0, &direct3d_texture_surface)))
 			{
 				GENERAL_ERROR(TEMPSTR("%s GetCubeMapSurface failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-				result = GR_GENERIC;
+				gr = GR_GENERIC;
 			}
 			else
 			{
-				result = GR_OK;
+				gr = GR_OK;
 			}
 			direct3d_cube_texture->Release();
 		}
 		else
 		{
 			GENERAL_ERROR(TEMPSTR("%s QueryInterface for IDirect3DCubeTexture8 failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-			result = GR_GENERIC;
+			gr = GR_GENERIC;
 		}
 	}
 	break;
 	default:
 	{
 		GENERAL_FATAL(TEMPSTR("%s unsupported resource type %u", __FUNCTION__, static_cast<U32>(resource_type)));
-		result = GR_NOT_IMPLEMENTED;
+		gr = GR_NOT_IMPLEMENTED;
 	}
 	break;
 	}
 
-	if (SUCCEEDED(result))
+	if (SUCCEEDED(gr))
 	{
 		*out_direct3d_texture_surface = direct3d_texture_surface;
 	}
@@ -3817,22 +3818,22 @@ static GENRESULT get_texture_surface(IRP_TEXTUREHANDLE htexture, U32 subsurface,
 		}
 	}
 
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::lock_texture(IRP_TEXTUREHANDLE htexture, U32 subsurface, RPLOCKDATA* lockData)
 {
-	GENRESULT result = GR_OK;
+	GENRESULT gr = GR_OK;
 	HRESULT hr = E_FAIL;
 	if (FAILED(is_texture(htexture)))
 	{
 		GENERAL_ERROR(TEMPSTR("%s invalid texture handle", __FUNCTION__));
-		result = GR_INVALID_PARMS;
+		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
 		IDirect3DSurface8* direct3d_texture_surface;
-		if (SUCCEEDED(result = get_texture_surface(htexture, subsurface, &direct3d_texture_surface)))
+		if (SUCCEEDED(gr = get_texture_surface(htexture, subsurface, &direct3d_texture_surface)))
 		{
 			D3DSURFACE_DESC desc;
 			if (SUCCEEDED(hr = direct3d_texture_surface->GetDesc(&desc)))
@@ -3851,64 +3852,64 @@ GENRESULT NewRenderPipeline::lock_texture(IRP_TEXTUREHANDLE htexture, U32 subsur
 					lockData->pitch = rect.Pitch;
 					lockData->pixels = rect.pBits;
 
-					result = GR_OK;
+					gr = GR_OK;
 				}
 				else
 				{
 					GENERAL_ERROR(TEMPSTR("%s LockRect failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-					result = GR_GENERIC;
+					gr = GR_GENERIC;
 				}
 			}
 			else
 			{
 				GENERAL_ERROR(TEMPSTR("%s GetDesc failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-				result = GR_GENERIC;
+				gr = GR_GENERIC;
 			}
 			direct3d_texture_surface->Release();
 		}
 	}
 
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::unlock_texture(IRP_TEXTUREHANDLE htexture, U32 subsurface)
 {
-	GENRESULT result = GR_OK;
+	GENRESULT gr = GR_OK;
 	HRESULT hr = E_FAIL;
 	if (FAILED(is_texture(htexture)))
 	{
 		GENERAL_ERROR(TEMPSTR("%s invalid texture handle", __FUNCTION__));
-		result = GR_INVALID_PARMS;
+		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
 		IDirect3DSurface8* direct3d_texture_surface;
-		if (SUCCEEDED(result = get_texture_surface(htexture, subsurface, &direct3d_texture_surface)))
+		if (SUCCEEDED(gr = get_texture_surface(htexture, subsurface, &direct3d_texture_surface)))
 		{
 			if (FAILED(hr = direct3d_texture_surface->UnlockRect()))
 			{
 				GENERAL_ERROR(TEMPSTR("%s UnlockRect failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-				result = GR_GENERIC;
+				gr = GR_GENERIC;
 			}
 		}
 	}
 
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::get_texture_format(IRP_TEXTUREHANDLE htexture, PFenum* out_pf)
 {
-	GENRESULT result = GR_OK;
+	GENRESULT gr = GR_OK;
 	HRESULT hr = E_FAIL;
 	if (FAILED(is_texture(htexture)))
 	{
 		GENERAL_ERROR(TEMPSTR("%s invalid texture handle", __FUNCTION__));
-		result = GR_INVALID_PARMS;
+		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
 		IDirect3DSurface8* direct3d_texture_surface;
-		if (SUCCEEDED(result = get_texture_surface(htexture, 0, &direct3d_texture_surface)))
+		if (SUCCEEDED(gr = get_texture_surface(htexture, 0, &direct3d_texture_surface)))
 		{
 			ASSERT(direct3d_texture_surface != nullptr);
 
@@ -3916,28 +3917,28 @@ GENRESULT NewRenderPipeline::get_texture_format(IRP_TEXTUREHANDLE htexture, PFen
 			if (SUCCEEDED(hr = direct3d_texture_surface->GetDesc(&desc)))
 			{
 				*out_pf = d3d_to_pf(desc.Format);
-				result = GR_OK;
+				gr = GR_OK;
 			}
 			else
 			{
 				GENERAL_ERROR(TEMPSTR("%s GetDesc failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-				result = GR_GENERIC;
+				gr = GR_GENERIC;
 			}
 			direct3d_texture_surface->Release();
 		}
 	}
 
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::get_texture_dim(IRP_TEXTUREHANDLE htexture, U32* out_width, U32* out_height, U32* out_num_lod)
 {
-	GENRESULT result = GR_OK;
+	GENRESULT gr = GR_OK;
 	HRESULT hr = E_FAIL;
 	if (FAILED(is_texture(htexture)))
 	{
 		GENERAL_ERROR(TEMPSTR("%s invalid texture handle", __FUNCTION__));
-		result = GR_INVALID_PARMS;
+		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
@@ -3966,14 +3967,14 @@ GENRESULT NewRenderPipeline::get_texture_dim(IRP_TEXTUREHANDLE htexture, U32* ou
 				else
 				{
 					GENERAL_ERROR(TEMPSTR("%s GetLevelDesc failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-					result = GR_GENERIC;
+					gr = GR_GENERIC;
 				}
 				direct3d_2d_texture->Release();
 			}
 			else
 			{
 				GENERAL_ERROR(TEMPSTR("%s QueryInterface for IDirect3DTexture8 failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-				result = GR_GENERIC;
+				gr = GR_GENERIC;
 			}
 		}
 		break;
@@ -3996,27 +3997,27 @@ GENRESULT NewRenderPipeline::get_texture_dim(IRP_TEXTUREHANDLE htexture, U32* ou
 				else
 				{
 					GENERAL_ERROR(TEMPSTR("%s GetLevelDesc failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-					result = GR_GENERIC;
+					gr = GR_GENERIC;
 				}
 				direct3d_cube_texture->Release();
 			}
 			else
 			{
 				GENERAL_ERROR(TEMPSTR("%s QueryInterface for IDirect3DCubeTexture8 failed %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-				result = GR_GENERIC;
+				gr = GR_GENERIC;
 			}
 		}
 		break;
 		default:
 		{
 			GENERAL_FATAL(TEMPSTR("%s unsupported resource type %u", __FUNCTION__, static_cast<U32>(resource_type)));
-			result = GR_NOT_IMPLEMENTED;
+			gr = GR_NOT_IMPLEMENTED;
 		}
 		break;
 		}
 	}
 
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::get_texture_interface(IRP_TEXTUREHANDLE htexture, const char* iid, void** out_iif)
@@ -4027,8 +4028,8 @@ GENRESULT NewRenderPipeline::get_texture_interface(IRP_TEXTUREHANDLE htexture, c
 
 GENRESULT NewRenderPipeline::set_texture_level_data(IRP_TEXTUREHANDLE htexture, U32 subsurface, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette)
 {
-	GENRESULT result = DirectX8_set_texture_level_data(this, htexture, subsurface, src_width, src_height, src_stride, src_format, src_pixel, src_alpha, src_palette);
-	return result;
+	GENRESULT gr = DirectX8_set_texture_level_data(this, htexture, subsurface, src_width, src_height, src_stride, src_format, src_pixel, src_alpha, src_palette);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::blit_texture(IRP_TEXTUREHANDLE hDest, U32 destLevel, RECT destRect, IRP_TEXTUREHANDLE hSrc, U32 srcLevel, RECT srcRect)
@@ -4053,98 +4054,98 @@ GENRESULT NewRenderPipeline::begin_scene(void)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT result = GR_OK;
+	GENRESULT gr = GR_OK;
 	HRESULT hr;
 	if (FAILED(hr = direct3d_device->BeginScene()))
 	{
 		GENERAL_ERROR(TEMPSTR("begin_scene: %s", HRESULT_GET_ERROR_STRING(hr)));
-		result = GR_GENERIC;
+		gr = GR_GENERIC;
 	}
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::end_scene(void)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT result = GR_OK;
+	GENRESULT gr = GR_OK;
 	HRESULT hr;
 	if (FAILED(hr = direct3d_device->EndScene()))
 	{
 		GENERAL_ERROR(TEMPSTR("end_scene: %s", HRESULT_GET_ERROR_STRING(hr)));
-		result = GR_GENERIC;
+		gr = GR_GENERIC;
 	}
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::reset_render_states_to_defaults(void)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_reset_render_states_to_defaults(this);
-	return result;
+	GENRESULT gr = DirectX8_reset_render_states_to_defaults(this);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::set_render_state(D3DRENDERSTATETYPE state, U32 value)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT result = GR_OK;
+	GENRESULT gr = GR_OK;
 	HRESULT hr;
 	if (FAILED(hr = direct3d_device->SetRenderState(state, value)))
 	{
 		GENERAL_ERROR(TEMPSTR("SetRenderState: %s", HRESULT_GET_ERROR_STRING(hr)));
-		result = GR_GENERIC;
+		gr = GR_GENERIC;
 	}
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::get_render_state(D3DRENDERSTATETYPE state, U32* value)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT result = GR_OK;
+	GENRESULT gr = GR_OK;
 	HRESULT hr;
 	if (FAILED(hr = direct3d_device->GetRenderState(state, reinterpret_cast<DWORD*>(value))))
 	{
 		GENERAL_ERROR(TEMPSTR("SetRenderState: %s", HRESULT_GET_ERROR_STRING(hr)));
-		result = GR_GENERIC;
+		gr = GR_GENERIC;
 	}
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::set_texture_stage_state(U32 stage, D3DTEXTURESTAGESTATETYPE state, U32 value)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT result = GR_OK;
+	GENRESULT gr = GR_OK;
 	HRESULT hr;
 	if (FAILED(hr = direct3d_device->SetTextureStageState(stage, state, value)))
 	{
 		GENERAL_ERROR(TEMPSTR("SetRenderState: %s", HRESULT_GET_ERROR_STRING(hr)));
-		result = GR_GENERIC;
+		gr = GR_GENERIC;
 	}
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::get_texture_stage_state(U32 stage, D3DTEXTURESTAGESTATETYPE state, U32* value)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT result = GR_OK;
+	GENRESULT gr = GR_OK;
 	HRESULT hr;
 	if (FAILED(hr = direct3d_device->GetTextureStageState(stage, state, reinterpret_cast<DWORD*>(value))))
 	{
 		GENERAL_ERROR(TEMPSTR("SetRenderState: %s", HRESULT_GET_ERROR_STRING(hr)));
-		result = GR_GENERIC;
+		gr = GR_GENERIC;
 	}
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::set_texture_stage_transform(U32 stage, Matrix4 const& mat4)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT result = GR_OK;
+	GENRESULT gr = GR_OK;
 
 	D3DMATRIX M;
 	Matrix2D3D(M, mat4);
@@ -4154,16 +4155,16 @@ GENRESULT NewRenderPipeline::set_texture_stage_transform(U32 stage, Matrix4 cons
 	if (FAILED(hr = direct3d_device->SetTransform(state, &M)))
 	{
 		GENERAL_ERROR(TEMPSTR("SetRenderState: %s", HRESULT_GET_ERROR_STRING(hr)));
-		result = GR_GENERIC;
+		gr = GR_GENERIC;
 	}
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::get_texture_stage_transform(U32 stage, Matrix4& out_mat4)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT result = GR_OK;
+	GENRESULT gr = GR_OK;
 
 	D3DMATRIX M;
 
@@ -4172,28 +4173,28 @@ GENRESULT NewRenderPipeline::get_texture_stage_transform(U32 stage, Matrix4& out
 	if (FAILED(hr = direct3d_device->GetTransform(state, &M)))
 	{
 		GENERAL_ERROR(TEMPSTR("SetRenderState: %s", HRESULT_GET_ERROR_STRING(hr)));
-		result = GR_GENERIC;
+		gr = GR_GENERIC;
 	}
 
 	D3D2Matrix(M, out_mat4);
 
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::set_texture_stage_texture(U32 stage, IRP_TEXTUREHANDLE htexture)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT result = curr_hw_texture->set(direct3d_device, stage, htexture);
-	return result;
+	GENRESULT gr = curr_hw_texture->set(direct3d_device, stage, htexture);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::get_texture_stage_texture(U32 stage, IRP_TEXTUREHANDLE* out_htexture)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT result = curr_hw_texture->get(direct3d_device, stage, out_htexture);
-	return result;
+	GENRESULT gr = curr_hw_texture->get(direct3d_device, stage, out_htexture);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::verify_state(void)
@@ -4553,8 +4554,8 @@ _extern int __thiscall sub_6D04138(NewRenderPipeline* _this)
 	_this->curr_hw_geometry.flush_indices(_this->direct3d_device);
 
 
-	int result = sub_6D04138_OLD(_this);
-	return result;
+	int gr = sub_6D04138_OLD(_this);
+	return gr;
 }
 
 
@@ -4569,7 +4570,7 @@ GENRESULT NewRenderPipeline::draw_primitive(D3DPRIMITIVETYPE type, U32 vertex_fo
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT result = GR_GENERIC;
+	GENRESULT gr = GR_GENERIC;
 	if (!verts || !num_verts || !direct3d_device)
 	{
 		return GR_INVALID_PARMS;
@@ -4589,12 +4590,12 @@ GENRESULT NewRenderPipeline::draw_primitive(D3DPRIMITIVETYPE type, U32 vertex_fo
 				HRESULT hr;
 				if (SUCCEEDED(hr = direct3d_device->DrawPrimitiveUP(type, primCount, verts, stride)))
 				{
-					result = GR_OK;
+					gr = GR_OK;
 				}
 				else
 				{
 					GENERAL_ERROR(TEMPSTR("DrawPrimitiveUP: %s", HRESULT_GET_ERROR_STRING(hr)));
-					result = GR_GENERIC;
+					gr = GR_GENERIC;
 				}
 
 				rp_rd_dp(type, vertex_format, verts, num_verts, flags);
@@ -4603,14 +4604,14 @@ GENRESULT NewRenderPipeline::draw_primitive(D3DPRIMITIVETYPE type, U32 vertex_fo
 			}
 		}
 	}
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, const U16* indices, U32 num_indices, U32 flags)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT result = GR_GENERIC;
+	GENRESULT gr = GR_GENERIC;
 	if (!verts || !num_verts || !indices || !num_indices || !direct3d_device)
 	{
 		return GR_INVALID_PARMS;
@@ -4630,12 +4631,12 @@ GENRESULT NewRenderPipeline::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 v
 				HRESULT hr;
 				if (SUCCEEDED(hr = direct3d_device->DrawIndexedPrimitiveUP(type, 0, num_verts, primCount, indices, D3DFMT_INDEX16, verts, stride)))
 				{
-					result = GR_OK;
+					gr = GR_OK;
 				}
 				else
 				{
 					GENERAL_ERROR(TEMPSTR("DrawIndexedPrimitiveUP: %s", HRESULT_GET_ERROR_STRING(hr)));
-					result = GR_GENERIC;
+					gr = GR_GENERIC;
 				}
 
 				rp_rd_dip(type, vertex_format, verts, num_verts, indices, num_indices, flags);
@@ -4644,14 +4645,14 @@ GENRESULT NewRenderPipeline::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 v
 			}
 		}
 	}
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::draw_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, U32 flags)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT result = GR_GENERIC;
+	GENRESULT gr = GR_GENERIC;
 
 	if (!vbhandle || !num_verts || !direct3d_device)
 	{
@@ -4671,12 +4672,12 @@ GENRESULT NewRenderPipeline::draw_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEX
 				HRESULT hr;
 				if (SUCCEEDED(hr = direct3d_device->DrawPrimitive(type, start_vert, primCount)))
 				{
-					result = GR_OK;
+					gr = GR_OK;
 				}
 				else
 				{
 					GENERAL_ERROR(TEMPSTR("DrawPrimitive: %s", HRESULT_GET_ERROR_STRING(hr)));
-					result = GR_GENERIC;
+					gr = GR_GENERIC;
 				}
 
 				rp_rd_dp_vb(type, vbhandle, start_vert, num_verts, flags);
@@ -4685,14 +4686,14 @@ GENRESULT NewRenderPipeline::draw_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEX
 			}
 		}
 	}
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::draw_indexed_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, const U16* indices, U32 num_indices, U32 flags)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT result = GR_GENERIC;
+	GENRESULT gr = GR_GENERIC;
 	if (vbhandle && !num_verts && !indices && !num_indices && !direct3d_device)
 	{
 		return GR_INVALID_PARMS;
@@ -4706,7 +4707,7 @@ GENRESULT NewRenderPipeline::draw_indexed_primitive_vb(D3DPRIMITIVETYPE type, IR
 			{
 				U32 start_index = 0;
 				IRP_INDEXBUFFERHANDLE index_buffer = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB); // #TODO This is nasty, is there a better way to do this?
-				if (SUCCEEDED(result = copy_indices(index_buffer, start_index, indices, num_indices)))
+				if (SUCCEEDED(gr = copy_indices(index_buffer, start_index, indices, num_indices)))
 				{
 					IRP_INDEXBUFFERHANDLE index_buffer = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB); // #TODO This is nasty, is there a better way to do this?
 
@@ -4718,12 +4719,12 @@ GENRESULT NewRenderPipeline::draw_indexed_primitive_vb(D3DPRIMITIVETYPE type, IR
 					HRESULT hr;
 					if (SUCCEEDED(hr = direct3d_device->DrawIndexedPrimitive(type, 0, num_verts, start_index, primCount)))
 					{
-						result = GR_OK;
+						gr = GR_OK;
 					}
 					else
 					{
 						GENERAL_ERROR(TEMPSTR("DrawPrimitive: %s", HRESULT_GET_ERROR_STRING(hr)));
-						result = GR_GENERIC;
+						gr = GR_GENERIC;
 					}
 
 					rp_rd_dip_vb(type, vbhandle, start_vert, num_verts, indices, num_indices, flags);
@@ -4733,89 +4734,89 @@ GENRESULT NewRenderPipeline::draw_indexed_primitive_vb(D3DPRIMITIVETYPE type, IR
 			}
 		}
 	}
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::add_light(IRP_LIGHTHANDLE handle)
 {
 	//	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_add_light(this, handle);
-	return result;
+	GENRESULT gr = DirectX8_add_light(this, handle);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::remove_light(IRP_LIGHTHANDLE handle)
 {
-	GENRESULT result = DirectX8_remove_light(this, handle);
-	return result;
+	GENRESULT gr = DirectX8_remove_light(this, handle);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::update_light(IRP_LIGHTHANDLE handle)
 {
 	//NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_update_light(this, handle);
-	return result;
+	GENRESULT gr = DirectX8_update_light(this, handle);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::set_world_n(UNKNOWN a2, Transform* transform)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_set_world_n(this, a2, transform);
-	return result;
+	GENRESULT gr = DirectX8_set_world_n(this, a2, transform);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::VertexBufferManager_UnknownC(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5)
 {
-	GENRESULT result = DirectX8_VertexBufferManager_UnknownC(this, a2, a3, a4, a5);
-	return result;
+	GENRESULT gr = DirectX8_VertexBufferManager_UnknownC(this, a2, a3, a4, a5);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::VertexBufferManager_Unknown10()
 {
-	GENRESULT result = DirectX8_VertexBufferManager_Unknown10(this);
-	return result;
+	GENRESULT gr = DirectX8_VertexBufferManager_Unknown10(this);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::acquire_vertex_buffer(UNKNOWN vertex_format, U32 num_verts, VertexBufferAcquire* out_result)
 {
-	GENRESULT result = DirectX8_acquire_vertex_buffer(this, vertex_format, num_verts, out_result);
-	return result;
+	GENRESULT gr = DirectX8_acquire_vertex_buffer(this, vertex_format, num_verts, out_result);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::release_vertex_buffer(VertexBufferAcquire* vbacquire)
 {
-	GENRESULT result = DirectX8_release_vertex_buffer(this, vbacquire);
-	return result;
+	GENRESULT gr = DirectX8_release_vertex_buffer(this, vbacquire);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::VertexBufferManager_Unknown1C()
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_VertexBufferManager_Unknown1C(this);
-	return result;
+	GENRESULT gr = DirectX8_VertexBufferManager_Unknown1C(this);
+	return gr;
 }
 
-GENRESULT NewRenderPipeline::VertexBufferManager_Unknown20(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5, UNKNOWN a6)
+GENRESULT NewRenderPipeline::copy_vertex_buffer_desc(void* dst_buffer, U32 dst_vertex_format, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices)
 {
-	GENRESULT result = DirectX8_VertexBufferManager_Unknown20(this, a2, a3, a4, a5, a6);
-	return result;
+	::copy_vertex_buffer_desc(dst_buffer, dst_vertex_format, src_vb_desc, start_vertex, num_vertices);
+	return GR_OK;
 }
 
 GENRESULT NewRenderPipeline::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 min_index, U32 num_verts, U32 start_index, U32 count)
 {
-	GENRESULT result = DirectX8_draw_indexed_primitive2(this, type, min_index, num_verts, start_index, count);
-	return result;
+	GENRESULT gr = DirectX8_draw_indexed_primitive2(this, type, min_index, num_verts, start_index, count);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::create_index_buffer(U32 count, IRP_INDEXBUFFERHANDLE* out_ibhandle, BYTE flags)
 {
-	GENRESULT result = DirectX8_create_index_buffer(this, count, out_ibhandle, flags);
-	return result;
+	GENRESULT gr = DirectX8_create_index_buffer(this, count, out_ibhandle, flags);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::destroy_index_buffer(IRP_INDEXBUFFERHANDLE ibhandle)
 {
-	GENRESULT result = DirectX8_destroy_index_buffer(this, ibhandle);
-	return result;
+	GENRESULT gr = DirectX8_destroy_index_buffer(this, ibhandle);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::create_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32 count)
@@ -4827,11 +4828,11 @@ GENRESULT NewRenderPipeline::create_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32 count
 		ibhandle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
 	}
 
-	GENRESULT result = GR_GENERIC;
+	GENRESULT gr = GR_GENERIC;
 	if (is_ib_valid(ibhandle))
 	{
 		// already initialized
-		result = GR_INVALID_PARMS;
+		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
@@ -4840,7 +4841,7 @@ GENRESULT NewRenderPipeline::create_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32 count
 		if (index_buffer->direct3d_index_buffer && count == index_buffer->element_count)
 		{
 			// already initialized
-			result = GR_OK;
+			gr = GR_OK;
 		}
 		else
 		{
@@ -4870,16 +4871,16 @@ GENRESULT NewRenderPipeline::create_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32 count
 				D3DPOOL_DEFAULT,
 				&index_buffer->direct3d_index_buffer)))
 			{
-				result = GR_OK;
+				gr = GR_OK;
 			}
 			else
 			{
 				GENERAL_ERROR(TEMPSTR("%s couldnt create ib (err:%s) %d bytes", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr), length));
-				result = GR_GENERIC;
+				gr = GR_GENERIC;
 			}
 		}
 	}
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::copy_indices(IRP_INDEXBUFFERHANDLE ibhandle, U32& offset, U16 const* indices, U32 num_indices)
@@ -4891,27 +4892,27 @@ GENRESULT NewRenderPipeline::copy_indices(IRP_INDEXBUFFERHANDLE ibhandle, U32& o
 		ibhandle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
 	}
 
-	GENRESULT result = GR_GENERIC;
+	GENRESULT gr = GR_GENERIC;
 	if (!is_ib_valid(ibhandle))
 	{
-		result = GR_INVALID_PARMS;
+		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
 		void* locked_data_ptr;
-		if (SUCCEEDED(result = lock_ib(ibhandle, offset, &locked_data_ptr, num_indices)))
+		if (SUCCEEDED(gr = lock_ib(ibhandle, offset, &locked_data_ptr, num_indices)))
 		{
 			memcpy(locked_data_ptr, indices, sizeof(U16) * num_indices);
 			unlock_ib(ibhandle);
-			result = GR_OK;
+			gr = GR_OK;
 		}
 		else
 		{
 			GENERAL_ERROR(TEMPSTR("%s: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-			result = GR_GENERIC;
+			gr = GR_GENERIC;
 		}
 	}
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::lock_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32& offset, void** locked_data_ptr, U32 num_indices)
@@ -4923,10 +4924,10 @@ GENRESULT NewRenderPipeline::lock_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32& offset
 		ibhandle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
 	}
 
-	GENRESULT result = GR_GENERIC;
+	GENRESULT gr = GR_GENERIC;
 	if (!is_ib_valid(ibhandle))
 	{
-		result = GR_INVALID_PARMS;
+		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
@@ -4943,16 +4944,16 @@ GENRESULT NewRenderPipeline::lock_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32& offset
 			&start_index,
 			unknown)))
 		{
-			result = GR_OK;
+			gr = GR_OK;
 		}
 		else
 		{
 			GENERAL_ERROR(TEMPSTR("%s: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-			result = GR_GENERIC;
+			gr = GR_GENERIC;
 		}
 		offset = start_index;
 	}
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::unlock_ib(IRP_INDEXBUFFERHANDLE ibhandle)
@@ -4964,10 +4965,10 @@ GENRESULT NewRenderPipeline::unlock_ib(IRP_INDEXBUFFERHANDLE ibhandle)
 		ibhandle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
 	}
 
-	GENRESULT result = GR_GENERIC;
+	GENRESULT gr = GR_GENERIC;
 	if (!is_ib_valid(ibhandle))
 	{
-		result = GR_INVALID_PARMS;
+		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
@@ -4978,10 +4979,10 @@ GENRESULT NewRenderPipeline::unlock_ib(IRP_INDEXBUFFERHANDLE ibhandle)
 			index_buffer->locked_data_ptr = 0;
 			index_buffer->direct3d_index_buffer->Unlock();
 
-			result = GR_OK;
+			gr = GR_OK;
 		}
 	}
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::select_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32 base_index, UNKNOWN a4, UNKNOWN a5)
@@ -4996,16 +4997,16 @@ GENRESULT NewRenderPipeline::select_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32 base_
 		ibhandle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
 	}
 
-	GENRESULT result = GR_GENERIC;
+	GENRESULT gr = GR_GENERIC;
 	if (!is_ib_valid(ibhandle))
 	{
-		result = GR_INVALID_PARMS;
+		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
-		result = curr_hw_geometry.set_index_buffer(ibhandle, base_index);
+		gr = curr_hw_geometry.set_index_buffer(ibhandle, base_index);
 	}
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::get_ib_count(IRP_INDEXBUFFERHANDLE ibhandle, U32* out_count)
@@ -5017,10 +5018,10 @@ GENRESULT NewRenderPipeline::get_ib_count(IRP_INDEXBUFFERHANDLE ibhandle, U32* o
 		ibhandle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
 	}
 
-	GENRESULT result = GR_GENERIC;
+	GENRESULT gr = GR_GENERIC;
 	if (!is_ib_valid(ibhandle))
 	{
-		result = GR_INVALID_PARMS;
+		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
@@ -5028,12 +5029,12 @@ GENRESULT NewRenderPipeline::get_ib_count(IRP_INDEXBUFFERHANDLE ibhandle, U32* o
 
 		*out_count = index_buffer->element_count;
 	}
-	return result;
+	return gr;
 }
 
 BOOL32 NewRenderPipeline::is_ib_valid(IRP_INDEXBUFFERHANDLE ibhandle)
 {
-	BOOL32 result = FALSE;
+	BOOL32 gr = FALSE;
 	if (ibhandle)
 	{
 		if (ibhandle == IRP_SCRATCH_IB_HANDLE)
@@ -5042,16 +5043,16 @@ BOOL32 NewRenderPipeline::is_ib_valid(IRP_INDEXBUFFERHANDLE ibhandle)
 		}
 		RPIndexBufferInternal* index_buffer = reinterpret_cast<RPIndexBufferInternal*>(ibhandle);
 
-		result = index_buffer && index_buffer->direct3d_index_buffer;
+		gr = index_buffer && index_buffer->direct3d_index_buffer;
 	}
-	return result;
+	return gr;
 }
 
-GENRESULT NewRenderPipeline::create_vb(D3DFORMAT format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, U8 irp_vbf_flags)
+GENRESULT NewRenderPipeline::create_vb(U32 format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, U8 irp_vbf_flags)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT result = GR_GENERIC;
+	GENRESULT gr = GR_GENERIC;
 
 	IRP_VERTEXBUFFERHANDLE hvertexbuffer = nullptr;
 	RPVertexBufferInternal* vertex_buffer = nullptr;
@@ -5084,31 +5085,32 @@ GENRESULT NewRenderPipeline::create_vb(D3DFORMAT format, U32 count, IRP_VERTEXBU
 		if (FAILED(v39))
 		{
 			NOT_IMPLEMENTED;
-			result = GR_GENERIC;
+			gr = GR_GENERIC;
 		}
 		else
 		{
-			result = GR_OK;
+			gr = GR_OK;
 		}
+
 	}
-	if (SUCCEEDED(result))
+	if (SUCCEEDED(gr))
 	{
 		ASSERT(hvertexbuffer != nullptr);
 		*out_vbhandle = hvertexbuffer;
 
-		result = GR_OK;
+		gr = GR_OK;
 	}
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::destroy_vb(IRP_VERTEXBUFFERHANDLE& vbhandle)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT result = GR_GENERIC;
+	GENRESULT gr = GR_GENERIC;
 	if (!is_vb_valid(vbhandle))
 	{
-		result = GR_INVALID_PARMS;
+		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
@@ -5121,21 +5123,21 @@ GENRESULT NewRenderPipeline::destroy_vb(IRP_VERTEXBUFFERHANDLE& vbhandle)
 				GENERAL_WARNING(TEMPSTR("direct3d_vertex_buffer released with %u references", refcount));
 			}
 		}
-		result = GR_OK;
+		gr = GR_OK;
 		vbhandle = nullptr;
 	}
-	return result;
+	return gr;
 }
 
-GENRESULT NewRenderPipeline::ressize_vb(IRP_VERTEXBUFFERHANDLE vbhandle, D3DFORMAT format, U32 num_verts)
+GENRESULT NewRenderPipeline::ressize_vb(IRP_VERTEXBUFFERHANDLE vbhandle, U32 format, U32 num_verts)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT result = GR_GENERIC;
+	GENRESULT gr = GR_GENERIC;
 	//if (!is_vb_valid(vbhandle))
-	if (vbhandle == IRP_INVALID_VB_HANDLE)
+	if (vbhandle == IRP_SCRATCH_VB_HANDLE)
 	{
-		result = GR_INVALID_PARMS;
+		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
@@ -5168,388 +5170,201 @@ GENRESULT NewRenderPipeline::ressize_vb(IRP_VERTEXBUFFERHANDLE vbhandle, D3DFORM
 			D3DPOOL_DEFAULT,
 			&vertex_buffer->direct3d_vertex_buffer)))
 		{
-			result = GR_OK;
+			gr = GR_OK;
 		}
 		else
 		{
 			GENERAL_ERROR(TEMPSTR("%s couldnt resize vb (err:%s) %d bytes", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr), length));
-			result = GR_GENERIC;
+			gr = GR_GENERIC;
 		}
 
-		result = GR_OK;
+		gr = GR_OK;
 		vbhandle = nullptr;
 	}
-	return result;
+	return gr;
 }
 
-_extern _naked GENRESULT __stdcall NEW_copy_vertices(IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, U32 start_vertex, U32 num_vertices) // _sub_6D1228C
+GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices)
 {
-	__DEBUG_ASM(6D1228C);
-	// chunk 0x6D1228C _sub_6D1228C
-	asm("loc_6D1228C: push %ebp;");
-	asm("loc_6D1228D: mov %esp,%ebp;");
-	asm("loc_6D1228F: sub $0xB0,%esp;");
-	asm("loc_6D12295: mov 8(%ebp),%eax;");
-	asm("loc_6D12298: cmpl $0,0x120(%eax);");
-	asm("loc_6D1229F: jne loc_6D122F6;");
-	asm("loc_6D122A1: mov $2,%ecx;");
-	asm("loc_6D122A6: and $0xF,%ecx;");
-	asm("loc_6D122A9: mov -0x1C(%ebp),%edx;");
-	asm("loc_6D122AC: and $0xFFFFFFF0,%edx;");
-	asm("loc_6D122AF: or %ecx,%edx;");
-	asm("loc_6D122B1: mov %edx,-0x1C(%ebp);");
-	asm("loc_6D122B4: mov $0x10000,%eax;");
-	asm("loc_6D122B9: and $0xFFFFFFF,%eax;");
-	asm("loc_6D122BE: shl $4,%eax;");
-	asm("loc_6D122C1: mov -0x1C(%ebp),%ecx;");
-	asm("loc_6D122C4: and $0xF,%ecx;");
-	asm("loc_6D122C7: or %eax,%ecx;");
-	asm("loc_6D122C9: mov %ecx,-0x1C(%ebp);");
-	asm("loc_6D122CC: push $_data_6D695E0;");
-	asm("loc_6D122D1: push $0x1028;");
-	asm("loc_6D122D6: push $_data_6D69618;");
-	asm("loc_6D122DB: push $_data_6D69664;");
-	asm("loc_6D122E0: mov -0x1C(%ebp),%edx;");
-	asm("loc_6D122E3: push %edx;");
-	asm("loc_6D122E4: mov _import_6D5E018,%eax;");
-	asm("loc_6D122E9: calll *(%eax);");
-	asm("loc_6D122EB: add $0x14,%esp;");
-	asm("loc_6D122EE: or $0xFFFFFFFF,%eax;");
-	asm("loc_6D122F1: jmp loc_6D126B5;");
-	asm("loc_6D122F6: movl $0xFFFFFFFF,-4(%ebp);");
-	asm("loc_6D122FD: cmpl $0,0xC(%ebp);");
-	asm("loc_6D12301: je loc_6D126B2;");
-	asm("loc_6D12307: cmpl $0xFFFFFFFF,0xC(%ebp);");
-	asm("loc_6D1230B: jne loc_6D124D5;");
-	asm("loc_6D12311: mov 0x14(%ebp),%ecx;");
-	asm("loc_6D12314: mov 0x68(%ecx),%edx;");
-	asm("loc_6D12317: mov %edx,-0xA0(%ebp);");
-	asm("loc_6D1231D: mov 8(%ebp),%eax;");
-	asm("loc_6D12320: sub $0x10,%eax;");
-	asm("loc_6D12323: mov %eax,-0x9C(%ebp);");
-	asm("loc_6D12329: push $0x200;");
-	asm("loc_6D1232E: lea -0x80(%ebp),%ecx;");
-	asm("loc_6D12331: call _sub_6D1B480;");
-	asm("loc_6D12336: push %eax;");
-	asm("loc_6D12337: lea -0xA0(%ebp),%ecx;");
-	asm("loc_6D1233D: push %ecx;");
-	asm("loc_6D1233E: lea -0x5C(%ebp),%ecx;");
-	asm("loc_6D12341: call _sub_6D1A920;");
-	asm("loc_6D12346: push %eax;");
-	asm("loc_6D12347: lea -0x88(%ebp),%edx;");
-	asm("loc_6D1234D: push %edx;");
-	asm("loc_6D1234E: mov -0x9C(%ebp),%ecx;");
-	asm("loc_6D12354: add $0x16C,%ecx;");
-	asm("loc_6D1235A: call _sub_6D19AA0;");
-	asm("loc_6D1235F: mov (%eax),%eax;");
-	asm("loc_6D12361: mov %eax,-0x34(%ebp);");
-	asm("loc_6D12364: lea -0x58(%ebp),%ecx;");
-	asm("loc_6D12367: call _sub_6D1BC60;");
-	asm("loc_6D1236C: lea -0x80(%ebp),%ecx;");
-	asm("loc_6D1236F: call _sub_6D1BC60;");
-	asm("loc_6D12374: mov -0x34(%ebp),%ecx;");
-	asm("loc_6D12377: add $0x10,%ecx;");
-	asm("loc_6D1237A: mov %ecx,-0x20(%ebp);");
-	asm("loc_6D1237D: mov -0x20(%ebp),%edx;");
-	asm("loc_6D12380: xor %eax,%eax;");
-	asm("loc_6D12382: cmpl $0,0x20(%edx);");
-	asm("loc_6D12386: setne %al;");
-	asm("loc_6D12389: xor %ecx,%ecx;");
-	asm("loc_6D1238B: mov %al,%cl;");
-	asm("loc_6D1238D: test %ecx,%ecx;");
-	asm("loc_6D1238F: je loc_6D123A0;");
-	asm("loc_6D12391: mov -0x20(%ebp),%edx;");
-	asm("loc_6D12394: mov 8(%edx),%eax;");
-	asm("loc_6D12397: cmp 0x1C(%ebp),%eax;");
-	asm("loc_6D1239A: jae loc_6D124B6;");
-	asm("loc_6D123A0: mov -0x20(%ebp),%ecx;");
-	asm("loc_6D123A3: mov 4(%ecx),%edx;");
-	asm("loc_6D123A6: push %edx;");
-	asm("loc_6D123A7: call _sub_6D163F0;");
-	asm("loc_6D123AC: add $4,%esp;");
-	asm("loc_6D123AF: mov %eax,-0x8C(%ebp);");
-	asm("loc_6D123B5: mov -0x20(%ebp),%eax;");
-	asm("loc_6D123B8: mov -0x8C(%ebp),%ecx;");
-	asm("loc_6D123BE: imul 8(%eax),%ecx;");
-	asm("loc_6D123C2: mov %ecx,-0x90(%ebp);");
-	asm("loc_6D123C8: mov -0x90(%ebp),%edx;");
-	asm("loc_6D123CE: mov %edx,-0x2C(%ebp);");
-	asm("loc_6D123D1: mov -0x9C(%ebp),%eax;");
-	asm("loc_6D123D7: mov 0x180(%eax),%ecx;");
-	asm("loc_6D123DD: sub -0x2C(%ebp),%ecx;");
-	asm("loc_6D123E0: mov -0x9C(%ebp),%edx;");
-	asm("loc_6D123E6: mov %ecx,0x180(%edx);");
-	asm("loc_6D123EC: mov -0x20(%ebp),%eax;");
-	asm("loc_6D123EF: mov 8(%eax),%ecx;");
-	asm("loc_6D123F2: mov %ecx,-0x30(%ebp);");
-	asm("loc_6D123F5: cmpl $0,-0x30(%ebp);");
-	asm("loc_6D123F9: jne loc_6D12402;");
-	asm("loc_6D123FB: movl $0x400,-0x30(%ebp);");
-	asm("loc_6D12402: mov -0x30(%ebp),%edx;");
-	asm("loc_6D12405: cmp 0x1C(%ebp),%edx;");
-	asm("loc_6D12408: jae loc_6D12415;");
-	asm("loc_6D1240A: mov 0x1C(%ebp),%eax;");
-	asm("loc_6D1240D: add $0x3FF,%eax;");
-	asm("loc_6D12412: mov %eax,-0x30(%ebp);");
-	asm("loc_6D12415: mov -0x30(%ebp),%ecx;");
-	asm("loc_6D12418: shr $0xA,%ecx;");
-	asm("loc_6D1241B: shl $0xA,%ecx;");
-	asm("loc_6D1241E: mov %ecx,-0x28(%ebp);");
-	asm("loc_6D12421: mov -0x28(%ebp),%edx;");
-	asm("loc_6D12424: push %edx;");
-	asm("loc_6D12425: mov -0xA0(%ebp),%eax;");
-	asm("loc_6D1242B: push %eax;");
-	asm("loc_6D1242C: mov -0x9C(%ebp),%ecx;");
-	asm("loc_6D12432: mov 0x130(%ecx),%edx;");
-	asm("loc_6D12438: push %edx;");
-	asm("loc_6D12439: mov -0x20(%ebp),%ecx;");
-	asm("loc_6D1243C: call _sub_6D1B650;");
-	asm("loc_6D12441: mov -0x20(%ebp),%eax;");
-	asm("loc_6D12444: mov 4(%eax),%ecx;");
-	asm("loc_6D12447: push %ecx;");
-	asm("loc_6D12448: call _sub_6D163F0;");
-	asm("loc_6D1244D: add $4,%esp;");
-	asm("loc_6D12450: mov %eax,-0x94(%ebp);");
-	asm("loc_6D12456: mov -0x20(%ebp),%edx;");
-	asm("loc_6D12459: mov -0x94(%ebp),%eax;");
-	asm("loc_6D1245F: imul 8(%edx),%eax;");
-	asm("loc_6D12463: mov %eax,-0x98(%ebp);");
-	asm("loc_6D12469: mov -0x98(%ebp),%ecx;");
-	asm("loc_6D1246F: mov %ecx,-0x24(%ebp);");
-	asm("loc_6D12472: mov -0x9C(%ebp),%edx;");
-	asm("loc_6D12478: mov 0x180(%edx),%eax;");
-	asm("loc_6D1247E: add -0x24(%ebp),%eax;");
-	asm("loc_6D12481: mov -0x9C(%ebp),%ecx;");
-	asm("loc_6D12487: mov %eax,0x180(%ecx);");
-	asm("loc_6D1248D: mov -0x9C(%ebp),%edx;");
-	asm("loc_6D12493: mov -0x20(%ebp),%eax;");
-	asm("loc_6D12496: cmp 0x13C(%edx),%eax;");
-	asm("loc_6D1249C: jne loc_6D124B6;");
-	asm("loc_6D1249E: push $0;");
-	asm("loc_6D124A0: mov -0x9C(%ebp),%ecx;");
-	asm("loc_6D124A6: add $0x10,%ecx;");
-	asm("loc_6D124A9: mov -0x9C(%ebp),%edx;");
-	asm("loc_6D124AF: mov 0x10(%edx),%eax;");
-	asm("loc_6D124B2: push %ecx;");
-	asm("loc_6D124B3: calll *0x28(%eax);");
-	asm("loc_6D124B6: push $0;");
-	asm("loc_6D124B8: mov -0x20(%ebp),%ecx;");
-	asm("loc_6D124BB: push %ecx;");
-	asm("loc_6D124BC: mov -0x9C(%ebp),%ecx;");
-	asm("loc_6D124C2: add $0x138,%ecx;");
-	asm("loc_6D124C8: call _sub_6D1C770;");
-	asm("loc_6D124CD: mov -0x20(%ebp),%edx;");
-	asm("loc_6D124D0: mov %edx,-0x14(%ebp);");
-	asm("loc_6D124D3: jmp loc_6D124DB;");
-	asm("loc_6D124D5: mov 0xC(%ebp),%eax;");
-	asm("loc_6D124D8: mov %eax,-0x14(%ebp);");
-
-	asm("loc_6D124DB: nop;");
-	/*asm("loc_6D124DB: cmpl $0,0x10(%ebp);");
-	...
-	asm("loc_6D126B0: mov %eax,(%edx);");*/
-	asm("loc_6D126B2: nop;");
-
-	asm("mov -0x14(%ebp), %eax;"); // vertex_buffer
-	asm("push %eax;");
-	asm("call _copy_vertices_impl@4;");
-	asm("mov -4(%ebp),%eax;");
-
-	asm("loc_6D126B5: mov %ebp,%esp;");
-	asm("loc_6D126B7: pop %ebp;");
-	asm("loc_6D126B8: ret $0x18;");
-	asm("int3;"); // unreachable
-}
-
-// Nasty nasty!
-static thread_local RPVertexBufferInternal* _vertex_buffer;
-_extern void __stdcall copy_vertices_impl(RPVertexBufferInternal* vertex_buffer)
-{
-	_vertex_buffer = vertex_buffer;
-}
-
-#include "VertexBufferDesc.h"
-
-#define copy_vertex_buffer_desc_ sub_6D1F040
-_extern void __cdecl copy_vertex_buffer_desc_(
-	void* dst_buffer,
-	unsigned int dst_vertex_format,
-	VertexBufferDesc* src_vb_desc,
-	UNKNOWN a4,
-	U32 num_vertices);
-
-GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, U32 start_vertex, U32 num_vertices)
-{
-	VertexBufferDesc* src_vb_desc = (VertexBufferDesc*)a4;
-
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT result = GR_GENERIC;
+	GENRESULT gr = GR_GENERIC;
 	if (!is_vb_valid(vbhandle))
 	{
-		result = GR_INVALID_PARMS;
+		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
-		result = NEW_copy_vertices(this, vbhandle, offset, a4, start_vertex, num_vertices);
+		HRESULT hr;
 
-		IRP_VERTEXBUFFERHANDLE vbhandle = (IRP_VERTEXBUFFERHANDLE)_vertex_buffer;
+		if (vbhandle == IRP_SCRATCH_VB_HANDLE)
+		{
+			if (scratchVB == NULL)
+			{
+				create_vb(src_vb_desc->vertex_format, num_vertices, &scratchVB, 0);
+			}
+			ressize_vb(scratchVB, src_vb_desc->vertex_format, num_vertices);
+			curr_hw_geometry.set_vertex_buffer(scratchVB, src_vb_desc->vertex_format);
+			vbhandle = scratchVB;
+		}
 
-		U32 stride = FVF_SIZEOF_VERT(_vertex_buffer->vertex_format);
+		RPVertexBufferInternal* vertex_buffer = reinterpret_cast<RPVertexBufferInternal*>(vbhandle);
 
-		U32 offset_ = 0;
-		if (offset)
-			offset_ = *offset;
-		else
-			offset_ = 0;
+		U32 stride = FVF_SIZEOF_VERT(vertex_buffer->vertex_format);
+		U32 offset_ = offset ? *offset : 0;
 
 		void* locked_data_ptr;
-		auto v30 = _vertex_buffer->unknown10 != 0;
+		auto v30 = vertex_buffer->unknown10 != 0;
 		if (v30)
 		{
-			locked_data_ptr = (void*)(_vertex_buffer->unknown10 + offset_ * stride);
-			result = GR_OK;
+			locked_data_ptr = (void*)(vertex_buffer->unknown10 + offset_ * stride);
+			gr = GR_OK;
 		}
 		else
 		{
-			result = (GENRESULT)this->lock_vb(vbhandle, offset_, &locked_data_ptr, num_vertices);
+			if (SUCCEEDED(hr = lock_vb(vbhandle, offset_, &locked_data_ptr, num_vertices)))
+			{
+				gr = GR_OK;
+			}
+			else
+			{
+				GENERAL_ERROR(TEMPSTR("%s: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+				gr = GR_GENERIC;
+			}
 		}
 
-		//if (SUCCEEDED(result = lock_vb(vbhandle, _offset, &locked_data_ptr, num_vertices)))
-		if (SUCCEEDED(result))
+		if (SUCCEEDED(gr))
 		{
-			//memcpy(locked_data_ptr, indices, sizeof(U16) * num_indices);
-
 			locked_data_ptr = (char*)locked_data_ptr - start_vertex * stride;
 			static auto x = *src_vb_desc; x = *src_vb_desc;
-			copy_vertex_buffer_desc(locked_data_ptr, _vertex_buffer->vertex_format, src_vb_desc, start_vertex, num_vertices);
+			copy_vertex_buffer_desc(locked_data_ptr, vertex_buffer->vertex_format, src_vb_desc, start_vertex, num_vertices);
 
 			if (!v30)
 			{
-				_vertex_buffer->unknown10 = 0;
+				vertex_buffer->unknown10 = 0;
 				this->unlock_vb(vbhandle);
 			}
 			if (offset)
 				*offset = offset_;
-			result = GR_OK;
+			gr = GR_OK;
 		}
 		else
 		{
 			GENERAL_ERROR(TEMPSTR("%s: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-			result = GR_GENERIC;
+			gr = GR_GENERIC;
 		}
 	}
-	return result;
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::lock_vb(IRP_VERTEXBUFFERHANDLE vbhandle, U32& offset, void** locked_data, U32 count)
 {
-	GENRESULT result = DirectX8_lock_vb(this, vbhandle, offset, locked_data, count);
-	return result;
+	GENRESULT gr = DirectX8_lock_vb(this, vbhandle, offset, locked_data, count);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::unlock_vb(IRP_VERTEXBUFFERHANDLE vbhandle)
 {
-	GENRESULT result = DirectX8_unlock_vb(this, vbhandle);
-	return result;
+	GENRESULT gr = DirectX8_unlock_vb(this, vbhandle);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::RPVertexBuffer_Unknown24(UNKNOWN a2)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_RPVertexBuffer_Unknown24(this, a2);
-	return result;
+	GENRESULT gr = DirectX8_RPVertexBuffer_Unknown24(this, a2);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::select_vb(IRP_VERTEXBUFFERHANDLE vbhandle)
 {
-	GENRESULT result = DirectX8_select_vb(this, vbhandle);
-	return result;
+	GENRESULT gr = DirectX8_select_vb(this, vbhandle);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::get_vb_count(IRP_VERTEXBUFFERHANDLE vbhandle, UNKNOWN* vertex_format, U32* num_verts)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_get_vb_count(this, vbhandle, vertex_format, num_verts);
-	return result;
+	GENRESULT gr = DirectX8_get_vb_count(this, vbhandle, vertex_format, num_verts);
+	return gr;
 }
 
 BOOL32 NewRenderPipeline::is_vb_valid(IRP_VERTEXBUFFERHANDLE vbhandle)
 {
-	BOOL32 result = DirectX8_is_vb_valid(this, vbhandle);
-	return result;
+	BOOL32 gr = DirectX8_is_vb_valid(this, vbhandle);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::set_gamma_function(IGC_COMPONENT which, float display_gamma, float bias, float slope, float black_offset)
 {
-	GENRESULT result = DirectX8_set_gamma_function(this, which, display_gamma, bias, slope, black_offset);
-	return result;
+	GENRESULT gr = DirectX8_set_gamma_function(this, which, display_gamma, bias, slope, black_offset);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::set_gamma_ramp(IGC_COMPONENT igc_component, U16* ramp)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_set_gamma_ramp(this, igc_component, ramp);
-	return result;
+	GENRESULT gr = DirectX8_set_gamma_ramp(this, igc_component, ramp);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::get_gamma_ramp(IGC_COMPONENT igc_component, U16* out_ramp)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_get_gamma_ramp(this, igc_component, out_ramp);
-	return result;
+	GENRESULT gr = DirectX8_get_gamma_ramp(this, igc_component, out_ramp);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::set_calibration_enable(bool enabled)
 {
-	GENRESULT result = DirectX8_set_calibration_enable(this, enabled);
-	return result;
+	GENRESULT gr = DirectX8_set_calibration_enable(this, enabled);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::get_calibration_enable(void)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_get_calibration_enable(this);
-	return result;
+	GENRESULT gr = DirectX8_get_calibration_enable(this);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::print_screen(IFileSystem* pFileSystem, const char* filepath)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_print_screen(this, pFileSystem, filepath);
-	return result;
+	GENRESULT gr = DirectX8_print_screen(this, pFileSystem, filepath);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::load_texture(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_load_texture(this, a2_interface, filepath, out_texture);
-	return result;
+	GENRESULT gr = DirectX8_load_texture(this, a2_interface, filepath, out_texture);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::load_surface_from_file(UNKNOWN* a2_interface, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT result = DirectX8_load_surface_from_file(this, a2_interface, a3, a4, a5);
-	return result;
+	GENRESULT gr = DirectX8_load_surface_from_file(this, a2_interface, a3, a4, a5);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::RPTexture_Unknown18(UNKNOWN a2, UNKNOWN a3, UNKNOWN* a4)
 {
-	GENRESULT result = DirectX8_RPTexture_Unknown18(this, a2, a3, a4);
-	return result;
+	GENRESULT gr = DirectX8_RPTexture_Unknown18(this, a2, a3, a4);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::load_cubemap(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture)
 {
-	GENRESULT result = DirectX8_load_cubemap(this, a2_interface, filepath, out_texture);
-	return result;
+	GENRESULT gr = DirectX8_load_cubemap(this, a2_interface, filepath, out_texture);
+	return gr;
 }
 
 GENRESULT NewRenderPipeline::Initialize(void)
 {
-	GENRESULT result = DirectX8_Initialize(this);
-	return result;
+	GENRESULT gr = DirectX8_Initialize(this);
+	return gr;
 }
 
 extern "C"
@@ -5561,16 +5376,16 @@ extern "C"
 
 	void Register_NewRenderPipeline()
 	{
-		GENRESULT result = GR_GENERIC;
+		GENRESULT gr = GR_GENERIC;
 		if (ICOManager* DACOM = DACOM_Acquire())
 		{
 			if (IComponentFactory* pFactory = CreateNewRenderPipelineFactory())
 			{
-				result = DACOM->RegisterComponent(pFactory, CLSID_NewRenderPipeline, DACOM_LOW_PRIORITY);
+				gr = DACOM->RegisterComponent(pFactory, CLSID_NewRenderPipeline, DACOM_LOW_PRIORITY);
 				pFactory->Release();
 			}
 		}
-		unused(result);
+		unused(gr);
 	}
 }
 

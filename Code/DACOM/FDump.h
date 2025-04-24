@@ -357,8 +357,11 @@ extern "C"
 // Example: ASSERT_FATAL(ptr != NULL);
 
 #define ASSERT_DEF(sev,expr) \
- if (!(expr)) \
-	(*FDUMP) (ErrorCode(ERR_ASSERT, SEV_##sev), IDE_ERR_FMT #sev ":" ASSERT_FMT, __FILE__, __LINE__, #expr)
+if (!(expr)) \
+{ \
+	(*FDUMP) (ErrorCode(ERR_ASSERT, SEV_##sev), IDE_ERR_FMT #sev ":" ASSERT_FMT, __FILE__, __LINE__, #expr); \
+	__debugbreak(); \
+} ((void)0)
 
 #define ASSERT_FATAL(expr) ASSERT_DEF(FATAL,expr)
 

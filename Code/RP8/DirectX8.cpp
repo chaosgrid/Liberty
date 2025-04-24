@@ -100,7 +100,7 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_Unknown10, _sub_6D
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_acquire_vertex_buffer, _sub_6D114EA, IVertexBufferManager* _this, UNKNOWN vertex_format, U32 num_verts, VertexBufferAcquire* out_result);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_release_vertex_buffer, _sub_6D11877, IVertexBufferManager* _this, VertexBufferAcquire* vbacquire);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_Unknown1C, _sub_6D118BC, IVertexBufferManager* _this);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_Unknown20, _sub_6D114C5, IVertexBufferManager* _this, UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_vertex_buffer_desc, _sub_6D114C5, IVertexBufferManager* _this, void* dst_buffer, U32 dst_vertex_format, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive2, _sub_6D111E1, IRPDraw* _this, D3DPRIMITIVETYPE type, U32 min_index, U32 num_verts, U32 start_index, U32 count);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_index_buffer, _sub_6D12D4E, IRPIndexBuffer* _this, U32 count, IRP_INDEXBUFFERHANDLE* out_ibhandle, BYTE flags);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_index_buffer, _sub_6D13002, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle);
@@ -111,10 +111,10 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_ib, _sub_6D13794, IRPIndexBuffe
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_select_ib, _sub_6D13BCE, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle, U32 base_index, UNKNOWN a4, UNKNOWN a5);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_ib_count, _sub_6D13D23, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle, U32* out_count);
 TRAMPOLINE(BOOL32, __stdcall, DirectX8_is_ib_valid, _sub_6D13B69, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_vb, _sub_6D118C8, IRPVertexBuffer* _this, D3DFORMAT format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, U8 irp_vbf_flags);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_vb, _sub_6D118C8, IRPVertexBuffer* _this, U32 format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, U8 irp_vbf_flags);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_vb, _sub_6D11DB3, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE& vbhandle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_ressize_vb, _sub_6D11F78, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, D3DFORMAT format, U32 num_verts);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_vertices, _sub_6D1228C, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, U32 start_vertex, U32 num_vertices);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_ressize_vb, _sub_6D11F78, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32 format, U32 num_verts);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_vertices, _sub_6D1228C, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_lock_vb, _sub_6D126BB, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32& offset, void** locked_data, U32 count);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_vb, _sub_6D12A8B, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_RPVertexBuffer_Unknown24, _sub_6D12B30, IRPVertexBuffer* _this, UNKNOWN);
@@ -2243,7 +2243,7 @@ public:
 	DACOM_DEFMETHOD(acquire_vertex_buffer)(UNKNOWN vertex_format, U32 num_verts, VertexBufferAcquire* out_result) override;
 	DACOM_DEFMETHOD(release_vertex_buffer)(VertexBufferAcquire* vbacquire) override;
 	DACOM_DEFMETHOD(VertexBufferManager_Unknown1C)() override;
-	DACOM_DEFMETHOD(VertexBufferManager_Unknown20)(UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN) override;
+	DACOM_DEFMETHOD(copy_vertex_buffer_desc)(void* dst_buffer, U32 dst_vertex_format, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices) override;
 
 	// IRPDraw methods
 
@@ -2263,10 +2263,10 @@ public:
 
 	// IRPVertexBuffer methods
 
-	DACOM_DEFMETHOD(create_vb)(D3DFORMAT format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, U8 irp_vbf_flags) override;
+	DACOM_DEFMETHOD(create_vb)(U32 format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, U8 irp_vbf_flags) override;
 	DACOM_DEFMETHOD(destroy_vb)(IRP_VERTEXBUFFERHANDLE& vbhandle) override;
-	DACOM_DEFMETHOD(ressize_vb)(IRP_VERTEXBUFFERHANDLE vbhandle, D3DFORMAT format, U32 num_verts) override;
-	DACOM_DEFMETHOD(copy_vertices)(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, U32 start_vertex, U32 num_vertices) override;
+	DACOM_DEFMETHOD(ressize_vb)(IRP_VERTEXBUFFERHANDLE vbhandle, U32 format, U32 num_verts) override;
+	DACOM_DEFMETHOD(copy_vertices)(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices) override;
 	DACOM_DEFMETHOD(lock_vb)(IRP_VERTEXBUFFERHANDLE vbhandle, U32& offset, void** locked_data, U32 count) override;
 	DACOM_DEFMETHOD(unlock_vb)(IRP_VERTEXBUFFERHANDLE vbhandle) override;
 	DACOM_DEFMETHOD(RPVertexBuffer_Unknown24)(UNKNOWN) override;
@@ -2314,674 +2314,674 @@ DirectX8::~DirectX8()
 
 GENRESULT DirectX8::init(AGGDESC* pDesc)
 {
-	GENRESULT result = DirectX8_init(this, pDesc);
-	return result;
+	GENRESULT gr = DirectX8_init(this, pDesc);
+	return gr;
 }
 
 GENRESULT DirectX8::startup(const char* profile_name)
 {
-	GENRESULT result = DirectX8_startup(this, profile_name);
-	return result;
+	GENRESULT gr = DirectX8_startup(this, profile_name);
+	return gr;
 }
 
 GENRESULT DirectX8::shutdown(void)
 {
-	GENRESULT result = DirectX8_shutdown(this);
-	return result;
+	GENRESULT gr = DirectX8_shutdown(this);
+	return gr;
 }
 
 GENRESULT DirectX8::set_pipeline_state(RPPIPELINESTATE state, U32 value)
 {
-	GENRESULT result = DirectX8_set_pipeline_state(this, state, value);
-	return result;
+	GENRESULT gr = DirectX8_set_pipeline_state(this, state, value);
+	return gr;
 }
 
 GENRESULT DirectX8::get_pipeline_state(RPPIPELINESTATE state, U32* value)
 {
-	GENRESULT result = DirectX8_get_pipeline_state(this, state, value);
-	return result;
+	GENRESULT gr = DirectX8_get_pipeline_state(this, state, value);
+	return gr;
 }
 
 GENRESULT DirectX8::get_device_info(RPDEVICEINFO* info)
 {
-	GENRESULT result = DirectX8_get_device_info(this, info);
-	return result;
+	GENRESULT gr = DirectX8_get_device_info(this, info);
+	return gr;
 }
 
 GENRESULT DirectX8::query_device_ability(RPDEVICEABILITY ability, U32* out_answer)
 {
-	GENRESULT result = DirectX8_query_device_ability(this, ability, out_answer);
-	return result;
+	GENRESULT gr = DirectX8_query_device_ability(this, ability, out_answer);
+	return gr;
 }
 
 GENRESULT DirectX8::get_num_display_modes(U32* count)
 {
-	GENRESULT result = DirectX8_get_num_display_modes(this, count);
-	return result;
+	GENRESULT gr = DirectX8_get_num_display_modes(this, count);
+	return gr;
 }
 
 GENRESULT DirectX8::get_display_mode(RPDISPLAYMODEINFO* mode, U32 mode_num)
 {
-	GENRESULT result = DirectX8_get_display_mode(this, mode, mode_num);
-	return result;
+	GENRESULT gr = DirectX8_get_display_mode(this, mode, mode_num);
+	return gr;
 }
 
 GENRESULT DirectX8::select_mode(RPBUFFERSINFO* mode, U32* adapter)
 {
-	GENRESULT result = DirectX8_select_mode(this, mode, adapter);
-	return result;
+	GENRESULT gr = DirectX8_select_mode(this, mode, adapter);
+	return gr;
 }
 
 GENRESULT DirectX8::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinfo, RPBUFFERSINFO* out_buffersinfo)
 {
-	GENRESULT result = DirectX8_create_buffers(this, hwnd, buffersinfo, out_buffersinfo);
-	return result;
+	GENRESULT gr = DirectX8_create_buffers(this, hwnd, buffersinfo, out_buffersinfo);
+	return gr;
 }
 
 GENRESULT DirectX8::get_buffers(U32* adapter, RPBUFFERSINFO* out_buffersinfo)
 {
-	GENRESULT result = DirectX8_get_buffers(this, adapter, out_buffersinfo);
-	return result;
+	GENRESULT gr = DirectX8_get_buffers(this, adapter, out_buffersinfo);
+	return gr;
 }
 
 GENRESULT DirectX8::destroy_buffers(void)
 {
-	GENRESULT result = DirectX8_destroy_buffers(this);
-	return result;
+	GENRESULT gr = DirectX8_destroy_buffers(this);
+	return gr;
 }
 
 GENRESULT DirectX8::clear_buffers(U32 rp_clear_flags, RECT* viewport_sub_rect)
 {
-	GENRESULT result = DirectX8_clear_buffers(this, rp_clear_flags, viewport_sub_rect);
-	return result;
+	GENRESULT gr = DirectX8_clear_buffers(this, rp_clear_flags, viewport_sub_rect);
+	return gr;
 }
 
 GENRESULT DirectX8::swap_buffers(void)
 {
-	GENRESULT result = DirectX8_swap_buffers(this);
-	return result;
+	GENRESULT gr = DirectX8_swap_buffers(this);
+	return gr;
 }
 
 GENRESULT DirectX8::lock_buffer(RPLOCKDATA* lockData)
 {
-	GENRESULT result = DirectX8_lock_buffer(this, lockData);
-	return result;
+	GENRESULT gr = DirectX8_lock_buffer(this, lockData);
+	return gr;
 }
 
 GENRESULT DirectX8::unlock_buffer(void)
 {
-	GENRESULT result = DirectX8_unlock_buffer(this);
-	return result;
+	GENRESULT gr = DirectX8_unlock_buffer(this);
+	return gr;
 }
 
 GENRESULT DirectX8::get_buffer_interface(const char* iid, void** out_iif)
 {
-	GENRESULT result = DirectX8_get_buffer_interface(this, iid, out_iif);
-	return result;
+	GENRESULT gr = DirectX8_get_buffer_interface(this, iid, out_iif);
+	return gr;
 }
 
 GENRESULT DirectX8::get_device_stats(RPDEVICESTATS* stat)
 {
-	GENRESULT result = DirectX8_get_device_stats(this, stat);
-	return result;
+	GENRESULT gr = DirectX8_get_device_stats(this, stat);
+	return gr;
 }
 
 GENRESULT DirectX8::set_viewport(int x, int y, int w, int h)
 {
-	GENRESULT result = DirectX8_set_viewport(this, x, y, w, h);
-	return result;
+	GENRESULT gr = DirectX8_set_viewport(this, x, y, w, h);
+	return gr;
 }
 
 GENRESULT DirectX8::get_viewport(int* out_x, int* out_y, int* out_w, int* out_h)
 {
-	GENRESULT result = DirectX8_get_viewport(this, out_x, out_y, out_w, out_h);
-	return result;
+	GENRESULT gr = DirectX8_get_viewport(this, out_x, out_y, out_w, out_h);
+	return gr;
 }
 
 GENRESULT DirectX8::set_depth_range(float lower_z_bound, float upper_z_bound)
 {
-	GENRESULT result = DirectX8_set_depth_range(this, lower_z_bound, upper_z_bound);
-	return result;
+	GENRESULT gr = DirectX8_set_depth_range(this, lower_z_bound, upper_z_bound);
+	return gr;
 }
 
 GENRESULT DirectX8::get_depth_range(float* lower_z_bound, float* upper_z_bound)
 {
-	GENRESULT result = DirectX8_get_depth_range(this, lower_z_bound, upper_z_bound);
-	return result;
+	GENRESULT gr = DirectX8_get_depth_range(this, lower_z_bound, upper_z_bound);
+	return gr;
 }
 
 GENRESULT DirectX8::set_window(HWND hwnd, int x, int y, int w, int h)
 {
-	GENRESULT result = DirectX8_set_window(this, hwnd, x, y, w, h);
-	return result;
+	GENRESULT gr = DirectX8_set_window(this, hwnd, x, y, w, h);
+	return gr;
 }
 
 GENRESULT DirectX8::get_window(HWND* out_hwnd, int* out_x, int* out_y, int* out_w, int* out_h)
 {
-	GENRESULT result = DirectX8_get_window(this, out_hwnd, out_x, out_y, out_w, out_h);
-	return result;
+	GENRESULT gr = DirectX8_get_window(this, out_hwnd, out_x, out_y, out_w, out_h);
+	return gr;
 }
 
 GENRESULT DirectX8::set_world(const Transform& world)
 {
-	GENRESULT result = DirectX8_set_world(this, world);
-	return result;
+	GENRESULT gr = DirectX8_set_world(this, world);
+	return gr;
 }
 
 GENRESULT DirectX8::get_world(Transform& world)
 {
-	GENRESULT result = DirectX8_get_world(this, world);
-	return result;
+	GENRESULT gr = DirectX8_get_world(this, world);
+	return gr;
 }
 
 GENRESULT DirectX8::set_view(const Transform& view)
 {
-	GENRESULT result = DirectX8_set_view(this, view);
-	return result;
+	GENRESULT gr = DirectX8_set_view(this, view);
+	return gr;
 }
 
 GENRESULT DirectX8::get_view(Transform& view)
 {
-	GENRESULT result = DirectX8_get_view(this, view);
-	return result;
+	GENRESULT gr = DirectX8_get_view(this, view);
+	return gr;
 }
 
 GENRESULT DirectX8::set_modelview(const Transform& modelview)
 {
-	GENRESULT result = DirectX8_set_modelview(this, modelview);
-	return result;
+	GENRESULT gr = DirectX8_set_modelview(this, modelview);
+	return gr;
 }
 
 GENRESULT DirectX8::get_modelview(Transform& modelview)
 {
-	GENRESULT result = DirectX8_get_modelview(this, modelview);
-	return result;
+	GENRESULT gr = DirectX8_get_modelview(this, modelview);
+	return gr;
 }
 
 GENRESULT DirectX8::set_projection(const Matrix4& projection)
 {
-	GENRESULT result = DirectX8_set_projection(this, projection);
-	return result;
+	GENRESULT gr = DirectX8_set_projection(this, projection);
+	return gr;
 }
 
 GENRESULT DirectX8::get_projection(Matrix4& projection)
 {
-	GENRESULT result = DirectX8_get_projection(this, projection);
-	return result;
+	GENRESULT gr = DirectX8_get_projection(this, projection);
+	return gr;
 }
 
 GENRESULT DirectX8::set_lookat(float eyex, float eyey, float eyez, float centerx, float centery, float centerz, float upx, float upy, float upz)
 {
-	GENRESULT result = DirectX8_set_lookat(this, eyex, eyey, eyez, centerx, centery, centerz, upx, upy, upz);
-	return result;
+	GENRESULT gr = DirectX8_set_lookat(this, eyex, eyey, eyez, centerx, centery, centerz, upx, upy, upz);
+	return gr;
 }
 
 GENRESULT DirectX8::set_ortho(float left, float right, float bottom, float top, float nearval, float farval)
 {
-	GENRESULT result = DirectX8_set_ortho(this, left, right, bottom, top, nearval, farval);
-	return result;
+	GENRESULT gr = DirectX8_set_ortho(this, left, right, bottom, top, nearval, farval);
+	return gr;
 }
 
 GENRESULT DirectX8::set_perspective(float fovy, float aspect, float znear, float zfar)
 {
-	GENRESULT result = DirectX8_set_perspective(this, fovy, aspect, znear, zfar);
-	return result;
+	GENRESULT gr = DirectX8_set_perspective(this, fovy, aspect, znear, zfar);
+	return gr;
 }
 
 GENRESULT DirectX8::set_light(IRP_LIGHTHANDLE handle, const D3DLIGHT8* light_values)
 {
-	GENRESULT result = DirectX8_set_light(this, handle, light_values);
-	return result;
+	GENRESULT gr = DirectX8_set_light(this, handle, light_values);
+	return gr;
 }
 
 GENRESULT DirectX8::destroy_light(IRP_LIGHTHANDLE handle)
 {
-	GENRESULT result = DirectX8_destroy_light(this, handle);
-	return result;
+	GENRESULT gr = DirectX8_destroy_light(this, handle);
+	return gr;
 }
 
 GENRESULT DirectX8::get_light(IRP_LIGHTHANDLE handle, D3DLIGHT8* out_light_values)
 {
-	GENRESULT result = DirectX8_get_light(this, handle, out_light_values);
-	return result;
+	GENRESULT gr = DirectX8_get_light(this, handle, out_light_values);
+	return gr;
 }
 
 GENRESULT DirectX8::set_light_enable(IRP_LIGHTHANDLE handle, U32 enable)
 {
-	GENRESULT result = DirectX8_set_light_enable(this, handle, enable);
-	return result;
+	GENRESULT gr = DirectX8_set_light_enable(this, handle, enable);
+	return gr;
 }
 
 GENRESULT DirectX8::get_light_enable(IRP_LIGHTHANDLE handle, U32* out_enable)
 {
-	GENRESULT result = DirectX8_get_light_enable(this, handle, out_enable);
-	return result;
+	GENRESULT gr = DirectX8_get_light_enable(this, handle, out_enable);
+	return gr;
 }
 
 GENRESULT DirectX8::set_material(D3DMATERIAL8* material_values)
 {
-	GENRESULT result = DirectX8_set_material(this, material_values);
-	return result;
+	GENRESULT gr = DirectX8_set_material(this, material_values);
+	return gr;
 }
 
 GENRESULT DirectX8::get_material(D3DMATERIAL8* out_material_values)
 {
-	GENRESULT result = DirectX8_get_material(this, out_material_values);
-	return result;
+	GENRESULT gr = DirectX8_get_material(this, out_material_values);
+	return gr;
 }
 
 GENRESULT DirectX8::create_texture(int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, IRP_TEXTUREHANDLE* out_htexture)
 {
-	GENRESULT result = DirectX8_create_texture(this, width, height, desiredformat, num_lod, irp_ctf_flags, out_htexture);
-	return result;
+	GENRESULT gr = DirectX8_create_texture(this, width, height, desiredformat, num_lod, irp_ctf_flags, out_htexture);
+	return gr;
 }
 
 GENRESULT DirectX8::destroy_texture(IRP_TEXTUREHANDLE htexture)
 {
-	GENRESULT result = DirectX8_destroy_texture(this, htexture);
-	return result;
+	GENRESULT gr = DirectX8_destroy_texture(this, htexture);
+	return gr;
 }
 
 GENRESULT DirectX8::is_texture(IRP_TEXTUREHANDLE htexture)
 {
-	GENRESULT result = DirectX8_is_texture(this, htexture);
-	return result;
+	GENRESULT gr = DirectX8_is_texture(this, htexture);
+	return gr;
 }
 
 GENRESULT DirectX8::lock_texture(IRP_TEXTUREHANDLE htexture, U32 subsurface, RPLOCKDATA* lockData)
 {
-	GENRESULT result = DirectX8_lock_texture(this, htexture, subsurface, lockData);
-	return result;
+	GENRESULT gr = DirectX8_lock_texture(this, htexture, subsurface, lockData);
+	return gr;
 }
 
 GENRESULT DirectX8::unlock_texture(IRP_TEXTUREHANDLE htexture, U32 subsurface)
 {
-	GENRESULT result = DirectX8_unlock_texture(this, htexture, subsurface);
-	return result;
+	GENRESULT gr = DirectX8_unlock_texture(this, htexture, subsurface);
+	return gr;
 }
 
 GENRESULT DirectX8::get_texture_format(IRP_TEXTUREHANDLE htexture, PFenum* out_pf)
 {
-	GENRESULT result = DirectX8_get_texture_format(this, htexture, out_pf);
-	return result;
+	GENRESULT gr = DirectX8_get_texture_format(this, htexture, out_pf);
+	return gr;
 }
 
 GENRESULT DirectX8::get_texture_dim(IRP_TEXTUREHANDLE htexture, U32* out_width, U32* out_height, U32* out_num_lod)
 {
-	GENRESULT result = DirectX8_get_texture_dim(this, htexture, out_width, out_height, out_num_lod);
-	return result;
+	GENRESULT gr = DirectX8_get_texture_dim(this, htexture, out_width, out_height, out_num_lod);
+	return gr;
 }
 
 GENRESULT DirectX8::get_texture_interface(IRP_TEXTUREHANDLE htexture, const char* iid, void** out_iif)
 {
-	GENRESULT result = DirectX8_get_texture_interface(this, htexture, iid, out_iif);
-	return result;
+	GENRESULT gr = DirectX8_get_texture_interface(this, htexture, iid, out_iif);
+	return gr;
 }
 
 GENRESULT DirectX8::set_texture_level_data(IRP_TEXTUREHANDLE htexture, U32 subsurface, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette)
 {
-	GENRESULT result = DirectX8_set_texture_level_data(this, htexture, subsurface, src_width, src_height, src_stride, src_format, src_pixel, src_alpha, src_palette);
-	return result;
+	GENRESULT gr = DirectX8_set_texture_level_data(this, htexture, subsurface, src_width, src_height, src_stride, src_format, src_pixel, src_alpha, src_palette);
+	return gr;
 }
 
 GENRESULT DirectX8::blit_texture(IRP_TEXTUREHANDLE hDest, U32 destLevel, RECT destRect, IRP_TEXTUREHANDLE hSrc, U32 srcLevel, RECT srcRect)
 {
-	GENRESULT result = DirectX8_blit_texture(this, hDest, destLevel, destRect, hSrc, srcLevel, srcRect);
-	return result;
+	GENRESULT gr = DirectX8_blit_texture(this, hDest, destLevel, destRect, hSrc, srcLevel, srcRect);
+	return gr;
 }
 
 GENRESULT DirectX8::set_render_target(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4)
 {
-	GENRESULT result = DirectX8_set_render_target(this, a2, a3, a4);
-	return result;
+	GENRESULT gr = DirectX8_set_render_target(this, a2, a3, a4);
+	return gr;
 }
 
 GENRESULT DirectX8::get_render_target(void* a2)
 {
-	GENRESULT result = DirectX8_get_render_target(this, a2);
-	return result;
+	GENRESULT gr = DirectX8_get_render_target(this, a2);
+	return gr;
 }
 
 GENRESULT DirectX8::begin_scene(void)
 {
-	GENRESULT result = DirectX8_begin_scene(this);
-	return result;
+	GENRESULT gr = DirectX8_begin_scene(this);
+	return gr;
 }
 
 GENRESULT DirectX8::end_scene(void)
 {
-	GENRESULT result = DirectX8_end_scene(this);
-	return result;
+	GENRESULT gr = DirectX8_end_scene(this);
+	return gr;
 }
 
 GENRESULT DirectX8::reset_render_states_to_defaults(void)
 {
-	GENRESULT result = DirectX8_reset_render_states_to_defaults(this);
-	return result;
+	GENRESULT gr = DirectX8_reset_render_states_to_defaults(this);
+	return gr;
 }
 
 GENRESULT DirectX8::set_render_state(D3DRENDERSTATETYPE state, U32 value)
 {
-	GENRESULT result = DirectX8_set_render_state(this, state, value);
-	return result;
+	GENRESULT gr = DirectX8_set_render_state(this, state, value);
+	return gr;
 }
 
 GENRESULT DirectX8::get_render_state(D3DRENDERSTATETYPE state, U32* value)
 {
-	GENRESULT result = DirectX8_get_render_state(this, state, value);
-	return result;
+	GENRESULT gr = DirectX8_get_render_state(this, state, value);
+	return gr;
 }
 
 GENRESULT DirectX8::set_texture_stage_state(U32 stage, D3DTEXTURESTAGESTATETYPE state, U32 value)
 {
-	GENRESULT result = DirectX8_set_texture_stage_state(this, stage, state, value);
-	return result;
+	GENRESULT gr = DirectX8_set_texture_stage_state(this, stage, state, value);
+	return gr;
 }
 
 GENRESULT DirectX8::get_texture_stage_state(U32 stage, D3DTEXTURESTAGESTATETYPE state, U32* value)
 {
-	GENRESULT result = DirectX8_get_texture_stage_state(this, stage, state, value);
-	return result;
+	GENRESULT gr = DirectX8_get_texture_stage_state(this, stage, state, value);
+	return gr;
 }
 
 GENRESULT DirectX8::set_texture_stage_transform(U32 stage, Matrix4 const& mat4)
 {
-	GENRESULT result = DirectX8_set_texture_stage_transform(this, stage, mat4);
-	return result;
+	GENRESULT gr = DirectX8_set_texture_stage_transform(this, stage, mat4);
+	return gr;
 }
 
 GENRESULT DirectX8::get_texture_stage_transform(U32 stage, Matrix4& out_mat4)
 {
-	GENRESULT result = DirectX8_get_texture_stage_transform(this, stage, out_mat4);
-	return result;
+	GENRESULT gr = DirectX8_get_texture_stage_transform(this, stage, out_mat4);
+	return gr;
 }
 
 GENRESULT DirectX8::set_texture_stage_texture(U32 stage, IRP_TEXTUREHANDLE htexture)
 {
-	GENRESULT result = DirectX8_set_texture_stage_texture(this, stage, htexture);
-	return result;
+	GENRESULT gr = DirectX8_set_texture_stage_texture(this, stage, htexture);
+	return gr;
 }
 
 GENRESULT DirectX8::get_texture_stage_texture(U32 stage, IRP_TEXTUREHANDLE* out_htexture)
 {
-	GENRESULT result = DirectX8_get_texture_stage_texture(this, stage, out_htexture);
-	return result;
+	GENRESULT gr = DirectX8_get_texture_stage_texture(this, stage, out_htexture);
+	return gr;
 }
 
 GENRESULT DirectX8::verify_state(void)
 {
-	GENRESULT result = DirectX8_verify_state(this);
-	return result;
+	GENRESULT gr = DirectX8_verify_state(this);
+	return gr;
 }
 
 GENRESULT DirectX8::draw_primitive(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, U32 flags)
 {
-	GENRESULT result = DirectX8_draw_primitive(this, type, vertex_format, verts, num_verts, flags);
-	return result;
+	GENRESULT gr = DirectX8_draw_primitive(this, type, vertex_format, verts, num_verts, flags);
+	return gr;
 }
 
 GENRESULT DirectX8::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, const U16* indices, U32 num_indices, U32 flags)
 {
-	GENRESULT result = DirectX8_draw_indexed_primitive(this, type, vertex_format, verts, num_verts, indices, num_indices, flags);
-	return result;
+	GENRESULT gr = DirectX8_draw_indexed_primitive(this, type, vertex_format, verts, num_verts, indices, num_indices, flags);
+	return gr;
 }
 
 GENRESULT DirectX8::draw_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, U32 flags)
 {
-	GENRESULT result = DirectX8_draw_primitive_vb(this, type, vbhandle, start_vert, num_verts, flags);
-	return result;
+	GENRESULT gr = DirectX8_draw_primitive_vb(this, type, vbhandle, start_vert, num_verts, flags);
+	return gr;
 }
 
 GENRESULT DirectX8::draw_indexed_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, const U16* indices, U32 num_indices, U32 flags)
 {
-	GENRESULT result = DirectX8_draw_indexed_primitive_vb(this, type, vbhandle, start_vert, num_verts, indices, num_indices, flags);
-	return result;
+	GENRESULT gr = DirectX8_draw_indexed_primitive_vb(this, type, vbhandle, start_vert, num_verts, indices, num_indices, flags);
+	return gr;
 }
 
 GENRESULT DirectX8::add_light(IRP_LIGHTHANDLE handle)
 {
-	GENRESULT result = DirectX8_add_light(this, handle);
-	return result;
+	GENRESULT gr = DirectX8_add_light(this, handle);
+	return gr;
 }
 
 GENRESULT DirectX8::remove_light(IRP_LIGHTHANDLE handle)
 {
-	GENRESULT result = DirectX8_remove_light(this, handle);
-	return result;
+	GENRESULT gr = DirectX8_remove_light(this, handle);
+	return gr;
 }
 
 GENRESULT DirectX8::update_light(IRP_LIGHTHANDLE handle)
 {
-	GENRESULT result = DirectX8_update_light(this, handle);
-	return result;
+	GENRESULT gr = DirectX8_update_light(this, handle);
+	return gr;
 }
 
 GENRESULT DirectX8::set_world_n(UNKNOWN a2, Transform* transform)
 {
-	GENRESULT result = DirectX8_set_world_n(this, a2, transform);
-	return result;
+	GENRESULT gr = DirectX8_set_world_n(this, a2, transform);
+	return gr;
 }
 
 GENRESULT DirectX8::VertexBufferManager_UnknownC(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5)
 {
-	GENRESULT result = DirectX8_VertexBufferManager_UnknownC(this, a2, a3, a4, a5);
-	return result;
+	GENRESULT gr = DirectX8_VertexBufferManager_UnknownC(this, a2, a3, a4, a5);
+	return gr;
 }
 
 GENRESULT DirectX8::VertexBufferManager_Unknown10()
 {
-	GENRESULT result = DirectX8_VertexBufferManager_Unknown10(this);
-	return result;
+	GENRESULT gr = DirectX8_VertexBufferManager_Unknown10(this);
+	return gr;
 }
 
 GENRESULT DirectX8::acquire_vertex_buffer(UNKNOWN vertex_format, U32 num_verts, VertexBufferAcquire* out_result)
 {
-	GENRESULT result = DirectX8_acquire_vertex_buffer(this, vertex_format, num_verts, out_result);
-	return result;
+	GENRESULT gr = DirectX8_acquire_vertex_buffer(this, vertex_format, num_verts, out_result);
+	return gr;
 }
 
 GENRESULT DirectX8::release_vertex_buffer(VertexBufferAcquire* vbacquire)
 {
-	GENRESULT result = DirectX8_release_vertex_buffer(this, vbacquire);
-	return result;
+	GENRESULT gr = DirectX8_release_vertex_buffer(this, vbacquire);
+	return gr;
 }
 
 GENRESULT DirectX8::VertexBufferManager_Unknown1C()
 {
-	GENRESULT result = DirectX8_VertexBufferManager_Unknown1C(this);
-	return result;
+	GENRESULT gr = DirectX8_VertexBufferManager_Unknown1C(this);
+	return gr;
 }
 
-GENRESULT DirectX8::VertexBufferManager_Unknown20(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5, UNKNOWN a6)
+GENRESULT DirectX8::copy_vertex_buffer_desc(void* dst_buffer, U32 dst_vertex_format, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices)
 {
-	GENRESULT result = DirectX8_VertexBufferManager_Unknown20(this, a2, a3, a4, a5, a6);
-	return result;
+	GENRESULT gr = DirectX8_copy_vertex_buffer_desc(this, dst_buffer, dst_vertex_format, src_vb_desc, num_vertices, start_vertex);
+	return gr;
 }
 
 GENRESULT DirectX8::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 min_index, U32 num_verts, U32 start_index, U32 count)
 {
-	GENRESULT result = DirectX8_draw_indexed_primitive2(this, type, min_index, num_verts, start_index, count);
-	return result;
+	GENRESULT gr = DirectX8_draw_indexed_primitive2(this, type, min_index, num_verts, start_index, count);
+	return gr;
 }
 
 GENRESULT DirectX8::create_index_buffer(U32 count, IRP_INDEXBUFFERHANDLE* out_ibhandle, BYTE flags)
 {
-	GENRESULT result = DirectX8_create_index_buffer(this, count, out_ibhandle, flags);
-	return result;
+	GENRESULT gr = DirectX8_create_index_buffer(this, count, out_ibhandle, flags);
+	return gr;
 }
 
 GENRESULT DirectX8::destroy_index_buffer(IRP_INDEXBUFFERHANDLE ibhandle)
 {
-	GENRESULT result = DirectX8_destroy_index_buffer(this, ibhandle);
-	return result;
+	GENRESULT gr = DirectX8_destroy_index_buffer(this, ibhandle);
+	return gr;
 }
 
 GENRESULT DirectX8::create_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32 count)
 {
-	GENRESULT result = DirectX8_create_ib(this, ibhandle, count);
-	return result;
+	GENRESULT gr = DirectX8_create_ib(this, ibhandle, count);
+	return gr;
 }
 
 GENRESULT DirectX8::copy_indices(IRP_INDEXBUFFERHANDLE ibhandle, U32& offset, U16 const* indices, U32 num_indices)
 {
-	GENRESULT result = DirectX8_copy_indices(this, ibhandle, offset, indices, num_indices);
-	return result;
+	GENRESULT gr = DirectX8_copy_indices(this, ibhandle, offset, indices, num_indices);
+	return gr;
 }
 
 GENRESULT DirectX8::lock_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32& offset, void** locked_data_ptr, U32 num_indices)
 {
-	GENRESULT result = DirectX8_lock_ib(this, ibhandle, offset, locked_data_ptr, num_indices);
-	return result;
+	GENRESULT gr = DirectX8_lock_ib(this, ibhandle, offset, locked_data_ptr, num_indices);
+	return gr;
 }
 
 GENRESULT DirectX8::unlock_ib(IRP_INDEXBUFFERHANDLE ibhandle)
 {
-	GENRESULT result = DirectX8_unlock_ib(this, ibhandle);
-	return result;
+	GENRESULT gr = DirectX8_unlock_ib(this, ibhandle);
+	return gr;
 }
 
 GENRESULT DirectX8::select_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32 base_index, UNKNOWN a4, UNKNOWN a5)
 {
-	GENRESULT result = DirectX8_select_ib(this, ibhandle, base_index, a4, a5);
-	return result;
+	GENRESULT gr = DirectX8_select_ib(this, ibhandle, base_index, a4, a5);
+	return gr;
 }
 
 GENRESULT DirectX8::get_ib_count(IRP_INDEXBUFFERHANDLE ibhandle, U32* out_count)
 {
-	GENRESULT result = DirectX8_get_ib_count(this, ibhandle, out_count);
-	return result;
+	GENRESULT gr = DirectX8_get_ib_count(this, ibhandle, out_count);
+	return gr;
 }
 
 BOOL32 DirectX8::is_ib_valid(IRP_INDEXBUFFERHANDLE ibhandle)
 {
-	BOOL32 result = DirectX8_is_ib_valid(this, ibhandle);
-	return result;
+	BOOL32 gr = DirectX8_is_ib_valid(this, ibhandle);
+	return gr;
 }
 
-GENRESULT DirectX8::create_vb(D3DFORMAT format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, U8 irp_vbf_flags)
+GENRESULT DirectX8::create_vb(U32 format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, U8 irp_vbf_flags)
 {
-	GENRESULT result = DirectX8_create_vb(this, format, count, out_vbhandle, irp_vbf_flags);
-	return result;
+	GENRESULT gr = DirectX8_create_vb(this, format, count, out_vbhandle, irp_vbf_flags);
+	return gr;
 }
 
 GENRESULT DirectX8::destroy_vb(IRP_VERTEXBUFFERHANDLE& vbhandle)
 {
-	GENRESULT result = DirectX8_destroy_vb(this, vbhandle);
-	return result;
+	GENRESULT gr = DirectX8_destroy_vb(this, vbhandle);
+	return gr;
 }
 
-GENRESULT DirectX8::ressize_vb(IRP_VERTEXBUFFERHANDLE vbhandle, D3DFORMAT format, U32 num_verts)
+GENRESULT DirectX8::ressize_vb(IRP_VERTEXBUFFERHANDLE vbhandle, U32 format, U32 num_verts)
 {
-	GENRESULT result = DirectX8_ressize_vb(this, vbhandle, format, num_verts);
-	return result;
+	GENRESULT gr = DirectX8_ressize_vb(this, vbhandle, format, num_verts);
+	return gr;
 }
 
-GENRESULT DirectX8::copy_vertices(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, U32 start_vertex, U32 num_vertices)
+GENRESULT DirectX8::copy_vertices(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices)
 {
-	GENRESULT result = DirectX8_copy_vertices(this, vbhandle, offset, a4, start_vertex, num_vertices);
-	return result;
+	GENRESULT gr = DirectX8_copy_vertices(this, vbhandle, offset, src_vb_desc, start_vertex, num_vertices);
+	return gr;
 }
 
 GENRESULT DirectX8::lock_vb(IRP_VERTEXBUFFERHANDLE vbhandle, U32& offset, void** locked_data, U32 count)
 {
-	GENRESULT result = DirectX8_lock_vb(this, vbhandle, offset, locked_data, count);
-	return result;
+	GENRESULT gr = DirectX8_lock_vb(this, vbhandle, offset, locked_data, count);
+	return gr;
 }
 
 GENRESULT DirectX8::unlock_vb(IRP_VERTEXBUFFERHANDLE vbhandle)
 {
-	GENRESULT result = DirectX8_unlock_vb(this, vbhandle);
-	return result;
+	GENRESULT gr = DirectX8_unlock_vb(this, vbhandle);
+	return gr;
 }
 
 GENRESULT DirectX8::RPVertexBuffer_Unknown24(UNKNOWN a2)
 {
-	GENRESULT result = DirectX8_RPVertexBuffer_Unknown24(this, a2);
-	return result;
+	GENRESULT gr = DirectX8_RPVertexBuffer_Unknown24(this, a2);
+	return gr;
 }
 
 GENRESULT DirectX8::select_vb(IRP_VERTEXBUFFERHANDLE vbhandle)
 {
-	GENRESULT result = DirectX8_select_vb(this, vbhandle);
-	return result;
+	GENRESULT gr = DirectX8_select_vb(this, vbhandle);
+	return gr;
 }
 
 GENRESULT DirectX8::get_vb_count(IRP_VERTEXBUFFERHANDLE vbhandle, UNKNOWN* vertex_format, U32* num_verts)
 {
-	GENRESULT result = DirectX8_get_vb_count(this, vbhandle, vertex_format, num_verts);
-	return result;
+	GENRESULT gr = DirectX8_get_vb_count(this, vbhandle, vertex_format, num_verts);
+	return gr;
 }
 
 BOOL32 DirectX8::is_vb_valid(IRP_VERTEXBUFFERHANDLE vbhandle)
 {
-	BOOL32 result = DirectX8_is_vb_valid(this, vbhandle);
-	return result;
+	BOOL32 gr = DirectX8_is_vb_valid(this, vbhandle);
+	return gr;
 }
 
 GENRESULT DirectX8::set_gamma_function(IGC_COMPONENT which, float display_gamma, float bias, float slope, float black_offset)
 {
-	GENRESULT result = DirectX8_set_gamma_function(this, which, display_gamma, bias, slope, black_offset);
-	return result;
+	GENRESULT gr = DirectX8_set_gamma_function(this, which, display_gamma, bias, slope, black_offset);
+	return gr;
 }
 
 GENRESULT DirectX8::set_gamma_ramp(IGC_COMPONENT igc_component, U16* ramp)
 {
-	GENRESULT result = DirectX8_set_gamma_ramp(this, igc_component, ramp);
-	return result;
+	GENRESULT gr = DirectX8_set_gamma_ramp(this, igc_component, ramp);
+	return gr;
 }
 
 GENRESULT DirectX8::get_gamma_ramp(IGC_COMPONENT igc_component, U16* out_ramp)
 {
-	GENRESULT result = DirectX8_get_gamma_ramp(this, igc_component, out_ramp);
-	return result;
+	GENRESULT gr = DirectX8_get_gamma_ramp(this, igc_component, out_ramp);
+	return gr;
 }
 
 GENRESULT DirectX8::set_calibration_enable(bool enabled)
 {
-	GENRESULT result = DirectX8_set_calibration_enable(this, enabled);
-	return result;
+	GENRESULT gr = DirectX8_set_calibration_enable(this, enabled);
+	return gr;
 }
 
 GENRESULT DirectX8::get_calibration_enable(void)
 {
-	GENRESULT result = DirectX8_get_calibration_enable(this);
-	return result;
+	GENRESULT gr = DirectX8_get_calibration_enable(this);
+	return gr;
 }
 
 GENRESULT DirectX8::print_screen(IFileSystem* pFileSystem, const char* filepath)
 {
-	GENRESULT result = DirectX8_print_screen(this, pFileSystem, filepath);
-	return result;
+	GENRESULT gr = DirectX8_print_screen(this, pFileSystem, filepath);
+	return gr;
 }
 
 GENRESULT DirectX8::load_texture(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture)
 {
-	GENRESULT result = DirectX8_load_texture(this, a2_interface, filepath, out_texture);
-	return result;
+	GENRESULT gr = DirectX8_load_texture(this, a2_interface, filepath, out_texture);
+	return gr;
 }
 
 GENRESULT DirectX8::load_surface_from_file(UNKNOWN* a2_interface, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5)
 {
-	GENRESULT result = DirectX8_load_surface_from_file(this, a2_interface, a3, a4, a5);
-	return result;
+	GENRESULT gr = DirectX8_load_surface_from_file(this, a2_interface, a3, a4, a5);
+	return gr;
 }
 
 GENRESULT DirectX8::RPTexture_Unknown18(UNKNOWN a2, UNKNOWN a3, UNKNOWN* a4)
 {
-	GENRESULT result = DirectX8_RPTexture_Unknown18(this, a2, a3, a4);
-	return result;
+	GENRESULT gr = DirectX8_RPTexture_Unknown18(this, a2, a3, a4);
+	return gr;
 }
 
 GENRESULT DirectX8::load_cubemap(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture)
 {
-	GENRESULT result = DirectX8_load_cubemap(this, a2_interface, filepath, out_texture);
-	return result;
+	GENRESULT gr = DirectX8_load_cubemap(this, a2_interface, filepath, out_texture);
+	return gr;
 }
 
 GENRESULT DirectX8::Initialize(void)
 {
-	GENRESULT result = DirectX8_Initialize(this);
-	return result;
+	GENRESULT gr = DirectX8_Initialize(this);
+	return gr;
 }
 
 extern "C"
@@ -2993,15 +2993,16 @@ extern "C"
 
 	void Register_DirectX8()
 	{
-		GENRESULT result = GR_GENERIC;
+		GENRESULT gr = GR_GENERIC;
 		if (ICOManager* DACOM = DACOM_Acquire())
 		{
 			if (IComponentFactory* pFactory = CreateDirectX8Factory())
 			{
-				result = DACOM->RegisterComponent(pFactory, CLSID_DirectX8, DACOM_LOW_PRIORITY);
+				gr = DACOM->RegisterComponent(pFactory, CLSID_DirectX8, DACOM_LOW_PRIORITY);
 				pFactory->Release();
 			}
 		}
-		unused(result);
+		ASSERT(SUCCEEDED(gr));
+		unused(gr);
 	}
 }

@@ -35,7 +35,7 @@ struct DACOM_NO_VTABLE IVertexBufferManager : public IDAComponent
 	DACOM_DEFMETHOD(acquire_vertex_buffer)(UNKNOWN vertex_format, U32 num_verts, VertexBufferAcquire* out_result) = 0;
 	DACOM_DEFMETHOD(release_vertex_buffer)(VertexBufferAcquire* vbacquire) = 0;
 	DACOM_DEFMETHOD(VertexBufferManager_Unknown1C)() = 0;
-	DACOM_DEFMETHOD(VertexBufferManager_Unknown20)(UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN) = 0;
+	DACOM_DEFMETHOD(copy_vertex_buffer_desc)(void* dst_buffer, U32 dst_vertex_format, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices) = 0;
 };
 
 #endif

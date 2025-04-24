@@ -30,28 +30,27 @@ struct VertexBufferItemDesc
 
 struct VertexBufferDesc
 {
-	VertexBufferFlag	flags;		// VBD_F_* flags
+	VertexBufferFlag	flags;							// VBD_F_* flags
+	VertexBufferItemDesc Ps;							// Vertex Points		(Vector)
+	VertexBufferItemDesc Ns;							// Vertex Normals		(Vector)
+	VertexBufferItemDesc C0s;							// Vertex Color 0		(PACKEDARGB)
+	VertexBufferItemDesc MCs[VBD_NUM_MC_CHANNELS];		// Vertex Map Coord 0	(n-floats, where n is 1,2,3,4)
 
-	VertexBufferItemDesc Ps;		// Vertex Points		(Vector)
-	VertexBufferItemDesc Ns;		// Vertex Normals		(Vector)
-	VertexBufferItemDesc C0s;		// Vertex Color 0		(PACKEDARGB)
-	VertexBufferItemDesc C1s;		// Vertex Color 1		(PACKEDARGB)
-	VertexBufferItemDesc MC0s;		// Vertex Map Coord 0	(n-floats, where n is 1,2,3,4)
-	//VertexBufferItemDesc MC1s;		// Vertex Map Coord 1	(n-floats, where n is 1,2,3,4)
-
-	U32 vertex_format;	// Flexible Vertex Format Flags
+	// Flexible Vertex Format Flags
 	// This determines which of the above vertex items are
 	// actually accessed.  Enabling a vertex item (via some
 	// FVF flag) when the item is not available (the above
 	// pointers are NULL) will caused undefined behavior.
+	U32 vertex_format;	
 
-	U32 num_vertices;		// Total number of vertices.  This is also the number
+	// Total number of vertices.  This is also the number
 	// of entries in the 'indices' arrays for each item.
 	// i.e. VertexCount == length(Ps.indices)
 	//
 	// When an 'indices' array is NULL, VertexCount specifies
 	// the length of the 'data' arrays for the item.
 	// i.e. VertexCount == length(Ps.data)
+	U32 num_vertices;		
 };
 static_assert(sizeof(VertexBufferDesc) == 0x70);
 
