@@ -383,14 +383,14 @@ struct DACOM_VARIANT
 	}
 
 
-	DACOM_VARIANT (long _intVal)
+	DACOM_VARIANT (SL32 _intVal)
 	{
 		longVal = _intVal;
 		dwReserved1 = 0;
 		variantType = DAVT_S32;
 	}
 
-	DACOM_VARIANT (unsigned long _intVal)
+	DACOM_VARIANT (UL32 _intVal)
 	{
 		longVal = _intVal;
 		dwReserved1 = 0;

@@ -114,7 +114,7 @@ TRAMPOLINE(BOOL32, __stdcall, DirectX8_is_ib_valid, _sub_6D13B69, IRPIndexBuffer
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_vb, _sub_6D118C8, IRPVertexBuffer* _this, D3DFORMAT format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, U8 irp_vbf_flags);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_vb, _sub_6D11DB3, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE& vbhandle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_ressize_vb, _sub_6D11F78, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, D3DFORMAT format, U32 num_verts);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_vertices, _sub_6D1228C, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, UNKNOWN a5, U32 num_vertices);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_vertices, _sub_6D1228C, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, U32 start_vertex, U32 num_vertices);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_lock_vb, _sub_6D126BB, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32& offset, void** locked_data, U32 count);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_vb, _sub_6D12A8B, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_RPVertexBuffer_Unknown24, _sub_6D12B30, IRPVertexBuffer* _this, UNKNOWN);
@@ -2266,7 +2266,7 @@ public:
 	DACOM_DEFMETHOD(create_vb)(D3DFORMAT format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, U8 irp_vbf_flags) override;
 	DACOM_DEFMETHOD(destroy_vb)(IRP_VERTEXBUFFERHANDLE& vbhandle) override;
 	DACOM_DEFMETHOD(ressize_vb)(IRP_VERTEXBUFFERHANDLE vbhandle, D3DFORMAT format, U32 num_verts) override;
-	DACOM_DEFMETHOD(copy_vertices)(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, UNKNOWN a5, U32 num_vertices) override;
+	DACOM_DEFMETHOD(copy_vertices)(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, U32 start_vertex, U32 num_vertices) override;
 	DACOM_DEFMETHOD(lock_vb)(IRP_VERTEXBUFFERHANDLE vbhandle, U32& offset, void** locked_data, U32 count) override;
 	DACOM_DEFMETHOD(unlock_vb)(IRP_VERTEXBUFFERHANDLE vbhandle) override;
 	DACOM_DEFMETHOD(RPVertexBuffer_Unknown24)(UNKNOWN) override;
@@ -2876,9 +2876,9 @@ GENRESULT DirectX8::ressize_vb(IRP_VERTEXBUFFERHANDLE vbhandle, D3DFORMAT format
 	return result;
 }
 
-GENRESULT DirectX8::copy_vertices(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, UNKNOWN a5, U32 num_vertices)
+GENRESULT DirectX8::copy_vertices(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, U32 start_vertex, U32 num_vertices)
 {
-	GENRESULT result = DirectX8_copy_vertices(this, vbhandle, offset, a4, a5, num_vertices);
+	GENRESULT result = DirectX8_copy_vertices(this, vbhandle, offset, a4, start_vertex, num_vertices);
 	return result;
 }
 

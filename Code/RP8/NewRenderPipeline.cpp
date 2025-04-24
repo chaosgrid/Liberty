@@ -216,7 +216,7 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_Unknown20, _sub_6D
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive2, _sub_6D111E1, IRPDraw* _this, D3DPRIMITIVETYPE type, U32 min_index, U32 num_verts, U32 start_index, U32 count);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_index_buffer, _sub_6D12D4E, IRPIndexBuffer* _this, U32 count, IRP_INDEXBUFFERHANDLE* out_ibhandle, BYTE flags);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_index_buffer, _sub_6D13002, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_vertices, _sub_6D1228C, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, UNKNOWN a5, U32 num_vertices);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_vertices, _sub_6D1228C, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, U32 start_vertex, U32 num_vertices);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_lock_vb, _sub_6D126BB, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32& offset, void** locked_data, U32 count);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_vb, _sub_6D12A8B, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_RPVertexBuffer_Unknown24, _sub_6D12B30, IRPVertexBuffer* _this, UNKNOWN);
@@ -2373,7 +2373,7 @@ public:
 	DACOM_DEFMETHOD(create_vb)(D3DFORMAT format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, U8 irp_vbf_flags) override;
 	DACOM_DEFMETHOD(destroy_vb)(IRP_VERTEXBUFFERHANDLE& vbhandle) override;
 	DACOM_DEFMETHOD(ressize_vb)(IRP_VERTEXBUFFERHANDLE vbhandle, D3DFORMAT format, U32 num_verts) override;
-	DACOM_DEFMETHOD(copy_vertices)(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, UNKNOWN a5, U32 num_vertices) override;
+	DACOM_DEFMETHOD(copy_vertices)(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, U32 start_vertex, U32 num_vertices) override;
 	DACOM_DEFMETHOD(lock_vb)(IRP_VERTEXBUFFERHANDLE vbhandle, U32& offset, void** locked_data, U32 count) override;
 	DACOM_DEFMETHOD(unlock_vb)(IRP_VERTEXBUFFERHANDLE vbhandle) override;
 	DACOM_DEFMETHOD(RPVertexBuffer_Unknown24)(UNKNOWN) override;
@@ -5182,7 +5182,7 @@ GENRESULT NewRenderPipeline::ressize_vb(IRP_VERTEXBUFFERHANDLE vbhandle, D3DFORM
 	return result;
 }
 
-_extern _naked GENRESULT __stdcall NEW_copy_vertices(IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, UNKNOWN a5, U32 num_vertices) // _sub_6D1228C
+_extern _naked GENRESULT __stdcall NEW_copy_vertices(IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, U32 start_vertex, U32 num_vertices) // _sub_6D1228C
 {
 	__DEBUG_ASM(6D1228C);
 	// chunk 0x6D1228C _sub_6D1228C
@@ -5368,48 +5368,17 @@ _extern void __stdcall copy_vertices_impl(RPVertexBufferInternal* vertex_buffer)
 	_vertex_buffer = vertex_buffer;
 }
 
+#include "VertexBufferDesc.h"
 
-typedef U32 VertexBufferFlag;
-const VertexBufferFlag	VBD_F_BIT_ZERO = (1 << 0);	// This bit is reserved.
-const VertexBufferFlag	VBD_F_AOS = (1 << 1);	// VBD describes an array-of-structures, if
-// this flag is not set, the data is assumed to be interleaved.
-const VertexBufferFlag	VBD_F_INDEXED = (1 << 2);	// Use the VertexBufferItemDesc indices values.
-
-
-struct VertexBufferItemDesc
-{
-	void* data;						// Pointer to database of values
-	unsigned long size;				// Size in bytes of each individual item
-	unsigned long stride;			// Stride in bytes from start of one item to the start of the next item
-	unsigned long* indices;			// Indices for the given item.
-	unsigned long count;			// Number of elements in 'data'
-};
-
-struct VertexBufferDesc
-{
-	VertexBufferFlag flags;
-
-	VertexBufferItemDesc Ps;		// Vertex Points		(Vector)
-	VertexBufferItemDesc Ns;		// Vertex Normals		(Vector)
-	VertexBufferItemDesc C0s;		// Vertex Color 0		(PACKEDARGB)
-	VertexBufferItemDesc C1s;		// Vertex Color 1		(PACKEDARGB)
-	VertexBufferItemDesc MC0s;		// Vertex Map Coord 0	(n-floats, where n is 1,2,3,4)
-	//VertexBufferItemDesc MC1s;		// Vertex Map Coord 1	(n-floats, where n is 1,2,3,4)
-
-	DWORD vertex_format;
-	unsigned long num_vertices;
-};
-static_assert(sizeof(VertexBufferDesc) == 0x70);
-
-#define copy_vertex_buffer_desc sub_6D1F040
-_extern void __cdecl copy_vertex_buffer_desc(
+#define copy_vertex_buffer_desc_ sub_6D1F040
+_extern void __cdecl copy_vertex_buffer_desc_(
 	void* dst_buffer,
 	unsigned int dst_vertex_format,
 	VertexBufferDesc* src_vb_desc,
 	UNKNOWN a4,
 	U32 num_vertices);
 
-GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, UNKNOWN a5, U32 num_vertices)
+GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, UNKNOWN* a4, U32 start_vertex, U32 num_vertices)
 {
 	VertexBufferDesc* src_vb_desc = (VertexBufferDesc*)a4;
 
@@ -5422,7 +5391,7 @@ GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vbhandle, U32*
 	}
 	else
 	{
-		result = NEW_copy_vertices(this, vbhandle, offset, a4, a5, num_vertices);
+		result = NEW_copy_vertices(this, vbhandle, offset, a4, start_vertex, num_vertices);
 
 		IRP_VERTEXBUFFERHANDLE vbhandle = (IRP_VERTEXBUFFERHANDLE)_vertex_buffer;
 
@@ -5451,9 +5420,9 @@ GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vbhandle, U32*
 		{
 			//memcpy(locked_data_ptr, indices, sizeof(U16) * num_indices);
 
-			locked_data_ptr = (char*)locked_data_ptr - a5 * stride;
+			locked_data_ptr = (char*)locked_data_ptr - start_vertex * stride;
 			static auto x = *src_vb_desc; x = *src_vb_desc;
-			copy_vertex_buffer_desc(locked_data_ptr, _vertex_buffer->vertex_format, src_vb_desc, a5, num_vertices);
+			copy_vertex_buffer_desc(locked_data_ptr, _vertex_buffer->vertex_format, src_vb_desc, start_vertex, num_vertices);
 
 			if (!v30)
 			{

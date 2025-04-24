@@ -87,10 +87,12 @@ extern "C"
 	DACOM_DEC DA_ERROR_HANDLER FDUMP = CUSTOM_DA_ERROR_HANDLER;
 	DACOM_DEC DA_ERROR_HANDLER _FDUMP = CUSTOM_DA_ERROR_HANDLER;
 	void explode() 
-	{ 
+	{
+		__debugbreak();
 		if (!IsDebuggerPresent())
 		{
 			int* x = nullptr; *x = 0;
 		}
+		__assume(0);
 	}
 }
