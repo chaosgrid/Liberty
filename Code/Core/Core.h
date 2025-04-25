@@ -18,6 +18,7 @@
 
 #define debug_point { static int _debug_point; (void)(_debug_point++); } 
 #define unused(expression) debug_point; (void)(expression)
+#define noop() ((void)0)
 #define UNKNOWN unsigned int
 
 #ifdef __INTELLISENSE__
