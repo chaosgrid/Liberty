@@ -29,7 +29,7 @@ public:
 
 	/* ---------- member functions */
 
-	DX8VertexBuffer(DWORD usage);
+	DX8VertexBuffer(DWORD usage = 0);
 	DX8VertexBuffer(DX8VertexBuffer&) = delete;
 
 	HRESULT create_vb(

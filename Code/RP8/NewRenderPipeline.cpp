@@ -2223,7 +2223,7 @@ public:
 	HMODULE d3d8_module;
 	//typedef st6::map<U32, U32>	LightInfoMap;
 	//LightInfoMap				lights;
-	IRP_VERTEXBUFFERHANDLE scratchVB;
+	DX8VertexBuffer scratchVB;
 
 	BEGIN_DACOM_MAP_INBOUND(NewRenderPipeline)
 		DACOM_INTERFACE_ENTRY(IRenderPipeline8B)
@@ -2395,7 +2395,8 @@ public:
 
 
 // 6D01143
-NewRenderPipeline::NewRenderPipeline()
+NewRenderPipeline::NewRenderPipeline()  :
+	scratchVB(D3DUSAGE_DYNAMIC)
 {
 	d3d8_module = NULL;
 	debug_point;
@@ -4708,7 +4709,7 @@ GENRESULT NewRenderPipeline::ressize_vb(IRP_VERTEXBUFFERHANDLE vb_handle, U32 fo
 
 	GENRESULT gr;
 	//if (!is_vb_valid(vb_handle))
-	if (vb_handle == IRP_SCRATCH_VB_HANDLE)
+	if (vb_handle == IRP_INVALID_VB_HANDLE)
 	{
 		gr = GR_INVALID_PARMS;
 	}
@@ -4748,15 +4749,12 @@ GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vb_handle, U32
 	{
 		HRESULT hr;
 
-		if (vb_handle == IRP_SCRATCH_VB_HANDLE)
+		if (vb_handle == IRP_INVALID_VB_HANDLE)
 		{
-			if (scratchVB == NULL)
-			{
-				create_vb(src_vb_desc->vertex_format, num_vertices, &scratchVB, 0);
-			}
-			ressize_vb(scratchVB, src_vb_desc->vertex_format, num_vertices);
-			curr_hw_geometry.set_vertex_buffer(scratchVB, src_vb_desc->vertex_format);
-			vb_handle = scratchVB;
+			// handles dispose or format change etc.
+			scratchVB.create_vb(direct3d_device, src_vb_desc->vertex_format, num_vertices);
+			vb_handle = reinterpret_cast<IRP_VERTEXBUFFERHANDLE>(&scratchVB);
+			curr_hw_geometry.set_vertex_buffer(vb_handle, src_vb_desc->vertex_format);
 		}
 
 		DX8VertexBuffer* vertex_buffer = reinterpret_cast<DX8VertexBuffer*>(vb_handle);
@@ -4765,8 +4763,8 @@ GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vb_handle, U32
 		U32 offset_ = offset ? *offset : 0;
 
 		void* locked_data_ptr;
-		auto v30 = vertex_buffer->lockptr != 0;
-		if (v30)
+		bool already_locked = vertex_buffer->lockptr != 0;
+		if (already_locked)
 		{
 			locked_data_ptr = (void*)((char*)vertex_buffer->lockptr + offset_ * stride);
 			gr = GR_OK;
@@ -4785,15 +4783,20 @@ GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vb_handle, U32
 		}
 
 		if (SUCCEEDED(gr))
-		{
+		{ 
+			// Seems to me like this is a bug because the locked memory
+			// can't write data before it's address. But start_vertex
+			// seems to always be zero, so perhaps this code is just
+			// waiting to cause a problem. I suspect this is supposed
+			// to be a + sign not a - ...
+			ASSERT(start_vertex == 0);
 			locked_data_ptr = (char*)locked_data_ptr - start_vertex * stride;
-			static auto x = *src_vb_desc; x = *src_vb_desc;
+
 			copy_vertex_buffer_desc(locked_data_ptr, vertex_buffer->vertex_format, src_vb_desc, start_vertex, num_vertices);
 
-			if (!v30)
+			if (!already_locked)
 			{
-				vertex_buffer->lockptr = 0;
-				this->unlock_vb(vb_handle);
+				unlock_vb(vb_handle);
 			}
 			if (offset)
 				*offset = offset_;
@@ -4813,17 +4816,12 @@ GENRESULT NewRenderPipeline::lock_vb(IRP_VERTEXBUFFERHANDLE vb_handle, U32* star
 	CHECK_DEVICE_LIFETIME();
 
 	GENRESULT gr;
-	if (!is_vb_valid(vb_handle))
+	if (!is_vb_valid(vb_handle) || vb_handle == IRP_INVALID_VB_HANDLE)
 	{
 		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
-		if (vb_handle == IRP_SCRATCH_VB_HANDLE)
-		{
-			vb_handle = reinterpret_cast<IRP_VERTEXBUFFERHANDLE>(scratchVB);
-		}
-
 		DX8VertexBuffer* vertex_buffer = reinterpret_cast<DX8VertexBuffer*>(vb_handle);
 
 		bool syslock = (unknown128 & 2) != 0;
@@ -4847,17 +4845,12 @@ GENRESULT NewRenderPipeline::unlock_vb(IRP_VERTEXBUFFERHANDLE vb_handle)
 	CHECK_DEVICE_LIFETIME();
 
 	GENRESULT gr;
-	if (!is_vb_valid(vb_handle))
+	if (!is_vb_valid(vb_handle) || vb_handle == IRP_INVALID_VB_HANDLE)
 	{
 		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
-		if (vb_handle == IRP_SCRATCH_VB_HANDLE)
-		{
-			vb_handle = reinterpret_cast<IRP_VERTEXBUFFERHANDLE>(scratchVB);
-		}
-
 		DX8VertexBuffer* vertex_buffer = reinterpret_cast<DX8VertexBuffer*>(vb_handle);
 
 		if (SUCCEEDED(vertex_buffer->unlock_vb()))
@@ -4885,7 +4878,7 @@ GENRESULT NewRenderPipeline::select_vb(IRP_VERTEXBUFFERHANDLE vb_handle)
 	GENRESULT gr;
 	if (vb_handle)
 	{
-		if (vb_handle == IRP_SCRATCH_VB_HANDLE)
+		if (vb_handle == IRP_INVALID_VB_HANDLE)
 		{
 			vb_handle = curr_hw_geometry.current_vertex_buffer_handle;
 		}
@@ -4904,7 +4897,7 @@ GENRESULT NewRenderPipeline::get_vb_count(IRP_VERTEXBUFFERHANDLE vb_handle, U32*
 	CHECK_DEVICE_LIFETIME();
 
 	GENRESULT gr = GR_INVALID_PARMS;
-	if (vb_handle && vb_handle != IRP_SCRATCH_VB_HANDLE)
+	if (vb_handle && vb_handle != IRP_INVALID_VB_HANDLE)
 	{
 		DX8VertexBuffer* vertex_buffer = reinterpret_cast<DX8VertexBuffer*>(vb_handle);
 
@@ -4925,7 +4918,7 @@ GENRESULT NewRenderPipeline::get_vb_count(IRP_VERTEXBUFFERHANDLE vb_handle, U32*
 BOOL32 NewRenderPipeline::is_vb_valid(IRP_VERTEXBUFFERHANDLE vb_handle)
 {
 	BOOL32 result;
-	if (vb_handle == IRP_SCRATCH_VB_HANDLE)
+	if (vb_handle == IRP_INVALID_VB_HANDLE)
 	{
 		result = TRUE;
 	}
