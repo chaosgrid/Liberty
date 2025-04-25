@@ -32,11 +32,11 @@ struct DACOM_NO_VTABLE IRPVertexBuffer : public IDAComponent
 	DACOM_DEFMETHOD(destroy_vb)(IRP_VERTEXBUFFERHANDLE& vb_handle);
 	DACOM_DEFMETHOD(ressize_vb)(IRP_VERTEXBUFFERHANDLE vb_handle, U32 format, U32 num_verts);
 	DACOM_DEFMETHOD(copy_vertices)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices);
-	DACOM_DEFMETHOD(lock_vb)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, void** locked_data, U32 count);
+	DACOM_DEFMETHOD(lock_vb)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* start_index, void*& out_data, U32 num_verts);
 	DACOM_DEFMETHOD(unlock_vb)(IRP_VERTEXBUFFERHANDLE vb_handle);
 	DACOM_DEFMETHOD(RPVertexBuffer_Unknown24)(UNKNOWN);
 	DACOM_DEFMETHOD(select_vb)(IRP_VERTEXBUFFERHANDLE vb_handle);
-	DACOM_DEFMETHOD(get_vb_count)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* vertex_format, U32* num_verts);
+	DACOM_DEFMETHOD(get_vb_count)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* out_vertex_format, U32* out_num_verts);
 	DACOM_DEFMETHOD_(BOOL32, is_vb_valid)(IRP_VERTEXBUFFERHANDLE vb_handle);
 };
 

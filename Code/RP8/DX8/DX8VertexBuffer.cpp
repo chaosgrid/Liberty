@@ -1,58 +1,66 @@
 /* ---------- headers */
 
-#include "DX8IndexBuffer.h"
+#include "DX8VertexBuffer.h"
+#include "FVF.h"
 
 /* ---------- public code */
 
 #define HRESULT_GET_ERROR_STRING(...) 0
 
-DX8IndexBuffer::DX8IndexBuffer() :
-	usage(),
-	buffer(),
-	lockptr(),
-	unknownC(),
-	unknown10(),
+DX8VertexBuffer::DX8VertexBuffer(DWORD _usage) :
+	usage(_usage | D3DUSAGE_WRITEONLY),
+	vertex_format(),
+	element_count(),
 	ring_index(),
-	element_count()
+	lockptr(),
+	unknown14(),
+	unknown18(),
+	unknown1C(),
+	buffer()
 {
 
 }
 
-HRESULT DX8IndexBuffer::create_ib(IDirect3DDevice8* direct3d_device, U32 num_indices)
+HRESULT DX8VertexBuffer::create_vb(IDirect3DDevice8* direct3d_device, U32 format, U32 num_verts)
 {
-	HRESULT hr = E_FAIL;
+	HRESULT hr;
 	// If we already have a buffer and it’s the right size, nothing to do
-	if (buffer && num_indices == element_count)
+	if (buffer && num_verts == element_count && format == vertex_format)
 	{
 		hr = S_OK;  // indicate success without reallocating
 	}
 	else
 	{
 		// If a buffer exists but the size is different, free the old one first
-		if (buffer && num_indices != element_count)
+		if (buffer && num_verts != element_count)
 		{
 			dispose();
 		}
 
-		// Remember how many indices required
-		element_count = num_indices;
+		// Remember the vertex format
+		vertex_format = format;
+		// Remember how many vertices required
+		element_count = num_verts;
 		// Clear any previous lock state
 		lockptr = nullptr;
 		// Reset ring index
 		ring_index = 0;
 
-		// Calculate total byte size (U16 is 2 bytes)
-		UINT length = sizeof(U16) * num_indices;
+		// #TODO What are these? Is one of these ring index?
+		unknown1C = 0;
 
-		// Try to create a new D3D index buffer
+		// Calculate total byte size
+		U32 stride = FVF_SIZEOF_VERT(vertex_format);
+		UINT length = stride * num_verts;
+
+		// Try to create a new D3D vertex buffer
 		// If creation failed, log an error and return a generic failure
-		if (FAILED(hr = direct3d_device->CreateIndexBuffer(
-			length,                // size in bytes
-			usage,                 // usage flags (e.g. dynamic)
-			D3DFMT_INDEX16,        // 16-bit index format
-			D3DPOOL_DEFAULT,       // memory pool
-			&buffer                // out: new buffer pointer
-		)))
+		if (FAILED(hr = direct3d_device->CreateVertexBuffer(
+			length,
+			usage,
+			format,
+			D3DPOOL_DEFAULT,
+			&buffer)))
 		{
 			GENERAL_ERROR(TEMPSTR("%s couldn't create ib (err:%s) %d bytes", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr), length));
 		}
@@ -61,7 +69,7 @@ HRESULT DX8IndexBuffer::create_ib(IDirect3DDevice8* direct3d_device, U32 num_ind
 	return hr;  // S_OK / GR_OK on success, error code on failure
 }
 
-HRESULT DX8IndexBuffer::dispose()
+HRESULT DX8VertexBuffer::dispose()
 {
 	HRESULT hr = S_OK;
 
@@ -82,7 +90,7 @@ HRESULT DX8IndexBuffer::dispose()
 			// Warn if Release() didn’t actually destroy the object
 			if (refcount > 0)
 			{
-				GENERAL_WARNING(TEMPSTR("index buffer released with %u references", refcount));
+				GENERAL_WARNING(TEMPSTR("vertex buffer released with %u references", refcount));
 			}
 			buffer = nullptr;  // mark as disposed
 		}
@@ -91,9 +99,9 @@ HRESULT DX8IndexBuffer::dispose()
 	return hr;  // S_OK on full disposal, or error from Unlock()
 }
 
-HRESULT DX8IndexBuffer::lock_ib(
+HRESULT DX8VertexBuffer::lock_vb(
 	U32 dst_index,                  // Starting index in the buffer where new indices will be written
-	U32 num_indices,                // Number of indices the caller wants to write
+	U32 num_verts,                // Number of indices the caller wants to write
 	void*& out_data,             // Receives pointer to the locked memory region
 	U32* out_start_index,           // Receives the actual start index used (after dynamic ring handling)
 	bool syslock)                   // Whether to use a system-lock (D3DLOCK_NOSYSLOCK) hint
@@ -106,10 +114,10 @@ HRESULT DX8IndexBuffer::lock_ib(
 	// Only proceed if the buffer exists and isn't already locked
 	if (buffer != nullptr && lockptr == nullptr)
 	{
-		// Warn if the caller requests more indices than the buffer can hold
-		if (num_indices > element_count)
+		// Warn if the caller requests more verts than the buffer can hold
+		if (num_verts > element_count)
 		{
-			GENERAL_WARNING(TEMPSTR("index buffer doesn't have enough indices (%d) to render passed info (%d)", element_count, num_indices));
+			GENERAL_WARNING(TEMPSTR("vertex buffer doesn't have enough verts (%d) to hold requested locked verts (%d)", element_count, num_verts));
 		}
 		else
 		{
@@ -128,7 +136,7 @@ HRESULT DX8IndexBuffer::lock_ib(
 				ASSERT(dst_index == 0);
 
 				// If there's room remaining from the current ring position...
-				if (num_indices + ring_index <= element_count)
+				if (num_verts + ring_index <= element_count)
 				{
 					// ...we append (no overwrite) and start at ring_index
 					lock_flags |= D3DLOCK_NOOVERWRITE;
@@ -143,9 +151,12 @@ HRESULT DX8IndexBuffer::lock_ib(
 				}
 			}
 
-			// Compute byte offset and size to lock based on 16-bit indices
-			UINT offset_to_lock = sizeof(U16) * dst_index;
-			UINT size_to_lock = sizeof(U16) * num_indices;
+			// Calculate total byte size
+			U32 stride = FVF_SIZEOF_VERT(vertex_format);
+
+			// Compute byte offset and size to lock
+			UINT offset_to_lock = stride * dst_index;
+			UINT size_to_lock = stride * num_verts;
 
 			// Attempt to lock the buffer region
 			hr = buffer->Lock(offset_to_lock, size_to_lock, &lockptr, lock_flags);
@@ -160,7 +171,7 @@ HRESULT DX8IndexBuffer::lock_ib(
 				out_data = lockptr;
 
 				// Advance ring_index so next lock (with NOOVERWRITE) appends after this block
-				ring_index = dst_index + num_indices;
+				ring_index = dst_index + num_verts;
 			}
 		}
 	}
@@ -169,7 +180,7 @@ HRESULT DX8IndexBuffer::lock_ib(
 	return hr;
 }
 
-HRESULT DX8IndexBuffer::unlock_ib()
+HRESULT DX8VertexBuffer::unlock_vb()
 {
 	// Release the lock on the D3D index buffer
 	HRESULT hr = buffer->Unlock();

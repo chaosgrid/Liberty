@@ -12,6 +12,7 @@
 #include "CachedGeometry.h"
 #include "StateInfo.h"
 #include "DX8/DX8IndexBuffer.h"
+#include "DX8/DX8VertexBuffer.h"
 
 #include <Tfuncs.h>
 #include <Matrix4.h>
@@ -2363,11 +2364,11 @@ public:
 	DACOM_DEFMETHOD(destroy_vb)(IRP_VERTEXBUFFERHANDLE& vb_handle) override;
 	DACOM_DEFMETHOD(ressize_vb)(IRP_VERTEXBUFFERHANDLE vb_handle, U32 format, U32 num_verts) override;
 	DACOM_DEFMETHOD(copy_vertices)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices) override;
-	DACOM_DEFMETHOD(lock_vb)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, void** locked_data, U32 count) override;
+	DACOM_DEFMETHOD(lock_vb)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* start_index, void*& out_data, U32 num_verts) override;
 	DACOM_DEFMETHOD(unlock_vb)(IRP_VERTEXBUFFERHANDLE vb_handle) override;
 	DACOM_DEFMETHOD(RPVertexBuffer_Unknown24)(UNKNOWN) override;
 	DACOM_DEFMETHOD(select_vb)(IRP_VERTEXBUFFERHANDLE vb_handle) override;
-	DACOM_DEFMETHOD(get_vb_count)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* vertex_format, U32* num_verts) override;
+	DACOM_DEFMETHOD(get_vb_count)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* out_vertex_format, U32* out_num_verts) override;
 	DACOM_DEFMETHOD_(BOOL32, is_vb_valid)(IRP_VERTEXBUFFERHANDLE vb_handle) override;
 
 	// IGammaControl methods
@@ -4505,11 +4506,6 @@ GENRESULT NewRenderPipeline::lock_ib(IRP_INDEXBUFFERHANDLE ib_handle, U32* start
 {
 	CHECK_DEVICE_LIFETIME();
 
-	if (ib_handle == IRP_SCRATCH_IB_HANDLE)
-	{
-		ib_handle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
-	}
-
 	GENRESULT gr;
 	if (!is_ib_valid(ib_handle))
 	{
@@ -4517,6 +4513,11 @@ GENRESULT NewRenderPipeline::lock_ib(IRP_INDEXBUFFERHANDLE ib_handle, U32* start
 	}
 	else
 	{
+		if (ib_handle == IRP_SCRATCH_IB_HANDLE)
+		{
+			ib_handle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
+		}
+
 		DX8IndexBuffer* index_buffer = reinterpret_cast<DX8IndexBuffer*>(ib_handle);
 
 		bool syslock = (unknown128 & 2) != 0;
@@ -4635,53 +4636,39 @@ GENRESULT NewRenderPipeline::create_vb(U32 format, U32 count, IRP_VERTEXBUFFERHA
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT gr = GR_GENERIC;
+	ASSERT(out_vb_handle != nullptr);
 
-	IRP_VERTEXBUFFERHANDLE hvertexbuffer = nullptr;
-	RPVertexBufferInternal* vertex_buffer = nullptr;
-	// #TODO What was this flag?
-	/*if (irp_vbf_flags & IRP_VBF_UNKNOWN)
+	GENRESULT gr;
 	{
-		NOT_IMPLEMENTED;
-	}
-	else*/
-	{
-		vertex_buffer = new RPVertexBufferInternal{};
-		vertex_buffer->direct3d_vertex_buffer_usage = D3DUSAGE_WRITEONLY;
+		DWORD usage = 0;
+		if (irp_vbf_flags & IRP_VBF_READ)
+		{
+			usage = D3DUSAGE_DYNAMIC;
+		}
 		if (irp_vbf_flags & IRP_VBF_SOFTWAREPROCESSING)
 		{
-			vertex_buffer->direct3d_vertex_buffer_usage = D3DUSAGE_SOFTWAREPROCESSING;
+			usage = D3DUSAGE_SOFTWAREPROCESSING;
 		}
+		DX8VertexBuffer* vertex_buffer = new DX8VertexBuffer(usage);
 
-		hvertexbuffer = reinterpret_cast<IRP_VERTEXBUFFERHANDLE>(vertex_buffer);
-
-		auto _unknown22E8 = this->unknown22E8;
-		this->unknown22E8 = (DWORD)vertex_buffer;
-		if (_unknown22E8)
-			*(DWORD*)(_unknown22E8 + 20) = (DWORD)vertex_buffer;
-		else
-			this->unknown22E4 = (DWORD)vertex_buffer;
-		vertex_buffer->unknown14 = 0;
-		vertex_buffer->unknown18 = _unknown22E8;
-		++this->unknown22EC;
-		auto v39 = this->ressize_vb(hvertexbuffer, format, count);
-		if (FAILED(v39))
+		// some kind of linked list ???
 		{
-			NOT_IMPLEMENTED;
-			gr = GR_GENERIC;
+			auto _unknown22E8 = this->unknown22E8;
+			this->unknown22E8 = (DWORD)vertex_buffer;
+			if (_unknown22E8)
+				*(DWORD*)(_unknown22E8 + 20) = (DWORD)vertex_buffer;
+			else
+				this->unknown22E4 = (DWORD)vertex_buffer;
+			vertex_buffer->unknown14 = 0;
+			vertex_buffer->unknown18 = _unknown22E8;
+			++this->unknown22EC;
 		}
-		else
+
+		IRP_VERTEXBUFFERHANDLE hvertexbuffer = reinterpret_cast<IRP_VERTEXBUFFERHANDLE>(vertex_buffer);
+		if (SUCCEEDED(gr = ressize_vb(hvertexbuffer, format, count)))
 		{
-			gr = GR_OK;
+			*out_vb_handle = hvertexbuffer;
 		}
-
-	}
-	if (SUCCEEDED(gr))
-	{
-		ASSERT(hvertexbuffer != nullptr);
-		*out_vb_handle = hvertexbuffer;
-
-		gr = GR_OK;
 	}
 	return gr;
 }
@@ -4697,10 +4684,13 @@ GENRESULT NewRenderPipeline::destroy_vb(IRP_VERTEXBUFFERHANDLE& vb_handle)
 	}
 	else
 	{
-		RPVertexBufferInternal* vertex_buffer = reinterpret_cast<RPVertexBufferInternal*>(vb_handle);
-		if (vertex_buffer->direct3d_vertex_buffer)
+		DX8VertexBuffer* vertex_buffer = reinterpret_cast<DX8VertexBuffer*>(vb_handle);
+
+
+
+		if (vertex_buffer->buffer)
 		{
-			U32 refcount = vertex_buffer->direct3d_vertex_buffer->Release();
+			U32 refcount = vertex_buffer->buffer->Release();
 			if (refcount > 0)
 			{
 				GENERAL_WARNING(TEMPSTR("direct3d_vertex_buffer released with %u references", refcount));
@@ -4716,7 +4706,7 @@ GENRESULT NewRenderPipeline::ressize_vb(IRP_VERTEXBUFFERHANDLE vb_handle, U32 fo
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT gr = GR_GENERIC;
+	GENRESULT gr;
 	//if (!is_vb_valid(vb_handle))
 	if (vb_handle == IRP_SCRATCH_VB_HANDLE)
 	{
@@ -4724,45 +4714,23 @@ GENRESULT NewRenderPipeline::ressize_vb(IRP_VERTEXBUFFERHANDLE vb_handle, U32 fo
 	}
 	else
 	{
-		RPVertexBufferInternal* vertex_buffer = reinterpret_cast<RPVertexBufferInternal*>(vb_handle);
+		DX8VertexBuffer* vertex_buffer = reinterpret_cast<DX8VertexBuffer*>(vb_handle);
 
-		// dispose
-		if (vertex_buffer->direct3d_vertex_buffer)
-		{
-			if (vertex_buffer->locked_data)
-			{
-				vertex_buffer->locked_data = 0;
-				vertex_buffer->direct3d_vertex_buffer->Unlock();
-			}
-			vertex_buffer->direct3d_vertex_buffer->Release();
-			vertex_buffer->direct3d_vertex_buffer = 0;
-		}
-
-		vertex_buffer->vertex_format = format;
-		vertex_buffer->num_verts = num_verts;
-		vertex_buffer->unknownC = 0;
-		vertex_buffer->unknown1C = 0;
-
-		U32 stride = FVF_SIZEOF_VERT(format);
-		U32 length = stride * vertex_buffer->num_verts;
 		HRESULT hr;
-		if (SUCCEEDED(hr = direct3d_device->CreateVertexBuffer(
-			length,
-			vertex_buffer->direct3d_vertex_buffer_usage,
-			format,
-			D3DPOOL_DEFAULT,
-			&vertex_buffer->direct3d_vertex_buffer)))
+		/*if (FAILED(hr = vertex_buffer->dispose()))
 		{
-			gr = GR_OK;
+			GENERAL_ERROR(TEMPSTR("dispose: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+			gr = GR_GENERIC;
+		}
+		else */if(FAILED(hr = vertex_buffer->create_vb(direct3d_device, format, num_verts)))
+		{
+			GENERAL_ERROR(TEMPSTR("%s couldnt resize vb (err:%s)", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+			gr = GR_GENERIC;
 		}
 		else
 		{
-			GENERAL_ERROR(TEMPSTR("%s couldnt resize vb (err:%s) %d bytes", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr), length));
-			gr = GR_GENERIC;
+			gr = GR_OK;
 		}
-
-		gr = GR_OK;
-		vb_handle = nullptr;
 	}
 	return gr;
 }
@@ -4791,21 +4759,21 @@ GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vb_handle, U32
 			vb_handle = scratchVB;
 		}
 
-		RPVertexBufferInternal* vertex_buffer = reinterpret_cast<RPVertexBufferInternal*>(vb_handle);
+		DX8VertexBuffer* vertex_buffer = reinterpret_cast<DX8VertexBuffer*>(vb_handle);
 
 		U32 stride = FVF_SIZEOF_VERT(vertex_buffer->vertex_format);
 		U32 offset_ = offset ? *offset : 0;
 
 		void* locked_data_ptr;
-		auto v30 = vertex_buffer->locked_data != 0;
+		auto v30 = vertex_buffer->lockptr != 0;
 		if (v30)
 		{
-			locked_data_ptr = (void*)((char*)vertex_buffer->locked_data + offset_ * stride);
+			locked_data_ptr = (void*)((char*)vertex_buffer->lockptr + offset_ * stride);
 			gr = GR_OK;
 		}
 		else
 		{
-			if (SUCCEEDED(hr = lock_vb(vb_handle, &offset_, &locked_data_ptr, num_vertices)))
+			if (SUCCEEDED(hr = lock_vb(vb_handle, &offset_, locked_data_ptr, num_vertices)))
 			{
 				gr = GR_OK;
 			}
@@ -4824,7 +4792,7 @@ GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vb_handle, U32
 
 			if (!v30)
 			{
-				vertex_buffer->locked_data = 0;
+				vertex_buffer->lockptr = 0;
 				this->unlock_vb(vb_handle);
 			}
 			if (offset)
@@ -4840,203 +4808,65 @@ GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vb_handle, U32
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::lock_vb(IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, void** locked_data, U32 count)
-{
-	// #TODO Cleanup
-	CHECK_DEVICE_LIFETIME();
-
-	//int v6; // esi
-	//int v7; // edi
-	int v8; // eax
-	bool v11; // [esp+Fh] [ebp-403Dh]
-	DWORD unknownC; // [esp+10h] [ebp-403Ch]
-	DWORD vertex_format; // [esp+14h] [ebp-4038h]
-	//int v14; // [esp+18h] [ebp-4034h]
-	HRESULT v17; // [esp+2024h] [ebp-2028h]
-	unsigned int stride; // [esp+2028h] [ebp-2024h]
-	DWORD v19; // [esp+202Ch] [ebp-2020h]
-	unsigned int v20; // [esp+2030h] [ebp-201Ch]
-	unsigned int v21; // [esp+2034h] [ebp-2018h]
-	RPVertexBufferInternal* vertex_buffer; // [esp+4040h] [ebp-Ch]
-	U32 offset_; // [esp+4044h] [ebp-8h]
-	HRESULT v27; // [esp+4048h] [ebp-4h]
-
-	v27 = -2147467259;
-	if (vb_handle && vb_handle != (IRP_VERTEXBUFFERHANDLE)-1)
-	{
-		vertex_buffer = (RPVertexBufferInternal*)vb_handle;
-		if (offset)
-			offset_ = *offset;
-		else
-			offset_ = 0;
-		v11 = (this->unknown128 & 2) != 0;
-		unknownC = offset_;
-		if (!vertex_buffer->direct3d_vertex_buffer)
-		{
-			v27 = -2147467259;
-			goto LABEL_24;
-		}
-		if (vertex_buffer->num_verts < count)
-		{
-			GENERAL_NOTICE(TEMPSTR("vertex buffer %x at %d verts too small to hold requested locked verts %d", vertex_buffer->direct3d_vertex_buffer, vertex_buffer->num_verts, count));
-			v27 = -2147467259;
-		LABEL_24:
-			if (v27 < 0)
-			{
-				GENERAL_WARNING(TEMPSTR("%s: vb_lock: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-			}
-			return (GENRESULT)v27;
-		}
-		vertex_format = vertex_buffer->vertex_format;
-
-		stride = FVF_SIZEOF_VERT(vertex_format);
-
-		v19 = vertex_buffer->num_verts * stride;
-		v20 = stride * count;
-		v21 = v11 ? 0 : 2048;
-		if ((vertex_buffer->direct3d_vertex_buffer_usage & 0x200) != 0)
-		{
-			if (v20 + vertex_buffer->unknownC > v19)
-			{
-				vertex_buffer->unknownC = 0;
-				vertex_buffer->unknown1C = 0;
-				v21 |= 0x2000u;
-				unknownC = 0;
-				v8 = vertex_buffer->direct3d_vertex_buffer->Lock(
-					0,
-					v20,
-					(unsigned __int8**)&vertex_buffer->locked_data,
-					v21);
-			LABEL_19:
-				v17 = v8;
-				if (v8 >= 0)
-				{
-					vertex_buffer->unknown1C = unknownC / stride;
-					if (offset)
-						*offset = vertex_buffer->unknown1C;
-					*locked_data = vertex_buffer->locked_data;
-					vertex_buffer->unknownC = v20 + unknownC;
-				}
-				v27 = v17;
-				goto LABEL_24;
-			}
-			v21 |= 0x1000u;
-			unknownC = vertex_buffer->unknownC;
-		}
-		v8 = vertex_buffer->direct3d_vertex_buffer->Lock(
-			unknownC,
-			v20,
-			(unsigned __int8**)&vertex_buffer->locked_data,
-			v21);
-		goto LABEL_19;
-	}
-	return (GENRESULT)v27;
-
-
-
-
-
-
-
-	//return DirectX8_lock_vb(this, vb_handle, offset, locked_data, count);
-	//CHECK_DEVICE_LIFETIME();
-	//
-	//if (vb_handle == IRP_SCRATCH_VB_HANDLE) {
-	//	vb_handle = reinterpret_cast<IRP_VERTEXBUFFERHANDLE>(scratchVB);
-	//}
-	//
-	//RPVertexBufferInternal* vertex_buffer = reinterpret_cast<RPVertexBufferInternal*>(vb_handle);
-	//
-	////D3DVERTEXBUFFER_DESC desc;
-	////if (FAILED(vertex_buffer->direct3d_vertex_buffer->GetDesc(&desc)))
-	////{
-	////	return GR_GENERIC;
-	////}
-	////*out_vertex_buffer_size = desc.Size / FVF_SIZEOF_VERT(desc.FVF);
-	//
-	//DWORD offset_ = offset ? *offset : 0;
-	//if (FAILED(vertex_buffer->direct3d_vertex_buffer->Lock(offset_, 0, (BYTE**)locked_data, 0)))
-	//{
-	//	return GR_GENERIC;
-	//}
-	//else
-	//{
-	//	//vertex_buffer->unknown1C = v12 / v18;
-	//	if (offset)
-	//		*offset = vertex_buffer->unknown1C;
-	//	*locked_data = vertex_buffer->locked_data;
-	//	//vertex_buffer->unknownC = v20 + v12;
-	//}
-	//return GR_OK;
-	//
-	//
-	//
-	//
-	////CHECK_DEVICE_LIFETIME();
-	////
-	////if (vb_handle == IRP_SCRATCH_VB_HANDLE)
-	////{
-	////	vb_handle = reinterpret_cast<IRP_VERTEXBUFFERHANDLE>(scratchVB);
-	////}
-	////
-	////GENRESULT gr = GR_GENERIC;
-	////if (!is_vb_valid(vb_handle))
-	////{
-	////	gr = GR_INVALID_PARMS;
-	////}
-	////else
-	////{
-	////	RPVertexBufferInternal* vertex_buffer = reinterpret_cast<RPVertexBufferInternal*>(vb_handle);
-	////
-	////	bool unknown = (unknown128 & 2) != 0; // #TODO Better name for this bit, it's set in initialization
-	////	DWORD start_index;
-	////	HRESULT hr;
-	////	if (SUCCEEDED(hr = copy_indices_sub_6D1C660(
-	////		index_buffer,
-	////		offset,
-	////		num_indices,
-	////		locked_data_ptr,
-	////		&start_index,
-	////		unknown)))
-	////	{
-	////		gr = GR_OK;
-	////	}
-	////	else
-	////	{
-	////		GENERAL_ERROR(TEMPSTR("%s: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-	////		gr = GR_GENERIC;
-	////	}
-	////	offset = start_index;
-	////}
-	////return gr;
-}
-
-GENRESULT NewRenderPipeline::unlock_vb(IRP_VERTEXBUFFERHANDLE vb_handle)
+GENRESULT NewRenderPipeline::lock_vb(IRP_VERTEXBUFFERHANDLE vb_handle, U32* start_index, void*& out_data, U32 num_verts)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT gr = GR_GENERIC;
+	GENRESULT gr;
 	if (!is_vb_valid(vb_handle))
 	{
 		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
-		RPVertexBufferInternal* vertex_buffer = reinterpret_cast<RPVertexBufferInternal*>(vb_handle);
-
-		if (vertex_buffer->locked_data)
+		if (vb_handle == IRP_SCRATCH_VB_HANDLE)
 		{
-			HRESULT hr;
-			if (SUCCEEDED(hr = vertex_buffer->direct3d_vertex_buffer->Unlock()))
-			{
-				vertex_buffer->locked_data = nullptr;
-				gr = GR_OK;
-			}
-			else
-			{
-				GENERAL_ERROR(TEMPSTR("%s: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-				gr = GR_GENERIC;
-			}
+			vb_handle = reinterpret_cast<IRP_VERTEXBUFFERHANDLE>(scratchVB);
+		}
+
+		DX8VertexBuffer* vertex_buffer = reinterpret_cast<DX8VertexBuffer*>(vb_handle);
+
+		bool syslock = (unknown128 & 2) != 0;
+		HRESULT hr;
+		U32 dst_index = start_index ? *start_index : 0;
+		if (FAILED(hr = vertex_buffer->lock_vb(dst_index, num_verts, out_data, start_index, syslock)))
+		{
+			GENERAL_ERROR(TEMPSTR("%s: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+			gr = GR_GENERIC;
+		}
+		else
+		{
+			gr = GR_OK;
+		}
+	}
+	return gr;
+}
+
+GENRESULT NewRenderPipeline::unlock_vb(IRP_VERTEXBUFFERHANDLE vb_handle)
+{
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT gr;
+	if (!is_vb_valid(vb_handle))
+	{
+		gr = GR_INVALID_PARMS;
+	}
+	else
+	{
+		if (vb_handle == IRP_SCRATCH_VB_HANDLE)
+		{
+			vb_handle = reinterpret_cast<IRP_VERTEXBUFFERHANDLE>(scratchVB);
+		}
+
+		DX8VertexBuffer* vertex_buffer = reinterpret_cast<DX8VertexBuffer*>(vb_handle);
+
+		if (SUCCEEDED(vertex_buffer->unlock_vb()))
+		{
+			gr = GR_OK;
+		}
+		else
+		{
+			gr = GR_GENERIC;
 		}
 	}
 	return gr;
@@ -5052,43 +4882,40 @@ GENRESULT NewRenderPipeline::select_vb(IRP_VERTEXBUFFERHANDLE vb_handle)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT gr = GR_GENERIC;
-	if ((this->unknown184_is_locked & 1) != 0)
+	GENRESULT gr;
+	if (vb_handle)
 	{
-		if (vb_handle)
+		if (vb_handle == IRP_SCRATCH_VB_HANDLE)
 		{
-			if (vb_handle == IRP_SCRATCH_VB_HANDLE)
-			{
-				vb_handle = curr_hw_geometry.current_vertex_buffer_handle;
-			}
-			gr = curr_hw_geometry.set_vertex_buffer(vb_handle, D3DFMT_UNKNOWN);
+			vb_handle = curr_hw_geometry.current_vertex_buffer_handle;
 		}
-		else
-		{
-			curr_hw_geometry.invalidate();
-			gr = GR_GENERIC;
-		}
+		gr = curr_hw_geometry.set_vertex_buffer(vb_handle, D3DFMT_UNKNOWN);
+	}
+	else
+	{
+		curr_hw_geometry.invalidate();
+		gr = GR_GENERIC;
 	}
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::get_vb_count(IRP_VERTEXBUFFERHANDLE vb_handle, U32* vertex_format, U32* num_verts)
+GENRESULT NewRenderPipeline::get_vb_count(IRP_VERTEXBUFFERHANDLE vb_handle, U32* out_vertex_format, U32* out_num_verts)
 {
 	CHECK_DEVICE_LIFETIME();
 
 	GENRESULT gr = GR_INVALID_PARMS;
 	if (vb_handle && vb_handle != IRP_SCRATCH_VB_HANDLE)
 	{
-		RPVertexBufferInternal* vertex_buffer = reinterpret_cast<RPVertexBufferInternal*>(vb_handle);
+		DX8VertexBuffer* vertex_buffer = reinterpret_cast<DX8VertexBuffer*>(vb_handle);
 
-		if (vertex_format)
+		if (out_vertex_format)
 		{
-			*vertex_format = vertex_buffer->vertex_format;
+			*out_vertex_format = vertex_buffer->vertex_format;
 			gr = GR_OK;
 		}    
-		if (num_verts)
+		if (out_num_verts)
 		{
-			*num_verts = vertex_buffer->num_verts;
+			*out_num_verts = vertex_buffer->element_count;
 			gr = GR_OK;
 		}
 	}
@@ -5097,18 +4924,19 @@ GENRESULT NewRenderPipeline::get_vb_count(IRP_VERTEXBUFFERHANDLE vb_handle, U32*
 
 BOOL32 NewRenderPipeline::is_vb_valid(IRP_VERTEXBUFFERHANDLE vb_handle)
 {
-	BOOL32 result = FALSE;
-	if (vb_handle)
+	BOOL32 result;
+	if (vb_handle == IRP_SCRATCH_VB_HANDLE)
 	{
-		if (vb_handle == IRP_SCRATCH_VB_HANDLE)
-		{
-			result = TRUE;
-		}
-		else
-		{
-			RPVertexBufferInternal* vertex_buffer = reinterpret_cast<RPVertexBufferInternal*>(vb_handle);
-			result = vertex_buffer->direct3d_vertex_buffer != nullptr;
-		}
+		result = TRUE;
+	}
+	else if (vb_handle)
+	{
+		DX8VertexBuffer* vertex_buffer = reinterpret_cast<DX8VertexBuffer*>(vb_handle);
+		result = vertex_buffer->buffer != nullptr;
+	}
+	else
+	{
+		result = FALSE;
 	}
 	return result;
 }
@@ -5219,6 +5047,8 @@ GENRESULT NewRenderPipeline::set_calibration_enable(bool enabled)
 
 GENRESULT NewRenderPipeline::get_calibration_enable(void)
 {
+	// #TODO Cleanup
+
 	if(!this->device_abilities[RP_A_DEVICE_GAMMA] || !this->device_abilities[RP_A_ABILITY2])
 		return GR_INTERFACE_UNSUPPORTED;
 	if ((this->unknown184_is_locked & 2) != 0)
@@ -5303,9 +5133,9 @@ static void Transform2D3D(D3DMATRIX& dst, const Transform& src)
 	dst.m[3][0] = src.translation.x;
 	dst.m[3][1] = src.translation.y;
 	dst.m[3][2] = src.translation.z;
-	dst.m[0][3] =
-		dst.m[1][3] =
-		dst.m[2][3] = 0;
+	dst.m[0][3] = 0;
+	dst.m[1][3] = 0;
+	dst.m[2][3] = 0;
 	dst.m[3][3] = 1;
 }
 

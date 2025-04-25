@@ -116,11 +116,11 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_vb, _sub_6D118C8, IRPVertexBuff
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_vb, _sub_6D11DB3, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE& vb_handle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_ressize_vb, _sub_6D11F78, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vb_handle, U32 format, U32 num_verts);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_vertices, _sub_6D1228C, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_lock_vb, _sub_6D126BB, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, void** locked_data, U32 count);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_lock_vb, _sub_6D126BB, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vb_handle, U32* start_index, void*& out_data, U32 num_verts);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_vb, _sub_6D12A8B, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vb_handle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_RPVertexBuffer_Unknown24, _sub_6D12B30, IRPVertexBuffer* _this, UNKNOWN);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_select_vb, _sub_6D12B9D, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vb_handle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_vb_count, _sub_6D12CDC, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vb_handle, U32* vertex_format, U32* num_verts);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_vb_count, _sub_6D12CDC, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vb_handle, U32* out_vertex_format, U32* out_num_verts);
 TRAMPOLINE(BOOL32, __stdcall, DirectX8_is_vb_valid, _sub_6D12B3C, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vb_handle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_gamma_function, _sub_6D153E6, IGammaControl* _this, IGC_COMPONENT which, float display_gamma, float bias, float slope, float black_offset);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_gamma_ramp, _sub_6D1560C, IGammaControl* _this, IGC_COMPONENT igc_component, U16* ramp);
@@ -2268,11 +2268,11 @@ public:
 	DACOM_DEFMETHOD(destroy_vb)(IRP_VERTEXBUFFERHANDLE& vb_handle) override;
 	DACOM_DEFMETHOD(ressize_vb)(IRP_VERTEXBUFFERHANDLE vb_handle, U32 format, U32 num_verts) override;
 	DACOM_DEFMETHOD(copy_vertices)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices) override;
-	DACOM_DEFMETHOD(lock_vb)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, void** locked_data, U32 count) override;
+	DACOM_DEFMETHOD(lock_vb)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* start_index, void*& out_data, U32 num_verts) override;
 	DACOM_DEFMETHOD(unlock_vb)(IRP_VERTEXBUFFERHANDLE vb_handle) override;
 	DACOM_DEFMETHOD(RPVertexBuffer_Unknown24)(UNKNOWN) override;
 	DACOM_DEFMETHOD(select_vb)(IRP_VERTEXBUFFERHANDLE vb_handle) override;
-	DACOM_DEFMETHOD(get_vb_count)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* vertex_format, U32* num_verts) override;
+	DACOM_DEFMETHOD(get_vb_count)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* out_vertex_format, U32* out_num_verts) override;
 	DACOM_DEFMETHOD_(BOOL32, is_vb_valid)(IRP_VERTEXBUFFERHANDLE vb_handle) override;
 
 	// IGammaControl methods
@@ -2883,9 +2883,9 @@ GENRESULT DirectX8::copy_vertices(IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset,
 	return gr;
 }
 
-GENRESULT DirectX8::lock_vb(IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, void** locked_data, U32 count)
+GENRESULT DirectX8::lock_vb(IRP_VERTEXBUFFERHANDLE vb_handle, U32* start_index, void*& out_data, U32 num_verts)
 {
-	GENRESULT gr = DirectX8_lock_vb(this, vb_handle, offset, locked_data, count);
+	GENRESULT gr = DirectX8_lock_vb(this, vb_handle, start_index, out_data, num_verts);
 	return gr;
 }
 
@@ -2907,9 +2907,9 @@ GENRESULT DirectX8::select_vb(IRP_VERTEXBUFFERHANDLE vb_handle)
 	return gr;
 }
 
-GENRESULT DirectX8::get_vb_count(IRP_VERTEXBUFFERHANDLE vb_handle, U32* vertex_format, U32* num_verts)
+GENRESULT DirectX8::get_vb_count(IRP_VERTEXBUFFERHANDLE vb_handle, U32* out_vertex_format, U32* out_num_verts)
 {
-	GENRESULT gr = DirectX8_get_vb_count(this, vb_handle, vertex_format, num_verts);
+	GENRESULT gr = DirectX8_get_vb_count(this, vb_handle, out_vertex_format, out_num_verts);
 	return gr;
 }
 
