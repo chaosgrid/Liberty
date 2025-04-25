@@ -3716,7 +3716,7 @@ GENRESULT NewRenderPipeline::destroy_texture(IRP_TEXTUREHANDLE htexture)
 		}
 		texture->direct3d_texture = 0;
 		delete texture;
-		}
+	}
 	else
 	{
 		result = GR_INVALID_PARMS;
