@@ -81,8 +81,8 @@ enum RPPIPELINESTATE
 enum RPDEVICEABILITY
 {
 	RP_A_ABILITY0,
-	RP_A_D3DPRASTERCAPS_ANISOTROPY,
-	RP_A_D3DPRASTERCAPS_WFOG,
+	RP_A_DEVICE_GAMMA,
+	RP_A_ABILITY2,
 	RP_A_ABILITY3,
 	RP_A_DEVICE_GEOMETRY, // DEVICE_GEOMETRY
 	RP_A_TEXTURE_SQUARE_ONLY, // TEXTURE_SQUARE_ONLY
@@ -845,7 +845,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(draw_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, U32 flags) = 0;
+	DACOM_DEFMETHOD(draw_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vb_handle, U32 start_vert, U32 num_verts, U32 flags) = 0;
 
 	// draw_indexed_primitive
 	//
@@ -854,7 +854,7 @@ struct DACOM_NO_VTABLE IRenderPipeline8B : public IDAComponent
 	// This method will always return failure 'outside' of successful create_buffers
 	// and destroy_buffers calls.
 	//
-	DACOM_DEFMETHOD(draw_indexed_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, const U16* indices, U32 num_indices, U32 flags) = 0;
+	DACOM_DEFMETHOD(draw_indexed_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vb_handle, U32 start_vert, U32 num_verts, const U16* indices, U32 num_indices, U32 flags) = 0;
 
 	DACOM_DEFMETHOD(add_light)(IRP_LIGHTHANDLE handle) = 0;
 	DACOM_DEFMETHOD(remove_light)(IRP_LIGHTHANDLE handle) = 0;

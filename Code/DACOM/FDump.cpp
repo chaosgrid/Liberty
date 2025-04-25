@@ -93,6 +93,5 @@ extern "C"
 		{
 			int* x = nullptr; *x = 0;
 		}
-		__assume(0);
 	}
 }

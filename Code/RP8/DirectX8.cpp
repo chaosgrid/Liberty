@@ -11,6 +11,7 @@
 #include "CachedTexture.h"
 #include "CachedGeometry.h"
 #include "StateInfo.h"
+#include "DX8/DX8IndexBuffer.h"
 
 #include <d3d8.h>
 #include <Dump.h>
@@ -89,8 +90,8 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_texture_stage_texture, _sub_6D1024
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_verify_state, _sub_6D10322, IRenderPipeline8B* _this);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_primitive, _sub_6D1067F, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, U32 flags);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive, _sub_6D1097D, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, const U16* indices, U32 num_indices, U32 flags);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_primitive_vb, _sub_6D10C89, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, U32 flags);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive_vb, _sub_6D10E4B, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, const U16* indices, U32 num_indices, U32 flags);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_primitive_vb, _sub_6D10C89, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vb_handle, U32 start_vert, U32 num_verts, U32 flags);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive_vb, _sub_6D10E4B, IRenderPipeline8B* _this, D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vb_handle, U32 start_vert, U32 num_verts, const U16* indices, U32 num_indices, U32 flags);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_add_light, _sub_6D0CCB2, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_remove_light, _sub_6D0CD32, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_update_light, _sub_6D0CDDB, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle);
@@ -102,25 +103,25 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_release_vertex_buffer, _sub_6D11877, I
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_Unknown1C, _sub_6D118BC, IVertexBufferManager* _this);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_vertex_buffer_desc, _sub_6D114C5, IVertexBufferManager* _this, void* dst_buffer, U32 dst_vertex_format, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive2, _sub_6D111E1, IRPDraw* _this, D3DPRIMITIVETYPE type, U32 min_index, U32 num_verts, U32 start_index, U32 count);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_index_buffer, _sub_6D12D4E, IRPIndexBuffer* _this, U32 count, IRP_INDEXBUFFERHANDLE* out_ibhandle, BYTE flags);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_index_buffer, _sub_6D13002, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_ib, _sub_6D131B2, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle, U32 count);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_indices, _sub_6D13847, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle, U32& offset, U16 const* indices, U32 num_indices);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_lock_ib, _sub_6D134EC, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle, U32& offset, void** locked_data_ptr, U32 num_indices);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_ib, _sub_6D13794, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_select_ib, _sub_6D13BCE, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle, U32 base_index, UNKNOWN a4, UNKNOWN a5);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_ib_count, _sub_6D13D23, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle, U32* out_count);
-TRAMPOLINE(BOOL32, __stdcall, DirectX8_is_ib_valid, _sub_6D13B69, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_vb, _sub_6D118C8, IRPVertexBuffer* _this, U32 format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, U8 irp_vbf_flags);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_vb, _sub_6D11DB3, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE& vbhandle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_ressize_vb, _sub_6D11F78, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32 format, U32 num_verts);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_vertices, _sub_6D1228C, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_lock_vb, _sub_6D126BB, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32& offset, void** locked_data, U32 count);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_vb, _sub_6D12A8B, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_index_buffer, _sub_6D12D4E, IRPIndexBuffer* _this, U32 count, IRP_INDEXBUFFERHANDLE* out_ib_handle, BYTE flags);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_index_buffer, _sub_6D13002, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ib_handle);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_ib, _sub_6D131B2, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ib_handle, U32 num_indices);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_indices, _sub_6D13847, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ib_handle, U32* start_index, U16 const* indices, U32 num_indices);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_lock_ib, _sub_6D134EC, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ib_handle, U32* start_index, void*& out_data, U32 num_indices);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_ib, _sub_6D13794, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ib_handle);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_select_ib, _sub_6D13BCE, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ib_handle, U32 base_index, UNKNOWN a4, UNKNOWN a5);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_ib_count, _sub_6D13D23, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ib_handle, U32* out_count);
+TRAMPOLINE(BOOL32, __stdcall, DirectX8_is_ib_valid, _sub_6D13B69, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ib_handle);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_vb, _sub_6D118C8, IRPVertexBuffer* _this, U32 format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vb_handle, U8 irp_vbf_flags);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_vb, _sub_6D11DB3, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE& vb_handle);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_ressize_vb, _sub_6D11F78, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vb_handle, U32 format, U32 num_verts);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_vertices, _sub_6D1228C, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_lock_vb, _sub_6D126BB, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, void** locked_data, U32 count);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_vb, _sub_6D12A8B, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vb_handle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_RPVertexBuffer_Unknown24, _sub_6D12B30, IRPVertexBuffer* _this, UNKNOWN);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_select_vb, _sub_6D12B9D, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_vb_count, _sub_6D12CDC, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, UNKNOWN* vertex_format, U32* num_verts);
-TRAMPOLINE(BOOL32, __stdcall, DirectX8_is_vb_valid, _sub_6D12B3C, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_select_vb, _sub_6D12B9D, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vb_handle);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_vb_count, _sub_6D12CDC, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vb_handle, U32* vertex_format, U32* num_verts);
+TRAMPOLINE(BOOL32, __stdcall, DirectX8_is_vb_valid, _sub_6D12B3C, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vb_handle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_gamma_function, _sub_6D153E6, IGammaControl* _this, IGC_COMPONENT which, float display_gamma, float bias, float slope, float black_offset);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_gamma_ramp, _sub_6D1560C, IGammaControl* _this, IGC_COMPONENT igc_component, U16* ramp);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_gamma_ramp, _sub_6D15757, IGammaControl* _this, IGC_COMPONENT igc_component, U16* out_ramp);
@@ -154,7 +155,7 @@ public:
 	IDirect3DDevice8* direct3d_device;
 	IDirect3DSurface8* direct3d_surface;
 	CACHED_GEOMETRY curr_hw_geometry;
-	RPIndexBufferInternal scratchIB;
+	DX8IndexBuffer scratchIB;
 	DWORD unknown168;
 	DWORD unknown16C;
 	DWORD unknown170;
@@ -2229,8 +2230,8 @@ public:
 	DACOM_DEFMETHOD(verify_state)(void) override;
 	DACOM_DEFMETHOD(draw_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, U32 flags) override;
 	DACOM_DEFMETHOD(draw_indexed_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, const U16* indices, U32 num_indices, U32 flags) override;
-	DACOM_DEFMETHOD(draw_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, U32 flags) override;
-	DACOM_DEFMETHOD(draw_indexed_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, const U16* indices, U32 num_indices, U32 flags) override;
+	DACOM_DEFMETHOD(draw_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vb_handle, U32 start_vert, U32 num_verts, U32 flags) override;
+	DACOM_DEFMETHOD(draw_indexed_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vb_handle, U32 start_vert, U32 num_verts, const U16* indices, U32 num_indices, U32 flags) override;
 	DACOM_DEFMETHOD(add_light)(IRP_LIGHTHANDLE handle) override;
 	DACOM_DEFMETHOD(remove_light)(IRP_LIGHTHANDLE handle) override;
 	DACOM_DEFMETHOD(update_light)(IRP_LIGHTHANDLE handle) override;
@@ -2251,28 +2252,28 @@ public:
 
 	// IRPIndexBuffer methods
 
-	DACOM_DEFMETHOD(create_index_buffer)(U32 count, IRP_INDEXBUFFERHANDLE* out_ibhandle, BYTE flags) override;
-	DACOM_DEFMETHOD(destroy_index_buffer)(IRP_INDEXBUFFERHANDLE ibhandle) override;
-	DACOM_DEFMETHOD(create_ib)(IRP_INDEXBUFFERHANDLE ibhandle, U32 count) override;
-	DACOM_DEFMETHOD(copy_indices)(IRP_INDEXBUFFERHANDLE ibhandle, U32& offset, U16 const* indices, U32 num_indices) override;
-	DACOM_DEFMETHOD(lock_ib)(IRP_INDEXBUFFERHANDLE ibhandle, U32& offset, void** locked_data_ptr, U32 num_indices) override;
-	DACOM_DEFMETHOD(unlock_ib)(IRP_INDEXBUFFERHANDLE ibhandle) override;
-	DACOM_DEFMETHOD(select_ib)(IRP_INDEXBUFFERHANDLE ibhandle, U32 base_index, UNKNOWN a4, UNKNOWN a5) override;
-	DACOM_DEFMETHOD(get_ib_count)(IRP_INDEXBUFFERHANDLE ibhandle, U32* out_count) override;
-	DACOM_DEFMETHOD_(BOOL32, is_ib_valid)(IRP_INDEXBUFFERHANDLE ibhandle) override;
+	DACOM_DEFMETHOD(create_index_buffer)(U32 count, IRP_INDEXBUFFERHANDLE* out_ib_handle, BYTE flags) override;
+	DACOM_DEFMETHOD(destroy_index_buffer)(IRP_INDEXBUFFERHANDLE ib_handle) override;
+	DACOM_DEFMETHOD(create_ib)(IRP_INDEXBUFFERHANDLE ib_handle, U32 num_indices) override;
+	DACOM_DEFMETHOD(copy_indices)(IRP_INDEXBUFFERHANDLE ib_handle, U32* start_index, U16 const* indices, U32 num_indices) override;
+	DACOM_DEFMETHOD(lock_ib)(IRP_INDEXBUFFERHANDLE ib_handle, U32* start_index, void*& out_data, U32 num_indices) override;
+	DACOM_DEFMETHOD(unlock_ib)(IRP_INDEXBUFFERHANDLE ib_handle) override;
+	DACOM_DEFMETHOD(select_ib)(IRP_INDEXBUFFERHANDLE ib_handle, U32 base_index, UNKNOWN a4, UNKNOWN a5) override;
+	DACOM_DEFMETHOD(get_ib_count)(IRP_INDEXBUFFERHANDLE ib_handle, U32* out_count) override;
+	DACOM_DEFMETHOD_(BOOL32, is_ib_valid)(IRP_INDEXBUFFERHANDLE ib_handle) override;
 
 	// IRPVertexBuffer methods
 
-	DACOM_DEFMETHOD(create_vb)(U32 format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, U8 irp_vbf_flags) override;
-	DACOM_DEFMETHOD(destroy_vb)(IRP_VERTEXBUFFERHANDLE& vbhandle) override;
-	DACOM_DEFMETHOD(ressize_vb)(IRP_VERTEXBUFFERHANDLE vbhandle, U32 format, U32 num_verts) override;
-	DACOM_DEFMETHOD(copy_vertices)(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices) override;
-	DACOM_DEFMETHOD(lock_vb)(IRP_VERTEXBUFFERHANDLE vbhandle, U32& offset, void** locked_data, U32 count) override;
-	DACOM_DEFMETHOD(unlock_vb)(IRP_VERTEXBUFFERHANDLE vbhandle) override;
+	DACOM_DEFMETHOD(create_vb)(U32 format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vb_handle, U8 irp_vbf_flags) override;
+	DACOM_DEFMETHOD(destroy_vb)(IRP_VERTEXBUFFERHANDLE& vb_handle) override;
+	DACOM_DEFMETHOD(ressize_vb)(IRP_VERTEXBUFFERHANDLE vb_handle, U32 format, U32 num_verts) override;
+	DACOM_DEFMETHOD(copy_vertices)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices) override;
+	DACOM_DEFMETHOD(lock_vb)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, void** locked_data, U32 count) override;
+	DACOM_DEFMETHOD(unlock_vb)(IRP_VERTEXBUFFERHANDLE vb_handle) override;
 	DACOM_DEFMETHOD(RPVertexBuffer_Unknown24)(UNKNOWN) override;
-	DACOM_DEFMETHOD(select_vb)(IRP_VERTEXBUFFERHANDLE vbhandle) override;
-	DACOM_DEFMETHOD(get_vb_count)(IRP_VERTEXBUFFERHANDLE vbhandle, UNKNOWN* vertex_format, U32* num_verts) override;
-	DACOM_DEFMETHOD_(BOOL32, is_vb_valid)(IRP_VERTEXBUFFERHANDLE vbhandle) override;
+	DACOM_DEFMETHOD(select_vb)(IRP_VERTEXBUFFERHANDLE vb_handle) override;
+	DACOM_DEFMETHOD(get_vb_count)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* vertex_format, U32* num_verts) override;
+	DACOM_DEFMETHOD_(BOOL32, is_vb_valid)(IRP_VERTEXBUFFERHANDLE vb_handle) override;
 
 	// IGammaControl methods
 
@@ -2726,15 +2727,15 @@ GENRESULT DirectX8::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 vertex_for
 	return gr;
 }
 
-GENRESULT DirectX8::draw_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, U32 flags)
+GENRESULT DirectX8::draw_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vb_handle, U32 start_vert, U32 num_verts, U32 flags)
 {
-	GENRESULT gr = DirectX8_draw_primitive_vb(this, type, vbhandle, start_vert, num_verts, flags);
+	GENRESULT gr = DirectX8_draw_primitive_vb(this, type, vb_handle, start_vert, num_verts, flags);
 	return gr;
 }
 
-GENRESULT DirectX8::draw_indexed_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, const U16* indices, U32 num_indices, U32 flags)
+GENRESULT DirectX8::draw_indexed_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vb_handle, U32 start_vert, U32 num_verts, const U16* indices, U32 num_indices, U32 flags)
 {
-	GENRESULT gr = DirectX8_draw_indexed_primitive_vb(this, type, vbhandle, start_vert, num_verts, indices, num_indices, flags);
+	GENRESULT gr = DirectX8_draw_indexed_primitive_vb(this, type, vb_handle, start_vert, num_verts, indices, num_indices, flags);
 	return gr;
 }
 
@@ -2804,93 +2805,93 @@ GENRESULT DirectX8::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 min_index,
 	return gr;
 }
 
-GENRESULT DirectX8::create_index_buffer(U32 count, IRP_INDEXBUFFERHANDLE* out_ibhandle, BYTE flags)
+GENRESULT DirectX8::create_index_buffer(U32 count, IRP_INDEXBUFFERHANDLE* out_ib_handle, BYTE flags)
 {
-	GENRESULT gr = DirectX8_create_index_buffer(this, count, out_ibhandle, flags);
+	GENRESULT gr = DirectX8_create_index_buffer(this, count, out_ib_handle, flags);
 	return gr;
 }
 
-GENRESULT DirectX8::destroy_index_buffer(IRP_INDEXBUFFERHANDLE ibhandle)
+GENRESULT DirectX8::destroy_index_buffer(IRP_INDEXBUFFERHANDLE ib_handle)
 {
-	GENRESULT gr = DirectX8_destroy_index_buffer(this, ibhandle);
+	GENRESULT gr = DirectX8_destroy_index_buffer(this, ib_handle);
 	return gr;
 }
 
-GENRESULT DirectX8::create_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32 count)
+GENRESULT DirectX8::create_ib(IRP_INDEXBUFFERHANDLE ib_handle, U32 num_indices)
 {
-	GENRESULT gr = DirectX8_create_ib(this, ibhandle, count);
+	GENRESULT gr = DirectX8_create_ib(this, ib_handle, num_indices);
 	return gr;
 }
 
-GENRESULT DirectX8::copy_indices(IRP_INDEXBUFFERHANDLE ibhandle, U32& offset, U16 const* indices, U32 num_indices)
+GENRESULT DirectX8::copy_indices(IRP_INDEXBUFFERHANDLE ib_handle, U32* start_index, U16 const* indices, U32 num_indices)
 {
-	GENRESULT gr = DirectX8_copy_indices(this, ibhandle, offset, indices, num_indices);
+	GENRESULT gr = DirectX8_copy_indices(this, ib_handle, start_index, indices, num_indices);
 	return gr;
 }
 
-GENRESULT DirectX8::lock_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32& offset, void** locked_data_ptr, U32 num_indices)
+GENRESULT DirectX8::lock_ib(IRP_INDEXBUFFERHANDLE ib_handle, U32* start_index, void*& out_data, U32 num_indices)
 {
-	GENRESULT gr = DirectX8_lock_ib(this, ibhandle, offset, locked_data_ptr, num_indices);
+	GENRESULT gr = DirectX8_lock_ib(this, ib_handle, start_index, out_data, num_indices);
 	return gr;
 }
 
-GENRESULT DirectX8::unlock_ib(IRP_INDEXBUFFERHANDLE ibhandle)
+GENRESULT DirectX8::unlock_ib(IRP_INDEXBUFFERHANDLE ib_handle)
 {
-	GENRESULT gr = DirectX8_unlock_ib(this, ibhandle);
+	GENRESULT gr = DirectX8_unlock_ib(this, ib_handle);
 	return gr;
 }
 
-GENRESULT DirectX8::select_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32 base_index, UNKNOWN a4, UNKNOWN a5)
+GENRESULT DirectX8::select_ib(IRP_INDEXBUFFERHANDLE ib_handle, U32 base_index, UNKNOWN a4, UNKNOWN a5)
 {
-	GENRESULT gr = DirectX8_select_ib(this, ibhandle, base_index, a4, a5);
+	GENRESULT gr = DirectX8_select_ib(this, ib_handle, base_index, a4, a5);
 	return gr;
 }
 
-GENRESULT DirectX8::get_ib_count(IRP_INDEXBUFFERHANDLE ibhandle, U32* out_count)
+GENRESULT DirectX8::get_ib_count(IRP_INDEXBUFFERHANDLE ib_handle, U32* out_count)
 {
-	GENRESULT gr = DirectX8_get_ib_count(this, ibhandle, out_count);
+	GENRESULT gr = DirectX8_get_ib_count(this, ib_handle, out_count);
 	return gr;
 }
 
-BOOL32 DirectX8::is_ib_valid(IRP_INDEXBUFFERHANDLE ibhandle)
+BOOL32 DirectX8::is_ib_valid(IRP_INDEXBUFFERHANDLE ib_handle)
 {
-	BOOL32 gr = DirectX8_is_ib_valid(this, ibhandle);
+	BOOL32 gr = DirectX8_is_ib_valid(this, ib_handle);
 	return gr;
 }
 
-GENRESULT DirectX8::create_vb(U32 format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, U8 irp_vbf_flags)
+GENRESULT DirectX8::create_vb(U32 format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vb_handle, U8 irp_vbf_flags)
 {
-	GENRESULT gr = DirectX8_create_vb(this, format, count, out_vbhandle, irp_vbf_flags);
+	GENRESULT gr = DirectX8_create_vb(this, format, count, out_vb_handle, irp_vbf_flags);
 	return gr;
 }
 
-GENRESULT DirectX8::destroy_vb(IRP_VERTEXBUFFERHANDLE& vbhandle)
+GENRESULT DirectX8::destroy_vb(IRP_VERTEXBUFFERHANDLE& vb_handle)
 {
-	GENRESULT gr = DirectX8_destroy_vb(this, vbhandle);
+	GENRESULT gr = DirectX8_destroy_vb(this, vb_handle);
 	return gr;
 }
 
-GENRESULT DirectX8::ressize_vb(IRP_VERTEXBUFFERHANDLE vbhandle, U32 format, U32 num_verts)
+GENRESULT DirectX8::ressize_vb(IRP_VERTEXBUFFERHANDLE vb_handle, U32 format, U32 num_verts)
 {
-	GENRESULT gr = DirectX8_ressize_vb(this, vbhandle, format, num_verts);
+	GENRESULT gr = DirectX8_ressize_vb(this, vb_handle, format, num_verts);
 	return gr;
 }
 
-GENRESULT DirectX8::copy_vertices(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices)
+GENRESULT DirectX8::copy_vertices(IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices)
 {
-	GENRESULT gr = DirectX8_copy_vertices(this, vbhandle, offset, src_vb_desc, start_vertex, num_vertices);
+	GENRESULT gr = DirectX8_copy_vertices(this, vb_handle, offset, src_vb_desc, start_vertex, num_vertices);
 	return gr;
 }
 
-GENRESULT DirectX8::lock_vb(IRP_VERTEXBUFFERHANDLE vbhandle, U32& offset, void** locked_data, U32 count)
+GENRESULT DirectX8::lock_vb(IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, void** locked_data, U32 count)
 {
-	GENRESULT gr = DirectX8_lock_vb(this, vbhandle, offset, locked_data, count);
+	GENRESULT gr = DirectX8_lock_vb(this, vb_handle, offset, locked_data, count);
 	return gr;
 }
 
-GENRESULT DirectX8::unlock_vb(IRP_VERTEXBUFFERHANDLE vbhandle)
+GENRESULT DirectX8::unlock_vb(IRP_VERTEXBUFFERHANDLE vb_handle)
 {
-	GENRESULT gr = DirectX8_unlock_vb(this, vbhandle);
+	GENRESULT gr = DirectX8_unlock_vb(this, vb_handle);
 	return gr;
 }
 
@@ -2900,21 +2901,21 @@ GENRESULT DirectX8::RPVertexBuffer_Unknown24(UNKNOWN a2)
 	return gr;
 }
 
-GENRESULT DirectX8::select_vb(IRP_VERTEXBUFFERHANDLE vbhandle)
+GENRESULT DirectX8::select_vb(IRP_VERTEXBUFFERHANDLE vb_handle)
 {
-	GENRESULT gr = DirectX8_select_vb(this, vbhandle);
+	GENRESULT gr = DirectX8_select_vb(this, vb_handle);
 	return gr;
 }
 
-GENRESULT DirectX8::get_vb_count(IRP_VERTEXBUFFERHANDLE vbhandle, UNKNOWN* vertex_format, U32* num_verts)
+GENRESULT DirectX8::get_vb_count(IRP_VERTEXBUFFERHANDLE vb_handle, U32* vertex_format, U32* num_verts)
 {
-	GENRESULT gr = DirectX8_get_vb_count(this, vbhandle, vertex_format, num_verts);
+	GENRESULT gr = DirectX8_get_vb_count(this, vb_handle, vertex_format, num_verts);
 	return gr;
 }
 
-BOOL32 DirectX8::is_vb_valid(IRP_VERTEXBUFFERHANDLE vbhandle)
+BOOL32 DirectX8::is_vb_valid(IRP_VERTEXBUFFERHANDLE vb_handle)
 {
-	BOOL32 gr = DirectX8_is_vb_valid(this, vbhandle);
+	BOOL32 gr = DirectX8_is_vb_valid(this, vb_handle);
 	return gr;
 }
 

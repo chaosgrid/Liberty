@@ -10,6 +10,8 @@
 #include "CachedViewport.h"
 #include "CachedTexture.h"
 #include "CachedGeometry.h"
+#include "StateInfo.h"
+#include "DX8/DX8IndexBuffer.h"
 
 #include <Tfuncs.h>
 #include <Matrix4.h>
@@ -30,14 +32,14 @@ static U32 GetPrimCount(D3DPRIMITIVETYPE type, U32 indexCount);
 #define CHECK_STARTUP() \
 if (direct3d_adapter == -1) \
 { \
-	GENERAL_ERROR(TEMPSTR("%s() called outside of startup/shutdown", __FUNCTION__)); \
+	GENERAL_WARNING(TEMPSTR("%s() called outside of startup/shutdown", __FUNCTION__)); \
 	return GR_GENERIC; \
 }
 
 #define CHECK_DEVICE_LIFETIME() \
 if (direct3d_device == NULL) \
 { \
-	GENERAL_ERROR(TEMPSTR("%s() called outside of device lifetime", __FUNCTION__)); \
+	GENERAL_WARNING(TEMPSTR("%s() called outside of device lifetime", __FUNCTION__)); \
 	return GR_GENERIC; \
 }
 
@@ -212,23 +214,9 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_Unknown10, _sub_6D
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_acquire_vertex_buffer, _sub_6D114EA, IVertexBufferManager* _this, UNKNOWN vertex_format, U32 num_verts, VertexBufferAcquire* out_result);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_release_vertex_buffer, _sub_6D11877, IVertexBufferManager* _this, VertexBufferAcquire* vbacquire);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_Unknown1C, _sub_6D118BC, IVertexBufferManager* _this);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_vertex_buffer_desc, _sub_6D114C5, IVertexBufferManager* _this, void* dst_buffer, U32 dst_vertex_format, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive2, _sub_6D111E1, IRPDraw* _this, D3DPRIMITIVETYPE type, U32 min_index, U32 num_verts, U32 start_index, U32 count);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_index_buffer, _sub_6D12D4E, IRPIndexBuffer* _this, U32 count, IRP_INDEXBUFFERHANDLE* out_ibhandle, BYTE flags);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_index_buffer, _sub_6D13002, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ibhandle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_copy_vertices, _sub_6D1228C, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_lock_vb, _sub_6D126BB, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, U32& offset, void** locked_data, U32 count);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_vb, _sub_6D12A8B, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_RPVertexBuffer_Unknown24, _sub_6D12B30, IRPVertexBuffer* _this, UNKNOWN);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_select_vb, _sub_6D12B9D, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_vb_count, _sub_6D12CDC, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle, UNKNOWN* vertex_format, U32* num_verts);
-TRAMPOLINE(BOOL32, __stdcall, DirectX8_is_vb_valid, _sub_6D12B3C, IRPVertexBuffer* _this, IRP_VERTEXBUFFERHANDLE vbhandle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_gamma_function, _sub_6D153E6, IGammaControl* _this, IGC_COMPONENT which, float display_gamma, float bias, float slope, float black_offset);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_gamma_ramp, _sub_6D1560C, IGammaControl* _this, IGC_COMPONENT igc_component, U16* ramp);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_gamma_ramp, _sub_6D15757, IGammaControl* _this, IGC_COMPONENT igc_component, U16* out_ramp);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_calibration_enable, _sub_6D1535D, IGammaControl* _this, bool enabled);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_calibration_enable, _sub_6D153A4, IGammaControl* _this);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_print_screen, _sub_6D13D70, IRPTexture* _this, IFileSystem* pFileSystem, const char* filepath);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_index_buffer, _sub_6D12D4E, IRPIndexBuffer* _this, U32 count, IRP_INDEXBUFFERHANDLE* out_ib_handle, BYTE flags);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_index_buffer, _sub_6D13002, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ib_handle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_load_texture, _sub_6D148D4, IRPTexture* _this, UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_load_surface_from_file, _sub_6D1455E, IRPTexture* _this, UNKNOWN* a2_interface, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_RPTexture_Unknown18, _sub_6D152E4, IRPTexture* _this, UNKNOWN a2, UNKNOWN a3, UNKNOWN* a4);
@@ -256,7 +244,7 @@ public:
 	IDirect3DDevice8* direct3d_device;
 	IDirect3DSurface8* direct3d_surface;
 	CACHED_GEOMETRY curr_hw_geometry;
-	RPIndexBufferInternal scratchIB;
+	DX8IndexBuffer scratchIB;
 	DWORD unknown168;
 	DWORD unknown16C;
 	DWORD unknown170;
@@ -2337,8 +2325,8 @@ public:
 	DACOM_DEFMETHOD(verify_state)(void) override;
 	DACOM_DEFMETHOD(draw_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, U32 flags) override;
 	DACOM_DEFMETHOD(draw_indexed_primitive)(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, const U16* indices, U32 num_indices, U32 flags) override;
-	DACOM_DEFMETHOD(draw_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, U32 flags) override;
-	DACOM_DEFMETHOD(draw_indexed_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, const U16* indices, U32 num_indices, U32 flags) override;
+	DACOM_DEFMETHOD(draw_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vb_handle, U32 start_vert, U32 num_verts, U32 flags) override;
+	DACOM_DEFMETHOD(draw_indexed_primitive_vb)(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vb_handle, U32 start_vert, U32 num_verts, const U16* indices, U32 num_indices, U32 flags) override;
 	DACOM_DEFMETHOD(add_light)(IRP_LIGHTHANDLE handle) override;
 	DACOM_DEFMETHOD(remove_light)(IRP_LIGHTHANDLE handle) override;
 	DACOM_DEFMETHOD(update_light)(IRP_LIGHTHANDLE handle) override;
@@ -2359,28 +2347,28 @@ public:
 
 	// IRPIndexBuffer methods
 
-	DACOM_DEFMETHOD(create_index_buffer)(U32 count, IRP_INDEXBUFFERHANDLE* out_ibhandle, BYTE flags) override;
-	DACOM_DEFMETHOD(destroy_index_buffer)(IRP_INDEXBUFFERHANDLE ibhandle) override;
-	DACOM_DEFMETHOD(create_ib)(IRP_INDEXBUFFERHANDLE ibhandle, U32 count) override;
-	DACOM_DEFMETHOD(copy_indices)(IRP_INDEXBUFFERHANDLE ibhandle, U32& offset, U16 const* indices, U32 num_indices) override;
-	DACOM_DEFMETHOD(lock_ib)(IRP_INDEXBUFFERHANDLE ibhandle, U32& offset, void** locked_data_ptr, U32 num_indices) override;
-	DACOM_DEFMETHOD(unlock_ib)(IRP_INDEXBUFFERHANDLE ibhandle) override;
-	DACOM_DEFMETHOD(select_ib)(IRP_INDEXBUFFERHANDLE ibhandle, U32 base_index, UNKNOWN a4, UNKNOWN a5) override;
-	DACOM_DEFMETHOD(get_ib_count)(IRP_INDEXBUFFERHANDLE ibhandle, U32* out_count) override;
-	DACOM_DEFMETHOD_(BOOL32, is_ib_valid)(IRP_INDEXBUFFERHANDLE ibhandle) override;
+	DACOM_DEFMETHOD(create_index_buffer)(U32 count, IRP_INDEXBUFFERHANDLE* out_ib_handle, BYTE flags) override;
+	DACOM_DEFMETHOD(destroy_index_buffer)(IRP_INDEXBUFFERHANDLE ib_handle) override;
+	DACOM_DEFMETHOD(create_ib)(IRP_INDEXBUFFERHANDLE ib_handle, U32 num_indices) override;
+	DACOM_DEFMETHOD(copy_indices)(IRP_INDEXBUFFERHANDLE ib_handle, U32* start_index, U16 const* indices, U32 num_indices) override;
+	DACOM_DEFMETHOD(lock_ib)(IRP_INDEXBUFFERHANDLE ib_handle, U32* start_index, void*& out_data, U32 num_indices) override;
+	DACOM_DEFMETHOD(unlock_ib)(IRP_INDEXBUFFERHANDLE ib_handle) override;
+	DACOM_DEFMETHOD(select_ib)(IRP_INDEXBUFFERHANDLE ib_handle, U32 base_index, UNKNOWN a4, UNKNOWN a5) override;
+	DACOM_DEFMETHOD(get_ib_count)(IRP_INDEXBUFFERHANDLE ib_handle, U32* out_count) override;
+	DACOM_DEFMETHOD_(BOOL32, is_ib_valid)(IRP_INDEXBUFFERHANDLE ib_handle) override;
 
 	// IRPVertexBuffer methods
 
-	DACOM_DEFMETHOD(create_vb)(U32 format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, U8 irp_vbf_flags) override;
-	DACOM_DEFMETHOD(destroy_vb)(IRP_VERTEXBUFFERHANDLE& vbhandle) override;
-	DACOM_DEFMETHOD(ressize_vb)(IRP_VERTEXBUFFERHANDLE vbhandle, U32 format, U32 num_verts) override;
-	DACOM_DEFMETHOD(copy_vertices)(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices) override;
-	DACOM_DEFMETHOD(lock_vb)(IRP_VERTEXBUFFERHANDLE vbhandle, U32& offset, void** locked_data, U32 count) override;
-	DACOM_DEFMETHOD(unlock_vb)(IRP_VERTEXBUFFERHANDLE vbhandle) override;
+	DACOM_DEFMETHOD(create_vb)(U32 format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vb_handle, U8 irp_vbf_flags) override;
+	DACOM_DEFMETHOD(destroy_vb)(IRP_VERTEXBUFFERHANDLE& vb_handle) override;
+	DACOM_DEFMETHOD(ressize_vb)(IRP_VERTEXBUFFERHANDLE vb_handle, U32 format, U32 num_verts) override;
+	DACOM_DEFMETHOD(copy_vertices)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices) override;
+	DACOM_DEFMETHOD(lock_vb)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, void** locked_data, U32 count) override;
+	DACOM_DEFMETHOD(unlock_vb)(IRP_VERTEXBUFFERHANDLE vb_handle) override;
 	DACOM_DEFMETHOD(RPVertexBuffer_Unknown24)(UNKNOWN) override;
-	DACOM_DEFMETHOD(select_vb)(IRP_VERTEXBUFFERHANDLE vbhandle) override;
-	DACOM_DEFMETHOD(get_vb_count)(IRP_VERTEXBUFFERHANDLE vbhandle, UNKNOWN* vertex_format, U32* num_verts) override;
-	DACOM_DEFMETHOD_(BOOL32, is_vb_valid)(IRP_VERTEXBUFFERHANDLE vbhandle) override;
+	DACOM_DEFMETHOD(select_vb)(IRP_VERTEXBUFFERHANDLE vb_handle) override;
+	DACOM_DEFMETHOD(get_vb_count)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* vertex_format, U32* num_verts) override;
+	DACOM_DEFMETHOD_(BOOL32, is_vb_valid)(IRP_VERTEXBUFFERHANDLE vb_handle) override;
 
 	// IGammaControl methods
 
@@ -2507,8 +2495,8 @@ GENRESULT NewRenderPipeline::startup(const char* profile_name)
 	set_pipeline_state(RP_BROKEN_FLIP, 0);
 
 	device_abilities[RP_A_ABILITY0] = 0;
-	device_abilities[RP_A_D3DPRASTERCAPS_ANISOTROPY] = 1;
-	device_abilities[RP_A_D3DPRASTERCAPS_WFOG] = 1;
+	device_abilities[RP_A_DEVICE_GAMMA] = 1;
+	device_abilities[RP_A_ABILITY2] = 1;
 	device_abilities[RP_A_ABILITY3] = 0xC0000000u;
 	device_abilities[RP_A_DEVICE_GEOMETRY] = 1;
 	device_abilities[RP_A_TEXTURE_SQUARE_ONLY] = 0;
@@ -2728,8 +2716,7 @@ GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinf
 	int v63, v73;
 	DWORD a5, a4;
 	unsigned int v79, v86;
-	HRESULT v67, v69, v72, hr, create_index_buffer_hr;
-	int index_buffer_length;
+	HRESULT v67, v69, v72, hr;
 	RPBUFFERSINFO selected_mode;
 	GENRESULT v71;
 
@@ -2894,29 +2881,8 @@ GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinf
 		update_device_capabilities(this, &direct3d_caps);
 	}
 
-	// Index buffer setup
-	if (this->scratchIB.direct3d_index_buffer) {
-		if (this->scratchIB.locked_data_ptr) {
-			this->scratchIB.direct3d_index_buffer->Unlock();
-			this->scratchIB.locked_data_ptr = nullptr;
-		}
-		this->scratchIB.direct3d_index_buffer->Release();
-		this->scratchIB.direct3d_index_buffer = nullptr;
-	}
-	this->scratchIB.element_count = 0x4000;
-	this->scratchIB.unknown14 = 0;
-	index_buffer_length = 0x8000;
-	create_index_buffer_hr = this->direct3d_device->CreateIndexBuffer(
-		index_buffer_length,
-		this->scratchIB.unknown0_flags_or_usage,
-		D3DFMT_INDEX16,
-		D3DPOOL_DEFAULT,
-		&this->scratchIB.direct3d_index_buffer);
-	if (FAILED(create_index_buffer_hr)) {
-		GENERAL_ERROR(TEMPSTR("couldn't create ib (err:%x) %d bytes", create_index_buffer_hr, index_buffer_length));
-		return (GENRESULT)create_index_buffer_hr;
-	}
-	hr = create_index_buffer_hr;
+	/* make sure to check this HR as well */ scratchIB.dispose();
+	hr = scratchIB.create_ib(direct3d_device, 0x4000);
 
 	// Final state setup
 	this->unknown184_is_locked |= 1;
@@ -3349,285 +3315,6 @@ GENRESULT NewRenderPipeline::get_material(D3DMATERIAL8* out_material_values)
 	}
 
 	return GR_OK;
-}
-
-PFenum last_enum;
-D3DFORMAT last_value;
-
-_extern _naked void sub_6D0D628() // _sub_6D0D628
-{
-	__DEBUG_ASM(6D0D628);
-	// chunk 0x6D0D628 _sub_6D0D628
-	asm("loc_6D0D628: push %ebp;");
-	asm("loc_6D0D629: mov %esp,%ebp;");
-	asm("loc_6D0D62B: mov $0x2050,%eax;");
-	asm("loc_6D0D630: call _sub_6D2F270;");
-	asm("loc_6D0D635: mov 8(%ebp),%eax;");
-	asm("loc_6D0D638: cmpl $0,0x130(%eax);");
-	asm("loc_6D0D63F: jne loc_6D0D696;");
-	asm("loc_6D0D641: mov $2,%ecx;");
-	asm("loc_6D0D646: and $0xF,%ecx;");
-	asm("loc_6D0D649: mov -0x34(%ebp),%edx;");
-	asm("loc_6D0D64C: and $0xFFFFFFF0,%edx;");
-	asm("loc_6D0D64F: or %ecx,%edx;");
-	asm("loc_6D0D651: mov %edx,-0x34(%ebp);");
-	asm("loc_6D0D654: mov $0x10000,%eax;");
-	asm("loc_6D0D659: and $0xFFFFFFF,%eax;");
-	asm("loc_6D0D65E: shl $4,%eax;");
-	asm("loc_6D0D661: mov -0x34(%ebp),%ecx;");
-	asm("loc_6D0D664: and $0xF,%ecx;");
-	asm("loc_6D0D667: or %eax,%ecx;");
-	asm("loc_6D0D669: mov %ecx,-0x34(%ebp);");
-	asm("loc_6D0D66C: push $_data_6D674A0;");
-	asm("loc_6D0D671: push $0xC1B;");
-	asm("loc_6D0D676: push $_data_6D674D8;");
-	asm("loc_6D0D67B: push $_data_6D67524;");
-	asm("loc_6D0D680: mov -0x34(%ebp),%edx;");
-	asm("loc_6D0D683: push %edx;");
-	asm("loc_6D0D684: mov _import_6D5E018,%eax;");
-	asm("loc_6D0D689: calll *(%eax);");
-	asm("loc_6D0D68B: add $0x14,%esp;");
-	asm("loc_6D0D68E: or $0xFFFFFFFF,%eax;");
-	asm("loc_6D0D691: jmp loc_6D0D991;");
-	asm("loc_6D0D696: mov 0x1C(%ebp),%ecx;");
-	asm("loc_6D0D699: and $1,%ecx;");
-	asm("loc_6D0D69C: neg %ecx;");
-	asm("loc_6D0D69E: sbb %ecx,%ecx;");
-	asm("loc_6D0D6A0: inc %ecx;");
-	asm("loc_6D0D6A1: mov %cl,-0x1E(%ebp);");
-	asm("loc_6D0D6A4: mov 0x1C(%ebp),%edx;");
-	asm("loc_6D0D6A7: and $2,%edx;");
-	asm("loc_6D0D6AA: neg %edx;");
-	asm("loc_6D0D6AC: sbb %edx,%edx;");
-	asm("loc_6D0D6AE: neg %edx;");
-	asm("loc_6D0D6B0: mov %dl,-0x1D(%ebp);");
-	asm("loc_6D0D6B3: movl $0,-0x14(%ebp);");
-	asm("loc_6D0D6BA: push $0;");
-	asm("loc_6D0D6BC: call _sub_6D5CC30;");
-	asm("loc_6D0D6C1: add $4,%esp;");
-	asm("loc_6D0D6C4: mov %eax,-0xC(%ebp);");
-	asm("loc_6D0D6C7: movl $0,-0x1C(%ebp);");
-	asm("loc_6D0D6CE: movl $3,-8(%ebp);");
-	asm("loc_6D0D6D5: movzbl -0x1E(%ebp),%eax;");
-	asm("loc_6D0D6D9: test %eax,%eax;");
-	asm("loc_6D0D6DB: jne loc_6D0D6E7;");
-	asm("loc_6D0D6DD: mov $0xFFFFFFFE,%eax;");
-	asm("loc_6D0D6E2: jmp loc_6D0D991;");
-	asm("loc_6D0D6E7: lea -4(%ebp),%ecx;");
-	asm("loc_6D0D6EA: push %ecx;");
-	asm("loc_6D0D6EB: push $5;");
-	asm("loc_6D0D6ED: mov 8(%ebp),%edx;");
-	asm("loc_6D0D6F0: mov (%edx),%eax;");
-	asm("loc_6D0D6F2: mov 8(%ebp),%ecx;");
-	asm("loc_6D0D6F5: push %ecx;");
-	asm("loc_6D0D6F6: calll *0x20(%eax);");
-	asm("loc_6D0D6F9: mov 0xC(%ebp),%edx;");
-	asm("loc_6D0D6FC: cmp 0x10(%ebp),%edx;");
-	asm("loc_6D0D6FF: je loc_6D0D71D;");
-	asm("loc_6D0D701: cmpl $0,-4(%ebp);");
-	asm("loc_6D0D705: je loc_6D0D71D;");
-	asm("loc_6D0D707: mov 0xC(%ebp),%eax;");
-	asm("loc_6D0D70A: cmp 0x10(%ebp),%eax;");
-	asm("loc_6D0D70D: jle loc_6D0D717;");
-	asm("loc_6D0D70F: mov 0xC(%ebp),%ecx;");
-	asm("loc_6D0D712: mov %ecx,0x10(%ebp);");
-	asm("loc_6D0D715: jmp loc_6D0D71D;");
-	asm("loc_6D0D717: mov 0x10(%ebp),%edx;");
-	asm("loc_6D0D71A: mov %edx,0xC(%ebp);");
-	asm("loc_6D0D71D: mov -8(%ebp),%eax;");
-	asm("loc_6D0D720: push %eax;");
-	asm("loc_6D0D721: mov -0x1C(%ebp),%ecx;");
-	asm("loc_6D0D724: push %ecx;");
-	asm("loc_6D0D725: mov 0x14(%ebp),%edx;");
-	asm("loc_6D0D728: push %edx;");
-	asm("loc_6D0D729: mov 8(%ebp),%ecx;");
-	asm("loc_6D0D72C: call _sub_6D0D444;");
-	asm("loc_6D0D731: mov %al,-0xD(%ebp);");
-	asm("loc_6D0D734: movzbl -0xD(%ebp),%eax;");
-	asm("loc_6D0D738: test %eax,%eax;");
-	asm("loc_6D0D73A: je loc_6D0D749;");
-	asm("loc_6D0D73C: mov 0x14(%ebp),%ecx;");
-	asm("loc_6D0D73F: mov (%ecx),%edx;");
-	asm("loc_6D0D741: mov %edx,-0xC(%ebp);");
-	asm("loc_6D0D744: jmp loc_6D0D7DC;");
-	asm("loc_6D0D749: mov 0x14(%ebp),%eax;");
-	asm("loc_6D0D74C: mov (%eax),%ecx;");
-	asm("loc_6D0D74E: push %ecx;");
-	asm("loc_6D0D74F: call _sub_6D5CC50;");
-	asm("loc_6D0D754: add $4,%esp;");
-	asm("loc_6D0D757: neg %eax;");
-	asm("loc_6D0D759: sbb %eax,%eax;");
-	asm("loc_6D0D75B: neg %eax;");
-	asm("loc_6D0D75D: xor %edx,%edx;");
-	asm("loc_6D0D75F: mov %al,%dl;");
-	asm("loc_6D0D761: test %edx,%edx;");
-	asm("loc_6D0D763: je loc_6D0D7DC;");
-	asm("loc_6D0D765: mov 0x14(%ebp),%eax;");
-	asm("loc_6D0D768: mov (%eax),%ecx;");
-	asm("loc_6D0D76A: push %ecx;");
-	asm("loc_6D0D76B: call _sub_6D5CC50;");
-	asm("loc_6D0D770: add $4,%esp;");
-	asm("loc_6D0D773: push %eax;");
-	asm("loc_6D0D774: mov 8(%ebp),%ecx;");
-	asm("loc_6D0D777: call _sub_6D04693;");
-	asm("loc_6D0D77C: mov %eax,-0x28(%ebp);");
-	asm("loc_6D0D77F: cmpl $0,-0x28(%ebp);");
-	asm("loc_6D0D783: je loc_6D0D7DC;");
-	asm("loc_6D0D785: movl $0,-0x2C(%ebp);");
-	asm("loc_6D0D78C: jmp loc_6D0D797;");
-	asm("loc_6D0D78E: mov -0x2C(%ebp),%edx;");
-	asm("loc_6D0D791: add $1,%edx;");
-	asm("loc_6D0D794: mov %edx,-0x2C(%ebp);");
-	asm("loc_6D0D797: mov -0x28(%ebp),%eax;");
-	asm("loc_6D0D79A: mov -0x2C(%ebp),%ecx;");
-	asm("loc_6D0D79D: cmp 4(%eax),%ecx;");
-	asm("loc_6D0D7A0: jae loc_6D0D7DC;");
-	asm("loc_6D0D7A2: mov -0x28(%ebp),%edx;");
-	asm("loc_6D0D7A5: mov 8(%edx),%eax;");
-	asm("loc_6D0D7A8: mov -0x2C(%ebp),%ecx;");
-	asm("loc_6D0D7AB: lea (%eax,%ecx,4),%edx;");
-	asm("loc_6D0D7AE: mov %edx,-0x30(%ebp);");
-	asm("loc_6D0D7B1: mov -8(%ebp),%eax;");
-	asm("loc_6D0D7B4: push %eax;");
-	asm("loc_6D0D7B5: mov -0x1C(%ebp),%ecx;");
-	asm("loc_6D0D7B8: push %ecx;");
-	asm("loc_6D0D7B9: mov -0x30(%ebp),%edx;");
-	asm("loc_6D0D7BC: push %edx;");
-	asm("loc_6D0D7BD: mov 8(%ebp),%ecx;");
-	asm("loc_6D0D7C0: call _sub_6D0D444;");
-	asm("loc_6D0D7C5: movzbl %al,%eax;");
-	asm("loc_6D0D7C8: test %eax,%eax;");
-	asm("loc_6D0D7CA: je loc_6D0D7DA;");
-	asm("loc_6D0D7CC: movb $1,-0xD(%ebp);");
-	asm("loc_6D0D7D0: mov -0x30(%ebp),%ecx;");
-	asm("loc_6D0D7D3: mov (%ecx),%edx;");
-	asm("loc_6D0D7D5: mov %edx,-0xC(%ebp);");
-	asm("loc_6D0D7D8: jmp loc_6D0D7DC;");
-	asm("loc_6D0D7DA: jmp loc_6D0D78E;");
-	asm("loc_6D0D7DC: movzbl -0xD(%ebp),%eax;");
-	asm("loc_6D0D7E0: test %eax,%eax;");
-	asm("loc_6D0D7E2: jne loc_6D0D839;");
-	asm("loc_6D0D7E4: mov $3,%ecx;");
-	asm("loc_6D0D7E9: and $0xF,%ecx;");
-	asm("loc_6D0D7EC: mov -0x38(%ebp),%edx;");
-	asm("loc_6D0D7EF: and $0xFFFFFFF0,%edx;");
-	asm("loc_6D0D7F2: or %ecx,%edx;");
-	asm("loc_6D0D7F4: mov %edx,-0x38(%ebp);");
-	asm("loc_6D0D7F7: mov $0x10000,%eax;");
-	asm("loc_6D0D7FC: and $0xFFFFFFF,%eax;");
-	asm("loc_6D0D801: shl $4,%eax;");
-	asm("loc_6D0D804: mov -0x38(%ebp),%ecx;");
-	asm("loc_6D0D807: and $0xF,%ecx;");
-	asm("loc_6D0D80A: or %eax,%ecx;");
-	asm("loc_6D0D80C: mov %ecx,-0x38(%ebp);");
-	asm("loc_6D0D80F: push $_data_6D67540;");
-	asm("loc_6D0D814: push $0xC67;");
-	asm("loc_6D0D819: push $_data_6D67580;");
-	asm("loc_6D0D81E: push $_data_6D675CC;");
-	asm("loc_6D0D823: mov -0x38(%ebp),%edx;");
-	asm("loc_6D0D826: push %edx;");
-	asm("loc_6D0D827: mov _import_6D5E018,%eax;");
-	asm("loc_6D0D82C: calll *(%eax);");
-	asm("loc_6D0D82E: add $0x14,%esp;");
-	asm("loc_6D0D831: or $0xFFFFFFFF,%eax;");
-	asm("loc_6D0D834: jmp loc_6D0D991;");
-	asm("loc_6D0D839: movl $0,-0x24(%ebp);");
-	asm("loc_6D0D840: lea -0x24(%ebp),%ecx;");
-	asm("loc_6D0D843: push %ecx;");
-	asm("loc_6D0D844: push $1;");
-	asm("loc_6D0D846: mov -0xC(%ebp),%edx;");
-	asm("loc_6D0D849: push %edx;");
-
-	__asm { mov last_enum, edx };
-
-	asm("loc_6D0D84A: call _sub_6D5CBB0;");
-
-	__asm { mov last_value, eax };
-
-	asm("loc_6D0D84F: add $4,%esp;");
-	asm("loc_6D0D852: push %eax;");
-	asm("loc_6D0D853: mov -0x1C(%ebp),%eax;");
-	asm("loc_6D0D856: push %eax;");
-	asm("loc_6D0D857: mov 0x18(%ebp),%ecx;");
-	asm("loc_6D0D85A: push %ecx;");
-	asm("loc_6D0D85B: mov 0x10(%ebp),%edx;");
-	asm("loc_6D0D85E: push %edx;");
-	asm("loc_6D0D85F: mov 0xC(%ebp),%eax;");
-	asm("loc_6D0D862: push %eax;");
-	asm("loc_6D0D863: mov 8(%ebp),%ecx;");
-	asm("loc_6D0D866: mov 0x130(%ecx),%edx;");
-	asm("loc_6D0D86C: mov 8(%ebp),%eax;");
-	asm("loc_6D0D86F: mov 0x130(%eax),%ecx;");
-	asm("loc_6D0D875: mov (%edx),%edx;");
-	asm("loc_6D0D877: push %ecx;");
-	asm("loc_6D0D878: calll *0x50(%edx);");
-	asm("loc_6D0D87B: mov %eax,-0x18(%ebp);");
-	asm("loc_6D0D87E: cmpl $0,-0x18(%ebp);");
-	asm("loc_6D0D882: jge loc_6D0D90F;");
-	asm("loc_6D0D888: mov -0x18(%ebp),%eax;");
-	asm("loc_6D0D88B: push %eax;");
-	asm("loc_6D0D88C: call _sub_6D2B964;");
-	asm("loc_6D0D891: add $4,%esp;");
-	asm("loc_6D0D894: push %eax;");
-	asm("loc_6D0D895: push $_data_6D675E8;");
-	asm("loc_6D0D89A: lea -0x2038(%ebp),%ecx;");
-	asm("loc_6D0D8A0: push %ecx;");
-	asm("loc_6D0D8A1: call _sub_6D168F0;");
-	asm("loc_6D0D8A6: add $0xC,%esp;");
-	asm("loc_6D0D8A9: mov %eax,-0x2040(%ebp);");
-	asm("loc_6D0D8AF: mov $2,%edx;");
-	asm("loc_6D0D8B4: and $0xF,%edx;");
-	asm("loc_6D0D8B7: mov -0x203C(%ebp),%eax;");
-	asm("loc_6D0D8BD: and $0xFFFFFFF0,%eax;");
-	asm("loc_6D0D8C0: or %edx,%eax;");
-	asm("loc_6D0D8C2: mov %eax,-0x203C(%ebp);");
-	asm("loc_6D0D8C8: mov $0x10000,%ecx;");
-	asm("loc_6D0D8CD: and $0xFFFFFFF,%ecx;");
-	asm("loc_6D0D8D3: shl $4,%ecx;");
-	asm("loc_6D0D8D6: mov -0x203C(%ebp),%edx;");
-	asm("loc_6D0D8DC: and $0xF,%edx;");
-	asm("loc_6D0D8DF: or %ecx,%edx;");
-	asm("loc_6D0D8E1: mov %edx,-0x203C(%ebp);");
-	asm("loc_6D0D8E7: mov -0x2040(%ebp),%eax;");
-	asm("loc_6D0D8ED: push %eax;");
-	asm("loc_6D0D8EE: push $0xC87;");
-	asm("loc_6D0D8F3: push $_data_6D67600;");
-	asm("loc_6D0D8F8: push $_data_6D6764C;");
-	asm("loc_6D0D8FD: mov -0x203C(%ebp),%ecx;");
-	asm("loc_6D0D903: push %ecx;");
-	asm("loc_6D0D904: mov _import_6D5E018,%edx;");
-	asm("loc_6D0D90A: calll *(%edx);");
-	asm("loc_6D0D90C: add $0x14,%esp;");
-	asm("loc_6D0D90F: mov -0x24(%ebp),%eax;");
-	asm("loc_6D0D912: mov %eax,-0x204C(%ebp);");
-	asm("loc_6D0D918: movl $0,-0x2044(%ebp);");
-	asm("loc_6D0D922: cmpl $0,-0x204C(%ebp);");
-	asm("loc_6D0D929: je loc_6D0D983;");
-	asm("loc_6D0D92B: push $8;");
-	asm("loc_6D0D92D: call _sub_6D2F2A0;");
-	asm("loc_6D0D932: add $4,%esp;");
-	asm("loc_6D0D935: mov %eax,-0x2048(%ebp);");
-	asm("loc_6D0D93B: cmpl $0,-0x2048(%ebp);");
-	asm("loc_6D0D942: je loc_6D0D96D;");
-	asm("loc_6D0D944: mov -0x2048(%ebp),%ecx;");
-	asm("loc_6D0D94A: mov -0x204C(%ebp),%edx;");
-	asm("loc_6D0D950: mov %edx,(%ecx);");
-	asm("loc_6D0D952: mov -0x2048(%ebp),%eax;");
-	asm("loc_6D0D958: movl $0,4(%eax);");
-	asm("loc_6D0D95F: mov -0x2048(%ebp),%ecx;");
-	asm("loc_6D0D965: mov %ecx,-0x2050(%ebp);");
-	asm("loc_6D0D96B: jmp loc_6D0D977;");
-	asm("loc_6D0D96D: movl $0,-0x2050(%ebp);");
-	asm("loc_6D0D977: mov -0x2050(%ebp),%edx;");
-	asm("loc_6D0D97D: mov %edx,-0x2044(%ebp);");
-	asm("loc_6D0D983: mov 0x20(%ebp),%eax;");
-	asm("loc_6D0D986: mov -0x2044(%ebp),%ecx;");
-	asm("loc_6D0D98C: mov %ecx,(%eax);");
-	asm("loc_6D0D98E: mov -0x18(%ebp),%eax;");
-	asm("loc_6D0D991: mov %ebp,%esp;");
-	asm("loc_6D0D993: pop %ebp;");
-	asm("loc_6D0D994: ret $0x1C;");
-	asm("int3;"); // unreachable
 }
 
 GENRESULT NewRenderPipeline::create_texture(int width, int height, const PFenum* desiredformat, int num_lod, U32 irp_ctf_flags, IRP_TEXTUREHANDLE* out_htexture)
@@ -4227,76 +3914,7 @@ _extern _naked int __thiscall sub_6D04138_OLD(NewRenderPipeline* _this)
 	asm("loc_6D04189: mov %ecx,-0x6038(%ebp);");
 	asm("loc_6D0418F: movl $0,-8(%ebp);");
 	/*asm("loc_6D04196: mov -0x6038(%ebp),%edx;");
-	asm("loc_6D0419C: mov 0x10(%edx),%al;");
-	asm("loc_6D0419F: shr $1,%al;");
-	asm("loc_6D041A1: and $1,%al;");
-	asm("loc_6D041A3: xor %ecx,%ecx;");
-	asm("loc_6D041A5: mov %al,%cl;");
-	asm("loc_6D041A7: test %ecx,%ecx;");
-	asm("loc_6D041A9: je loc_6D042AE;");
-	asm("loc_6D041AF: mov -0x6038(%ebp),%edx;");
-	asm("loc_6D041B5: mov 0x10(%edx),%al;");
-	asm("loc_6D041B8: and $0xFD,%al;");
-	asm("loc_6D041BA: mov -0x6038(%ebp),%ecx;");
-	asm("loc_6D041C0: mov %al,0x10(%ecx);");
-	asm("loc_6D041C3: mov -0x6038(%ebp),%edx;");
-	asm("loc_6D041C9: cmpl $0,8(%edx);");
-	asm("loc_6D041CD: je loc_6D041E3;");
-	asm("loc_6D041CF: mov -0x6038(%ebp),%eax;");
-	asm("loc_6D041D5: mov 8(%eax),%ecx;");
-	asm("loc_6D041D8: mov 4(%ecx),%edx;");
-	asm("loc_6D041DB: mov %edx,-0x6074(%ebp);");
-	asm("loc_6D041E1: jmp loc_6D041ED;");
-	asm("loc_6D041E3: movl $0,-0x6074(%ebp);");
-	asm("loc_6D041ED: mov -0x6074(%ebp),%eax;");
-	asm("loc_6D041F3: mov %eax,-0xC(%ebp);");
-	asm("loc_6D041F6: mov -0x6038(%ebp),%ecx;");
-	asm("loc_6D041FC: mov 0xC(%ecx),%edx;");
-	asm("loc_6D041FF: push %edx;");
-	asm("loc_6D04200: mov -0xC(%ebp),%eax;");
-	asm("loc_6D04203: push %eax;");
-	asm("loc_6D04204: mov -0x603C(%ebp),%ecx;");
-	asm("loc_6D0420A: mov (%ecx),%edx;");
-	asm("loc_6D0420C: mov -0x603C(%ebp),%eax;");
-	asm("loc_6D04212: push %eax;");
-	asm("loc_6D04213: calll *0x154(%edx);");
-	asm("loc_6D04219: mov %eax,-8(%ebp);");
-	asm("loc_6D0421C: cmpl $0,-8(%ebp);");
-	asm("loc_6D04220: jge loc_6D042AE;");
-	asm("loc_6D04226: mov -8(%ebp),%ecx;");
-	asm("loc_6D04229: push %ecx;");
-	asm("loc_6D0422A: call _sub_6D2B964;");
-	asm("loc_6D0422F: add $4,%esp;");
-	asm("loc_6D04232: push %eax;");
-	asm("loc_6D04233: push $_data_6D6AF04;");
-	asm("loc_6D04238: lea -0x2018(%ebp),%edx;");
-	asm("loc_6D0423E: push %edx;");
-	asm("loc_6D0423F: call _sub_6D168F0;");
-	asm("loc_6D04244: add $0xC,%esp;");
-	asm("loc_6D04247: mov %eax,-0x6028(%ebp);");
-	asm("loc_6D0424D: mov $2,%eax;");
-	asm("loc_6D04252: and $0xF,%eax;");
-	asm("loc_6D04255: mov -0x201C(%ebp),%ecx;");
-	asm("loc_6D0425B: and $0xFFFFFFF0,%ecx;");
-	asm("loc_6D0425E: or %eax,%ecx;");
-	asm("loc_6D04260: mov %ecx,-0x201C(%ebp);");
-	asm("loc_6D04266: mov $0x10000,%edx;");
-	asm("loc_6D0426B: and $0xFFFFFFF,%edx;");
-	asm("loc_6D04271: shl $4,%edx;");
-	asm("loc_6D04274: mov -0x201C(%ebp),%eax;");
-	asm("loc_6D0427A: and $0xF,%eax;");
-	asm("loc_6D0427D: or %edx,%eax;");
-	asm("loc_6D0427F: mov %eax,-0x201C(%ebp);");
-	asm("loc_6D04285: mov -0x6028(%ebp),%ecx;");
-	asm("loc_6D0428B: push %ecx;");
-	asm("loc_6D0428C: push $0x34;");
-	asm("loc_6D0428E: push $_data_6D6AEB0;");
-	asm("loc_6D04293: push $_data_6D6ADE0;");
-	asm("loc_6D04298: mov -0x201C(%ebp),%edx;");
-	asm("loc_6D0429E: push %edx;");
-	asm("loc_6D0429F: mov _import_6D5E018,%eax;");
-	asm("loc_6D042A4: calll *(%eax);");
-	asm("loc_6D042A6: add $0x14,%esp;");
+	...
 	asm("loc_6D042A9: jmp loc_6D044C3;");*/
 	asm("loc_6D042AE: mov -0x6038(%ebp),%ecx;");
 	asm("loc_6D042B4: mov 0x10(%ecx),%dl;");
@@ -4553,18 +4171,9 @@ _extern int __thiscall sub_6D04138(NewRenderPipeline* _this)
 {
 	_this->curr_hw_geometry.flush_indices(_this->direct3d_device);
 
-
 	int gr = sub_6D04138_OLD(_this);
 	return gr;
 }
-
-
-_extern int __cdecl sub_6D010CF(int a1, int a2);
-_extern int __cdecl sub_6D163B0(char a1);
-_extern int __cdecl sub_6D162B0(char a1);
-_extern int __cdecl sub_6D16310(unsigned int a1);
-_extern HRESULT __thiscall sub_6D1C660(RPIndexBufferInternal* _this, DWORD offset, DWORD num_indices, void** out_locked_data_ptr, DWORD* out_start_index, bool a6);
-#define copy_indices_sub_6D1C660 sub_6D1C660
 
 GENRESULT NewRenderPipeline::draw_primitive(D3DPRIMITIVETYPE type, U32 vertex_format, const void* verts, U32 num_verts, U32 flags)
 {
@@ -4648,13 +4257,13 @@ GENRESULT NewRenderPipeline::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 v
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::draw_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, U32 flags)
+GENRESULT NewRenderPipeline::draw_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vb_handle, U32 start_vert, U32 num_verts, U32 flags)
 {
 	CHECK_DEVICE_LIFETIME();
 
 	GENRESULT gr = GR_GENERIC;
 
-	if (!vbhandle || !num_verts || !direct3d_device)
+	if (!vb_handle || !num_verts || !direct3d_device)
 	{
 		return GR_INVALID_PARMS;
 	}
@@ -4666,7 +4275,7 @@ GENRESULT NewRenderPipeline::draw_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEX
 			if (primCount > 0)
 			{
 
-				curr_hw_geometry.set_vertex_buffer(vbhandle, D3DFMT_UNKNOWN);
+				curr_hw_geometry.set_vertex_buffer(vb_handle, D3DFMT_UNKNOWN);
 				sub_6D04138(this);
 
 				HRESULT hr;
@@ -4680,7 +4289,7 @@ GENRESULT NewRenderPipeline::draw_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEX
 					gr = GR_GENERIC;
 				}
 
-				rp_rd_dp_vb(type, vbhandle, start_vert, num_verts, flags);
+				rp_rd_dp_vb(type, vb_handle, start_vert, num_verts, flags);
 
 				curr_hw_geometry.invalidate();
 			}
@@ -4689,12 +4298,12 @@ GENRESULT NewRenderPipeline::draw_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEX
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::draw_indexed_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, const U16* indices, U32 num_indices, U32 flags)
+GENRESULT NewRenderPipeline::draw_indexed_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vb_handle, U32 start_vert, U32 num_verts, const U16* indices, U32 num_indices, U32 flags)
 {
 	CHECK_DEVICE_LIFETIME();
 
 	GENRESULT gr = GR_GENERIC;
-	if (vbhandle && !num_verts && !indices && !num_indices && !direct3d_device)
+	if (vb_handle && !num_verts && !indices && !num_indices && !direct3d_device)
 	{
 		return GR_INVALID_PARMS;
 	}
@@ -4707,11 +4316,11 @@ GENRESULT NewRenderPipeline::draw_indexed_primitive_vb(D3DPRIMITIVETYPE type, IR
 			{
 				U32 start_index = 0;
 				IRP_INDEXBUFFERHANDLE index_buffer = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB); // #TODO This is nasty, is there a better way to do this?
-				if (SUCCEEDED(gr = copy_indices(index_buffer, start_index, indices, num_indices)))
+				if (SUCCEEDED(gr = copy_indices(index_buffer, &start_index, indices, num_indices)))
 				{
 					IRP_INDEXBUFFERHANDLE index_buffer = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB); // #TODO This is nasty, is there a better way to do this?
 
-					curr_hw_geometry.set_vertex_buffer(vbhandle, 0);
+					curr_hw_geometry.set_vertex_buffer(vb_handle, 0);
 					curr_hw_geometry.set_index_buffer(index_buffer, start_vert);
 
 					sub_6D04138(this);
@@ -4727,7 +4336,7 @@ GENRESULT NewRenderPipeline::draw_indexed_primitive_vb(D3DPRIMITIVETYPE type, IR
 						gr = GR_GENERIC;
 					}
 
-					rp_rd_dip_vb(type, vbhandle, start_vert, num_verts, indices, num_indices, flags);
+					rp_rd_dip_vb(type, vb_handle, start_vert, num_verts, indices, num_indices, flags);
 
 					curr_hw_geometry.invalidate();
 				}
@@ -4807,248 +4416,222 @@ GENRESULT NewRenderPipeline::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 m
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::create_index_buffer(U32 count, IRP_INDEXBUFFERHANDLE* out_ibhandle, BYTE flags)
+GENRESULT NewRenderPipeline::create_index_buffer(U32 count, IRP_INDEXBUFFERHANDLE* out_ib_handle, BYTE flags)
 {
-	GENRESULT gr = DirectX8_create_index_buffer(this, count, out_ibhandle, flags);
+	GENRESULT gr = DirectX8_create_index_buffer(this, count, out_ib_handle, flags);
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::destroy_index_buffer(IRP_INDEXBUFFERHANDLE ibhandle)
+GENRESULT NewRenderPipeline::destroy_index_buffer(IRP_INDEXBUFFERHANDLE ib_handle)
 {
-	GENRESULT gr = DirectX8_destroy_index_buffer(this, ibhandle);
+	GENRESULT gr = DirectX8_destroy_index_buffer(this, ib_handle);
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::create_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32 count)
+GENRESULT NewRenderPipeline::create_ib(IRP_INDEXBUFFERHANDLE ib_handle, U32 num_indices)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	if (ibhandle == IRP_SCRATCH_IB_HANDLE)
-	{
-		ibhandle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
-	}
-
-	GENRESULT gr = GR_GENERIC;
-	if (is_ib_valid(ibhandle))
+	GENRESULT gr;
+	if (is_ib_valid(ib_handle))
 	{
 		// already initialized
 		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
-		RPIndexBufferInternal* index_buffer = reinterpret_cast<RPIndexBufferInternal*>(ibhandle);
-
-		if (index_buffer->direct3d_index_buffer && count == index_buffer->element_count)
+		if (ib_handle == IRP_SCRATCH_IB_HANDLE)
 		{
-			// already initialized
+			ib_handle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
+		}
+
+		DX8IndexBuffer* index_buffer = reinterpret_cast<DX8IndexBuffer*>(ib_handle);
+
+		if (SUCCEEDED(index_buffer->create_ib(direct3d_device, num_indices)))
+		{
 			gr = GR_OK;
 		}
 		else
 		{
-			if (index_buffer->direct3d_index_buffer && count != index_buffer->element_count)
-			{
-				// dispose
-				if (index_buffer->direct3d_index_buffer)
-				{
-					if (index_buffer->locked_data_ptr)
-					{
-						index_buffer->locked_data_ptr = 0;
-						index_buffer->direct3d_index_buffer->Unlock();
-					}
-					index_buffer->direct3d_index_buffer->Release();
-					index_buffer->direct3d_index_buffer = 0;
-				}
-			}
-
-			index_buffer->element_count = count;
-			index_buffer->unknown14 = 0;
-			U32 length = sizeof(U16) * count;
-			HRESULT hr;
-			if (SUCCEEDED(hr = direct3d_device->CreateIndexBuffer(
-				length,
-				index_buffer->unknown0_flags_or_usage,
-				D3DFMT_INDEX16,
-				D3DPOOL_DEFAULT,
-				&index_buffer->direct3d_index_buffer)))
-			{
-				gr = GR_OK;
-			}
-			else
-			{
-				GENERAL_ERROR(TEMPSTR("%s couldnt create ib (err:%s) %d bytes", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr), length));
-				gr = GR_GENERIC;
-			}
-		}
-	}
-	return gr;
-}
-
-GENRESULT NewRenderPipeline::copy_indices(IRP_INDEXBUFFERHANDLE ibhandle, U32& offset, U16 const* indices, U32 num_indices)
-{
-	CHECK_DEVICE_LIFETIME();
-
-	if (ibhandle == IRP_SCRATCH_IB_HANDLE)
-	{
-		ibhandle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
-	}
-
-	GENRESULT gr = GR_GENERIC;
-	if (!is_ib_valid(ibhandle))
-	{
-		gr = GR_INVALID_PARMS;
-	}
-	else
-	{
-		void* locked_data_ptr;
-		if (SUCCEEDED(gr = lock_ib(ibhandle, offset, &locked_data_ptr, num_indices)))
-		{
-			memcpy(locked_data_ptr, indices, sizeof(U16) * num_indices);
-			unlock_ib(ibhandle);
-			gr = GR_OK;
-		}
-		else
-		{
-			GENERAL_ERROR(TEMPSTR("%s: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
 			gr = GR_GENERIC;
 		}
 	}
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::lock_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32& offset, void** locked_data_ptr, U32 num_indices)
+GENRESULT NewRenderPipeline::copy_indices(IRP_INDEXBUFFERHANDLE ib_handle, U32* start_index, U16 const* indices, U32 num_indices)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	if (ibhandle == IRP_SCRATCH_IB_HANDLE)
-	{
-		ibhandle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
-	}
+	// There is some evidence to suggest that actually start_index is a pointer
+	ASSERT(start_index != nullptr);
 
-	GENRESULT gr = GR_GENERIC;
-	if (!is_ib_valid(ibhandle))
+	GENRESULT gr;
+	if (!is_ib_valid(ib_handle) || start_index == nullptr)
 	{
 		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
-		RPIndexBufferInternal* index_buffer = reinterpret_cast<RPIndexBufferInternal*>(ibhandle);
+		if (ib_handle == IRP_SCRATCH_IB_HANDLE)
+		{
+			ib_handle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
+		}
 
-		bool unknown = (unknown128 & 2) != 0; // #TODO Better name for this bit, it's set in initialization
-		DWORD start_index;
+		// #TODO Cleanup. There is actually a DX8IndexBuffer::copy_indices function
+		// that implements the underlying logic here. It passes through the HRESULT
+		// correctly which is how 
+		// GENERAL_WARNING(TEMPSTR("copy_indices: %s", HRESULT_GET_ERROR_STRING(hr)));
+		// is supposed to get the right error message. Instead right now this code just 
+		// has a GENRESULT which isn't that useful for a debug message
+
+		void* data;
+		if (SUCCEEDED(gr = lock_ib(ib_handle, start_index, data, num_indices)))
+		{
+			memcpy(data, indices, sizeof(U16) * num_indices);
+			unlock_ib(ib_handle);
+			gr = GR_OK;
+		}
+		else
+		{
+			GENERAL_WARNING(TEMPSTR("%s: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+			gr = GR_GENERIC;
+		}
+	}
+	return gr;
+}
+
+GENRESULT NewRenderPipeline::lock_ib(IRP_INDEXBUFFERHANDLE ib_handle, U32* start_index, void*& out_data, U32 num_indices)
+{
+	CHECK_DEVICE_LIFETIME();
+
+	if (ib_handle == IRP_SCRATCH_IB_HANDLE)
+	{
+		ib_handle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
+	}
+
+	GENRESULT gr;
+	if (!is_ib_valid(ib_handle))
+	{
+		gr = GR_INVALID_PARMS;
+	}
+	else
+	{
+		DX8IndexBuffer* index_buffer = reinterpret_cast<DX8IndexBuffer*>(ib_handle);
+
+		bool syslock = (unknown128 & 2) != 0;
 		HRESULT hr;
-		if (SUCCEEDED(hr = copy_indices_sub_6D1C660(
-			index_buffer,
-			offset,
-			num_indices,
-			locked_data_ptr,
-			&start_index,
-			unknown)))
-		{
-			gr = GR_OK;
-		}
-		else
+		U32 dst_index = start_index ? *start_index : 0;
+		if (FAILED(hr = index_buffer->lock_ib(dst_index, num_indices, out_data, start_index, syslock)))
 		{
 			GENERAL_ERROR(TEMPSTR("%s: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
 			gr = GR_GENERIC;
 		}
-		offset = start_index;
+		else
+		{
+			gr = GR_OK;
+		}
 	}
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::unlock_ib(IRP_INDEXBUFFERHANDLE ibhandle)
+GENRESULT NewRenderPipeline::unlock_ib(IRP_INDEXBUFFERHANDLE ib_handle)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	if (ibhandle == IRP_SCRATCH_IB_HANDLE)
-	{
-		ibhandle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
-	}
-
-	GENRESULT gr = GR_GENERIC;
-	if (!is_ib_valid(ibhandle))
+	GENRESULT gr;
+	if (!is_ib_valid(ib_handle))
 	{
 		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
-		RPIndexBufferInternal* index_buffer = reinterpret_cast<RPIndexBufferInternal*>(ibhandle);
-
-		if (index_buffer->locked_data_ptr != nullptr)
+		if (ib_handle == IRP_SCRATCH_IB_HANDLE)
 		{
-			index_buffer->locked_data_ptr = 0;
-			index_buffer->direct3d_index_buffer->Unlock();
+			ib_handle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
+		}
 
+		DX8IndexBuffer* index_buffer = reinterpret_cast<DX8IndexBuffer*>(ib_handle);
+
+		if (SUCCEEDED(index_buffer->unlock_ib()))
+		{
 			gr = GR_OK;
+		}
+		else
+		{
+			gr = GR_GENERIC;
 		}
 	}
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::select_ib(IRP_INDEXBUFFERHANDLE ibhandle, U32 base_index, UNKNOWN a4, UNKNOWN a5)
+GENRESULT NewRenderPipeline::select_ib(IRP_INDEXBUFFERHANDLE ib_handle, U32 base_index, UNKNOWN a4, UNKNOWN a5)
 {
 	CHECK_DEVICE_LIFETIME();
 
 	unused(a4);
 	unused(a5);
 
-	if (ibhandle == IRP_SCRATCH_IB_HANDLE)
+	if (ib_handle == IRP_SCRATCH_IB_HANDLE)
 	{
-		ibhandle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
+		ib_handle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
 	}
 
 	GENRESULT gr = GR_GENERIC;
-	if (!is_ib_valid(ibhandle))
+	if (!is_ib_valid(ib_handle))
 	{
 		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
-		gr = curr_hw_geometry.set_index_buffer(ibhandle, base_index);
+		gr = curr_hw_geometry.set_index_buffer(ib_handle, base_index);
 	}
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::get_ib_count(IRP_INDEXBUFFERHANDLE ibhandle, U32* out_count)
+GENRESULT NewRenderPipeline::get_ib_count(IRP_INDEXBUFFERHANDLE ib_handle, U32* out_count)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	if (ibhandle == IRP_SCRATCH_IB_HANDLE)
+	if (ib_handle == IRP_SCRATCH_IB_HANDLE)
 	{
-		ibhandle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
+		ib_handle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
 	}
 
 	GENRESULT gr = GR_GENERIC;
-	if (!is_ib_valid(ibhandle))
+	if (!is_ib_valid(ib_handle))
 	{
 		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
-		RPIndexBufferInternal* index_buffer = reinterpret_cast<RPIndexBufferInternal*>(ibhandle);
+		DX8IndexBuffer* index_buffer = reinterpret_cast<DX8IndexBuffer*>(ib_handle);
 
 		*out_count = index_buffer->element_count;
 	}
 	return gr;
 }
 
-BOOL32 NewRenderPipeline::is_ib_valid(IRP_INDEXBUFFERHANDLE ibhandle)
+BOOL32 NewRenderPipeline::is_ib_valid(IRP_INDEXBUFFERHANDLE ib_handle)
 {
-	BOOL32 gr = FALSE;
-	if (ibhandle)
+	BOOL32 result = FALSE;
+	if (ib_handle)
 	{
-		if (ibhandle == IRP_SCRATCH_IB_HANDLE)
+		if (ib_handle == IRP_SCRATCH_IB_HANDLE)
 		{
-			ibhandle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
+			ib_handle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
 		}
-		RPIndexBufferInternal* index_buffer = reinterpret_cast<RPIndexBufferInternal*>(ibhandle);
 
-		gr = index_buffer && index_buffer->direct3d_index_buffer;
+		DX8IndexBuffer* index_buffer = reinterpret_cast<DX8IndexBuffer*>(ib_handle);
+		if (index_buffer)
+		{
+			result = index_buffer->buffer != nullptr;
+		}
 	}
-	return gr;
+	return result;
 }
 
-GENRESULT NewRenderPipeline::create_vb(U32 format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vbhandle, U8 irp_vbf_flags)
+GENRESULT NewRenderPipeline::create_vb(U32 format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vb_handle, U8 irp_vbf_flags)
 {
 	CHECK_DEVICE_LIFETIME();
 
@@ -5096,25 +4679,25 @@ GENRESULT NewRenderPipeline::create_vb(U32 format, U32 count, IRP_VERTEXBUFFERHA
 	if (SUCCEEDED(gr))
 	{
 		ASSERT(hvertexbuffer != nullptr);
-		*out_vbhandle = hvertexbuffer;
+		*out_vb_handle = hvertexbuffer;
 
 		gr = GR_OK;
 	}
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::destroy_vb(IRP_VERTEXBUFFERHANDLE& vbhandle)
+GENRESULT NewRenderPipeline::destroy_vb(IRP_VERTEXBUFFERHANDLE& vb_handle)
 {
 	CHECK_DEVICE_LIFETIME();
 
 	GENRESULT gr = GR_GENERIC;
-	if (!is_vb_valid(vbhandle))
+	if (!is_vb_valid(vb_handle))
 	{
 		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
-		RPVertexBufferInternal* vertex_buffer = reinterpret_cast<RPVertexBufferInternal*>(vbhandle);
+		RPVertexBufferInternal* vertex_buffer = reinterpret_cast<RPVertexBufferInternal*>(vb_handle);
 		if (vertex_buffer->direct3d_vertex_buffer)
 		{
 			U32 refcount = vertex_buffer->direct3d_vertex_buffer->Release();
@@ -5124,31 +4707,31 @@ GENRESULT NewRenderPipeline::destroy_vb(IRP_VERTEXBUFFERHANDLE& vbhandle)
 			}
 		}
 		gr = GR_OK;
-		vbhandle = nullptr;
+		vb_handle = nullptr;
 	}
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::ressize_vb(IRP_VERTEXBUFFERHANDLE vbhandle, U32 format, U32 num_verts)
+GENRESULT NewRenderPipeline::ressize_vb(IRP_VERTEXBUFFERHANDLE vb_handle, U32 format, U32 num_verts)
 {
 	CHECK_DEVICE_LIFETIME();
 
 	GENRESULT gr = GR_GENERIC;
-	//if (!is_vb_valid(vbhandle))
-	if (vbhandle == IRP_SCRATCH_VB_HANDLE)
+	//if (!is_vb_valid(vb_handle))
+	if (vb_handle == IRP_SCRATCH_VB_HANDLE)
 	{
 		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
-		RPVertexBufferInternal* vertex_buffer = reinterpret_cast<RPVertexBufferInternal*>(vbhandle);
+		RPVertexBufferInternal* vertex_buffer = reinterpret_cast<RPVertexBufferInternal*>(vb_handle);
 
 		// dispose
 		if (vertex_buffer->direct3d_vertex_buffer)
 		{
-			if (vertex_buffer->unknown10)
+			if (vertex_buffer->locked_data)
 			{
-				vertex_buffer->unknown10 = 0;
+				vertex_buffer->locked_data = 0;
 				vertex_buffer->direct3d_vertex_buffer->Unlock();
 			}
 			vertex_buffer->direct3d_vertex_buffer->Release();
@@ -5179,17 +4762,17 @@ GENRESULT NewRenderPipeline::ressize_vb(IRP_VERTEXBUFFERHANDLE vbhandle, U32 for
 		}
 
 		gr = GR_OK;
-		vbhandle = nullptr;
+		vb_handle = nullptr;
 	}
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vbhandle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices)
+GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices)
 {
 	CHECK_DEVICE_LIFETIME();
 
 	GENRESULT gr = GR_GENERIC;
-	if (!is_vb_valid(vbhandle))
+	if (!is_vb_valid(vb_handle))
 	{
 		gr = GR_INVALID_PARMS;
 	}
@@ -5197,7 +4780,7 @@ GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vbhandle, U32*
 	{
 		HRESULT hr;
 
-		if (vbhandle == IRP_SCRATCH_VB_HANDLE)
+		if (vb_handle == IRP_SCRATCH_VB_HANDLE)
 		{
 			if (scratchVB == NULL)
 			{
@@ -5205,24 +4788,24 @@ GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vbhandle, U32*
 			}
 			ressize_vb(scratchVB, src_vb_desc->vertex_format, num_vertices);
 			curr_hw_geometry.set_vertex_buffer(scratchVB, src_vb_desc->vertex_format);
-			vbhandle = scratchVB;
+			vb_handle = scratchVB;
 		}
 
-		RPVertexBufferInternal* vertex_buffer = reinterpret_cast<RPVertexBufferInternal*>(vbhandle);
+		RPVertexBufferInternal* vertex_buffer = reinterpret_cast<RPVertexBufferInternal*>(vb_handle);
 
 		U32 stride = FVF_SIZEOF_VERT(vertex_buffer->vertex_format);
 		U32 offset_ = offset ? *offset : 0;
 
 		void* locked_data_ptr;
-		auto v30 = vertex_buffer->unknown10 != 0;
+		auto v30 = vertex_buffer->locked_data != 0;
 		if (v30)
 		{
-			locked_data_ptr = (void*)(vertex_buffer->unknown10 + offset_ * stride);
+			locked_data_ptr = (void*)((char*)vertex_buffer->locked_data + offset_ * stride);
 			gr = GR_OK;
 		}
 		else
 		{
-			if (SUCCEEDED(hr = lock_vb(vbhandle, offset_, &locked_data_ptr, num_vertices)))
+			if (SUCCEEDED(hr = lock_vb(vb_handle, &offset_, &locked_data_ptr, num_vertices)))
 			{
 				gr = GR_OK;
 			}
@@ -5241,8 +4824,8 @@ GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vbhandle, U32*
 
 			if (!v30)
 			{
-				vertex_buffer->unknown10 = 0;
-				this->unlock_vb(vbhandle);
+				vertex_buffer->locked_data = 0;
+				this->unlock_vb(vb_handle);
 			}
 			if (offset)
 				*offset = offset_;
@@ -5257,86 +4840,400 @@ GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vbhandle, U32*
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::lock_vb(IRP_VERTEXBUFFERHANDLE vbhandle, U32& offset, void** locked_data, U32 count)
+GENRESULT NewRenderPipeline::lock_vb(IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, void** locked_data, U32 count)
 {
-	GENRESULT gr = DirectX8_lock_vb(this, vbhandle, offset, locked_data, count);
-	return gr;
+	// #TODO Cleanup
+	CHECK_DEVICE_LIFETIME();
+
+	//int v6; // esi
+	//int v7; // edi
+	int v8; // eax
+	bool v11; // [esp+Fh] [ebp-403Dh]
+	DWORD unknownC; // [esp+10h] [ebp-403Ch]
+	DWORD vertex_format; // [esp+14h] [ebp-4038h]
+	//int v14; // [esp+18h] [ebp-4034h]
+	HRESULT v17; // [esp+2024h] [ebp-2028h]
+	unsigned int stride; // [esp+2028h] [ebp-2024h]
+	DWORD v19; // [esp+202Ch] [ebp-2020h]
+	unsigned int v20; // [esp+2030h] [ebp-201Ch]
+	unsigned int v21; // [esp+2034h] [ebp-2018h]
+	RPVertexBufferInternal* vertex_buffer; // [esp+4040h] [ebp-Ch]
+	U32 offset_; // [esp+4044h] [ebp-8h]
+	HRESULT v27; // [esp+4048h] [ebp-4h]
+
+	v27 = -2147467259;
+	if (vb_handle && vb_handle != (IRP_VERTEXBUFFERHANDLE)-1)
+	{
+		vertex_buffer = (RPVertexBufferInternal*)vb_handle;
+		if (offset)
+			offset_ = *offset;
+		else
+			offset_ = 0;
+		v11 = (this->unknown128 & 2) != 0;
+		unknownC = offset_;
+		if (!vertex_buffer->direct3d_vertex_buffer)
+		{
+			v27 = -2147467259;
+			goto LABEL_24;
+		}
+		if (vertex_buffer->num_verts < count)
+		{
+			GENERAL_NOTICE(TEMPSTR("vertex buffer %x at %d verts too small to hold requested locked verts %d", vertex_buffer->direct3d_vertex_buffer, vertex_buffer->num_verts, count));
+			v27 = -2147467259;
+		LABEL_24:
+			if (v27 < 0)
+			{
+				GENERAL_WARNING(TEMPSTR("%s: vb_lock: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+			}
+			return (GENRESULT)v27;
+		}
+		vertex_format = vertex_buffer->vertex_format;
+
+		stride = FVF_SIZEOF_VERT(vertex_format);
+
+		v19 = vertex_buffer->num_verts * stride;
+		v20 = stride * count;
+		v21 = v11 ? 0 : 2048;
+		if ((vertex_buffer->direct3d_vertex_buffer_usage & 0x200) != 0)
+		{
+			if (v20 + vertex_buffer->unknownC > v19)
+			{
+				vertex_buffer->unknownC = 0;
+				vertex_buffer->unknown1C = 0;
+				v21 |= 0x2000u;
+				unknownC = 0;
+				v8 = vertex_buffer->direct3d_vertex_buffer->Lock(
+					0,
+					v20,
+					(unsigned __int8**)&vertex_buffer->locked_data,
+					v21);
+			LABEL_19:
+				v17 = v8;
+				if (v8 >= 0)
+				{
+					vertex_buffer->unknown1C = unknownC / stride;
+					if (offset)
+						*offset = vertex_buffer->unknown1C;
+					*locked_data = vertex_buffer->locked_data;
+					vertex_buffer->unknownC = v20 + unknownC;
+				}
+				v27 = v17;
+				goto LABEL_24;
+			}
+			v21 |= 0x1000u;
+			unknownC = vertex_buffer->unknownC;
+		}
+		v8 = vertex_buffer->direct3d_vertex_buffer->Lock(
+			unknownC,
+			v20,
+			(unsigned __int8**)&vertex_buffer->locked_data,
+			v21);
+		goto LABEL_19;
+	}
+	return (GENRESULT)v27;
+
+
+
+
+
+
+
+	//return DirectX8_lock_vb(this, vb_handle, offset, locked_data, count);
+	//CHECK_DEVICE_LIFETIME();
+	//
+	//if (vb_handle == IRP_SCRATCH_VB_HANDLE) {
+	//	vb_handle = reinterpret_cast<IRP_VERTEXBUFFERHANDLE>(scratchVB);
+	//}
+	//
+	//RPVertexBufferInternal* vertex_buffer = reinterpret_cast<RPVertexBufferInternal*>(vb_handle);
+	//
+	////D3DVERTEXBUFFER_DESC desc;
+	////if (FAILED(vertex_buffer->direct3d_vertex_buffer->GetDesc(&desc)))
+	////{
+	////	return GR_GENERIC;
+	////}
+	////*out_vertex_buffer_size = desc.Size / FVF_SIZEOF_VERT(desc.FVF);
+	//
+	//DWORD offset_ = offset ? *offset : 0;
+	//if (FAILED(vertex_buffer->direct3d_vertex_buffer->Lock(offset_, 0, (BYTE**)locked_data, 0)))
+	//{
+	//	return GR_GENERIC;
+	//}
+	//else
+	//{
+	//	//vertex_buffer->unknown1C = v12 / v18;
+	//	if (offset)
+	//		*offset = vertex_buffer->unknown1C;
+	//	*locked_data = vertex_buffer->locked_data;
+	//	//vertex_buffer->unknownC = v20 + v12;
+	//}
+	//return GR_OK;
+	//
+	//
+	//
+	//
+	////CHECK_DEVICE_LIFETIME();
+	////
+	////if (vb_handle == IRP_SCRATCH_VB_HANDLE)
+	////{
+	////	vb_handle = reinterpret_cast<IRP_VERTEXBUFFERHANDLE>(scratchVB);
+	////}
+	////
+	////GENRESULT gr = GR_GENERIC;
+	////if (!is_vb_valid(vb_handle))
+	////{
+	////	gr = GR_INVALID_PARMS;
+	////}
+	////else
+	////{
+	////	RPVertexBufferInternal* vertex_buffer = reinterpret_cast<RPVertexBufferInternal*>(vb_handle);
+	////
+	////	bool unknown = (unknown128 & 2) != 0; // #TODO Better name for this bit, it's set in initialization
+	////	DWORD start_index;
+	////	HRESULT hr;
+	////	if (SUCCEEDED(hr = copy_indices_sub_6D1C660(
+	////		index_buffer,
+	////		offset,
+	////		num_indices,
+	////		locked_data_ptr,
+	////		&start_index,
+	////		unknown)))
+	////	{
+	////		gr = GR_OK;
+	////	}
+	////	else
+	////	{
+	////		GENERAL_ERROR(TEMPSTR("%s: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+	////		gr = GR_GENERIC;
+	////	}
+	////	offset = start_index;
+	////}
+	////return gr;
 }
 
-GENRESULT NewRenderPipeline::unlock_vb(IRP_VERTEXBUFFERHANDLE vbhandle)
+GENRESULT NewRenderPipeline::unlock_vb(IRP_VERTEXBUFFERHANDLE vb_handle)
 {
-	GENRESULT gr = DirectX8_unlock_vb(this, vbhandle);
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT gr = GR_GENERIC;
+	if (!is_vb_valid(vb_handle))
+	{
+		gr = GR_INVALID_PARMS;
+	}
+	else
+	{
+		RPVertexBufferInternal* vertex_buffer = reinterpret_cast<RPVertexBufferInternal*>(vb_handle);
+
+		if (vertex_buffer->locked_data)
+		{
+			HRESULT hr;
+			if (SUCCEEDED(hr = vertex_buffer->direct3d_vertex_buffer->Unlock()))
+			{
+				vertex_buffer->locked_data = nullptr;
+				gr = GR_OK;
+			}
+			else
+			{
+				GENERAL_ERROR(TEMPSTR("%s: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+				gr = GR_GENERIC;
+			}
+		}
+	}
 	return gr;
 }
 
 GENRESULT NewRenderPipeline::RPVertexBuffer_Unknown24(UNKNOWN a2)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT gr = DirectX8_RPVertexBuffer_Unknown24(this, a2);
+	return GR_NOT_IMPLEMENTED;
+}
+
+GENRESULT NewRenderPipeline::select_vb(IRP_VERTEXBUFFERHANDLE vb_handle)
+{
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT gr = GR_GENERIC;
+	if ((this->unknown184_is_locked & 1) != 0)
+	{
+		if (vb_handle)
+		{
+			if (vb_handle == IRP_SCRATCH_VB_HANDLE)
+			{
+				vb_handle = curr_hw_geometry.current_vertex_buffer_handle;
+			}
+			gr = curr_hw_geometry.set_vertex_buffer(vb_handle, D3DFMT_UNKNOWN);
+		}
+		else
+		{
+			curr_hw_geometry.invalidate();
+			gr = GR_GENERIC;
+		}
+	}
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::select_vb(IRP_VERTEXBUFFERHANDLE vbhandle)
+GENRESULT NewRenderPipeline::get_vb_count(IRP_VERTEXBUFFERHANDLE vb_handle, U32* vertex_format, U32* num_verts)
 {
-	GENRESULT gr = DirectX8_select_vb(this, vbhandle);
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT gr = GR_INVALID_PARMS;
+	if (vb_handle && vb_handle != IRP_SCRATCH_VB_HANDLE)
+	{
+		RPVertexBufferInternal* vertex_buffer = reinterpret_cast<RPVertexBufferInternal*>(vb_handle);
+
+		if (vertex_format)
+		{
+			*vertex_format = vertex_buffer->vertex_format;
+			gr = GR_OK;
+		}    
+		if (num_verts)
+		{
+			*num_verts = vertex_buffer->num_verts;
+			gr = GR_OK;
+		}
+	}
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::get_vb_count(IRP_VERTEXBUFFERHANDLE vbhandle, UNKNOWN* vertex_format, U32* num_verts)
+BOOL32 NewRenderPipeline::is_vb_valid(IRP_VERTEXBUFFERHANDLE vb_handle)
 {
-	NOT_IMPLEMENTED;
-	GENRESULT gr = DirectX8_get_vb_count(this, vbhandle, vertex_format, num_verts);
-	return gr;
-}
-
-BOOL32 NewRenderPipeline::is_vb_valid(IRP_VERTEXBUFFERHANDLE vbhandle)
-{
-	BOOL32 gr = DirectX8_is_vb_valid(this, vbhandle);
-	return gr;
+	BOOL32 result = FALSE;
+	if (vb_handle)
+	{
+		if (vb_handle == IRP_SCRATCH_VB_HANDLE)
+		{
+			result = TRUE;
+		}
+		else
+		{
+			RPVertexBufferInternal* vertex_buffer = reinterpret_cast<RPVertexBufferInternal*>(vb_handle);
+			result = vertex_buffer->direct3d_vertex_buffer != nullptr;
+		}
+	}
+	return result;
 }
 
 GENRESULT NewRenderPipeline::set_gamma_function(IGC_COMPONENT which, float display_gamma, float bias, float slope, float black_offset)
 {
-	GENRESULT gr = DirectX8_set_gamma_function(this, which, display_gamma, bias, slope, black_offset);
-	return gr;
+	// #TODO Cleanup
+	CHECK_DEVICE_LIFETIME();
+
+	float v7; // [esp+Ch] [ebp-61Ch]
+	float v8; // [esp+10h] [ebp-618h]
+	float v9; // [esp+14h] [ebp-614h]
+	unsigned int i; // [esp+1Ch] [ebp-60Ch]
+	WORD v11[770]; // [esp+20h] [ebp-608h] BYREF
+
+	if (this->device_abilities[RP_A_DEVICE_GAMMA])
+	{
+		for (i = 0; i < 0x100; ++i)
+		{
+			v7 = (double)i / 255.0;
+			v9 = 1.0 / display_gamma;
+			v8 = bias + pow(slope * v7 + black_offset, v9);
+			if (v8 < 0.0)
+				v8 = 0.0;
+			if (v8 > 1.0)
+				v8 = 1.0;
+			if ((which & 1) != 0)
+				v11[i] = (__int64)(v8 * 65535.0);
+			if ((which & 2) != 0)
+				v11[i + 256] = (__int64)(v8 * 65535.0);
+			if ((which & 4) != 0)
+				v11[i + 512] = (__int64)(v8 * 65535.0);
+		}
+		this->direct3d_device->SetGammaRamp(
+			(this->unknown184_is_locked & 2) != 0,
+			(const _D3DGAMMARAMP*)v11);
+		return GR_OK;
+	}
+	else
+	{
+		return GR_INTERFACE_UNSUPPORTED;
+	}
+
+	return GR_OK;
 }
 
 GENRESULT NewRenderPipeline::set_gamma_ramp(IGC_COMPONENT igc_component, U16* ramp)
 {
-	NOT_IMPLEMENTED;
-	GENRESULT gr = DirectX8_set_gamma_ramp(this, igc_component, ramp);
-	return gr;
+	// #TODO Cleanup
+	CHECK_DEVICE_LIFETIME();
+
+	if (this->device_abilities[RP_A_DEVICE_GAMMA])
+	{
+		D3DGAMMARAMP d3d_ramp; // [esp+Ch] [ebp-608h] BYREF
+		if (igc_component != IGC_ALL)
+			this->direct3d_device->GetGammaRamp(&d3d_ramp);
+		if ((igc_component & 1) != 0)
+			memcpy((void*)&d3d_ramp, ramp, 0x200u);
+		if ((igc_component & 2) != 0)
+			memcpy(d3d_ramp.green, ramp, sizeof(d3d_ramp.green));
+		if ((igc_component & 4) != 0)
+			memcpy(d3d_ramp.blue, ramp, sizeof(d3d_ramp.blue));
+		this->direct3d_device->SetGammaRamp((this->unknown184_is_locked & 2) != 0, &d3d_ramp);
+		return GR_OK;
+	}
+	else
+	{
+		return GR_INTERFACE_UNSUPPORTED;
+	}
 }
 
 GENRESULT NewRenderPipeline::get_gamma_ramp(IGC_COMPONENT igc_component, U16* out_ramp)
 {
-	NOT_IMPLEMENTED;
-	GENRESULT gr = DirectX8_get_gamma_ramp(this, igc_component, out_ramp);
-	return gr;
+	// #TODO Cleanup
+	CHECK_DEVICE_LIFETIME();
+
+	D3DGAMMARAMP d3d_ramp; // [esp+14h] [ebp-600h] BYREF
+	if (!this->device_abilities[RP_A_DEVICE_GAMMA])
+		return GR_INTERFACE_UNSUPPORTED;
+	this->direct3d_device->GetGammaRamp(&d3d_ramp);
+	switch (igc_component)
+	{
+	case IGC_RED:
+		memcpy(out_ramp, &d3d_ramp, 0x200u);
+		break;
+	case IGC_GREEN:
+		memcpy(out_ramp, d3d_ramp.green, 0x200u);
+		break;
+	case IGC_BLUE:
+		memcpy(out_ramp, d3d_ramp.blue, 0x200u);
+		break;
+	default:
+		GENERAL_WARNING("get_gamma_ramp: bad gamma ramp requested");
+		return GR_GENERIC;
+	}
+	return GR_OK;
 }
 
 GENRESULT NewRenderPipeline::set_calibration_enable(bool enabled)
 {
-	GENRESULT gr = DirectX8_set_calibration_enable(this, enabled);
-	return gr;
+	// #TODO Cleanup
+
+	if (!this->device_abilities[RP_A_DEVICE_GAMMA] || !this->device_abilities[RP_A_ABILITY2])
+		return GR_INTERFACE_UNSUPPORTED;
+	this->unknown184_is_locked = (2 * enabled) | (this->unknown184_is_locked & 0xFD);
+	return GR_OK;
 }
 
 GENRESULT NewRenderPipeline::get_calibration_enable(void)
 {
-	NOT_IMPLEMENTED;
-	GENRESULT gr = DirectX8_get_calibration_enable(this);
-	return gr;
+	if(!this->device_abilities[RP_A_DEVICE_GAMMA] || !this->device_abilities[RP_A_ABILITY2])
+		return GR_INTERFACE_UNSUPPORTED;
+	if ((this->unknown184_is_locked & 2) != 0)
+		return GR_OK;
+	return GR_GENERIC;
 }
 
 GENRESULT NewRenderPipeline::print_screen(IFileSystem* pFileSystem, const char* filepath)
 {
-	NOT_IMPLEMENTED;
-	GENRESULT gr = DirectX8_print_screen(this, pFileSystem, filepath);
-	return gr;
+	return GR_NOT_IMPLEMENTED;
 }
 
 GENRESULT NewRenderPipeline::load_texture(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture)
 {
+	return GR_NOT_IMPLEMENTED;
 	NOT_IMPLEMENTED;
 	GENRESULT gr = DirectX8_load_texture(this, a2_interface, filepath, out_texture);
 	return gr;

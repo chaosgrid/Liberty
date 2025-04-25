@@ -4,6 +4,8 @@
 #include "RenderDebugger.h"
 #include "RPInternal.h"
 
+#include "DX8/DX8IndexBuffer.h"
+
 #include <typedefs.h>
 #include <d3d8.h>
 
@@ -33,7 +35,7 @@ GENRESULT CACHED_GEOMETRY::set_index_buffer(IRP_INDEXBUFFERHANDLE hindexbuffer, 
 
 GENRESULT CACHED_GEOMETRY::flush_indices(IDirect3DDevice8* direct3d_device)
 {
-	RPIndexBufferInternal* index_buffer = reinterpret_cast<RPIndexBufferInternal*>(current_index_buffer_handle);
+	DX8IndexBuffer* index_buffer = reinterpret_cast<DX8IndexBuffer*>(current_index_buffer_handle);
 
 	GENRESULT gr = GR_OK;
 	if (index_dirty)
@@ -41,7 +43,7 @@ GENRESULT CACHED_GEOMETRY::flush_indices(IDirect3DDevice8* direct3d_device)
 		HRESULT hr;
 		if (current_index_buffer_handle)
 		{
-			hr = direct3d_device->SetIndices(index_buffer->direct3d_index_buffer, current_base_index);
+			hr = direct3d_device->SetIndices(index_buffer->buffer, current_base_index);
 		}
 		else
 		{

@@ -971,7 +971,7 @@ void rp_rd_dp( D3DPRIMITIVETYPE type, U32 vertex_format, const void *verts, int 
 
 //
 
-void rp_rd_dp_vb( D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, U32 flags ) 
+void rp_rd_dp_vb( D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vb_handle, U32 start_vert, U32 num_verts, U32 flags ) 
 {
 	rp_rd_state.dp_vb_calls++;
 
@@ -1031,7 +1031,7 @@ void rp_rd_dip( D3DPRIMITIVETYPE type, U32 vertex_format, const void *verts, int
 
 //
 
-void rp_rd_dip_vb( D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vbhandle, U32 start_vert, U32 num_verts, const U16 * indices, U32 num_indices, U32 flags ) 
+void rp_rd_dip_vb( D3DPRIMITIVETYPE type, IRP_VERTEXBUFFERHANDLE vb_handle, U32 start_vert, U32 num_verts, const U16 * indices, U32 num_indices, U32 flags ) 
 {
 	rp_rd_state.dip_vb_calls++;
 
