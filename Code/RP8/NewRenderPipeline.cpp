@@ -13,6 +13,7 @@
 #include "StateInfo.h"
 #include "DX8/DX8IndexBuffer.h"
 #include "DX8/DX8VertexBuffer.h"
+#include "DX8/DX8Texture.h"
 
 #include <Tfuncs.h>
 #include <Matrix4.h>
@@ -23,12 +24,16 @@
 #include <FLHook_st6.h>
 #include <FVF.h>
 #include <Core.h>
+#include <FileSys.h>
+#include <FileSys_Utility.h>
+#include <DDS.h>
 
 static void Transform2D3D(D3DMATRIX& dst, const Transform& src);
 static void D3D2Transform(const D3DMATRIX& src, Transform& dest);
 static void Matrix2D3D(D3DMATRIX& dst, const Matrix4& src);
 static void D3D2Matrix(const D3DMATRIX& src, Matrix4& dest);
 static U32 GetPrimCount(D3DPRIMITIVETYPE type, U32 indexCount);
+static D3DFORMAT parse_dds_d3dformat(const DirectX::DDS_HEADER& header);
 
 #define CHECK_STARTUP() \
 if (direct3d_adapter == -1) \
@@ -218,10 +223,8 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_Unknown1C, _sub_6D
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive2, _sub_6D111E1, IRPDraw* _this, D3DPRIMITIVETYPE type, U32 min_index, U32 num_verts, U32 start_index, U32 count);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_index_buffer, _sub_6D12D4E, IRPIndexBuffer* _this, U32 count, IRP_INDEXBUFFERHANDLE* out_ib_handle, BYTE flags);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_index_buffer, _sub_6D13002, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ib_handle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_load_texture, _sub_6D148D4, IRPTexture* _this, UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_load_surface_from_file, _sub_6D1455E, IRPTexture* _this, UNKNOWN* a2_interface, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_RPTexture_Unknown18, _sub_6D152E4, IRPTexture* _this, UNKNOWN a2, UNKNOWN a3, UNKNOWN* a4);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_load_cubemap, _sub_6D14DD7, IRPTexture* _this, UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_load_dds_info, _sub_6D152E4, IRPTexture* _this, DDSInfo* out_info, DWORD membytesize, void* mapped_file_mem);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_Initialize, _sub_6D01C68, IAggregateComponent* _this);
 
 #define CLSID_NewRenderPipeline "NewRenderPipeline"
@@ -2381,11 +2384,11 @@ public:
 
 	// IRPTexture methods
 
-	DACOM_DEFMETHOD(print_screen)(IFileSystem* pFileSystem, const char* filepath) override;
-	DACOM_DEFMETHOD(load_texture)(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture) override;
+	DACOM_DEFMETHOD(print_screen)(IFileSystem* IFS, const char* child) override;
+	DACOM_DEFMETHOD(load_texture)(IFileSystem* IFS, const char* child, IRP_TEXTUREHANDLE* out_htexture) override;
 	DACOM_DEFMETHOD(load_surface_from_file)(UNKNOWN* a2_interface, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5) override;
-	DACOM_DEFMETHOD(RPTexture_Unknown18)(UNKNOWN a2, UNKNOWN a3, UNKNOWN* a4) override;
-	DACOM_DEFMETHOD(load_cubemap)(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture) override;
+	DACOM_DEFMETHOD(load_dds_info)(DDSInfo* out_info, DWORD membytesize, void* mapped_file_mem) override;
+	DACOM_DEFMETHOD(load_cubemap)(IFileSystem* IFS, const char* child, IRP_TEXTUREHANDLE* out_htexture) override;
 
 	// IAggregateComponent methods
 
@@ -3363,10 +3366,11 @@ GENRESULT NewRenderPipeline::create_texture(int width, int height, const PFenum*
 		return GR_GENERIC;
 	}
 
-	*out_htexture = new RPTEXTUREHANDLE
-	{
-		.direct3d_texture = direct3d_texture
-	};
+	// #TODO: This is not how this should be done
+
+	DX8Texture* texture = new DX8Texture();
+	texture->texture = direct3d_texture;
+	*out_htexture = reinterpret_cast<IRP_TEXTUREHANDLE>(texture);
 
 	return GR_OK;
 }
@@ -3387,14 +3391,9 @@ GENRESULT NewRenderPipeline::destroy_texture(IRP_TEXTUREHANDLE htexture)
 			}
 		}
 
-		RPTEXTUREHANDLE* texture = htexture;
+		DX8Texture* texture = reinterpret_cast<DX8Texture*>(htexture);
 
-		U32 refcount = texture->direct3d_texture->Release();
-		if (refcount > 0)
-		{
-			GENERAL_WARNING(TEMPSTR("direct3d_texture released with %u references", refcount));
-		}
-		texture->direct3d_texture = 0;
+		texture->dispose();
 		delete texture;
 	}
 	else
@@ -3409,14 +3408,16 @@ GENRESULT NewRenderPipeline::is_texture(IRP_TEXTUREHANDLE htexture)
 {
 	CHECK_DEVICE_LIFETIME();
 
-	if (htexture && htexture->direct3d_texture)
+	GENRESULT gr = GR_GENERIC;
+	if (htexture != nullptr && htexture != IRP_INVALID_TEXURE_HANDLE)
 	{
-		return GR_OK;
+		DX8Texture* texture = reinterpret_cast<DX8Texture*>(htexture);
+		if (texture->texture != nullptr)
+		{
+			gr = GR_OK;
+		}
 	}
-	else
-	{
-		return GR_GENERIC;
-	}
+	return gr;
 }
 
 static GENRESULT get_texture_surface(IRP_TEXTUREHANDLE htexture, U32 subsurface, IDirect3DSurface8** out_direct3d_texture_surface)
@@ -3425,8 +3426,8 @@ static GENRESULT get_texture_surface(IRP_TEXTUREHANDLE htexture, U32 subsurface,
 	HRESULT hr = E_FAIL;
 
 	IDirect3DSurface8* direct3d_texture_surface = nullptr;
-	RPTEXTUREHANDLE* texture = htexture;
-	IDirect3DBaseTexture8* direct3d_basetexture = texture->direct3d_texture;
+	DX8Texture* texture = reinterpret_cast<DX8Texture*>(htexture);
+	IDirect3DBaseTexture8* direct3d_basetexture = texture->texture;
 	D3DRESOURCETYPE resource_type = direct3d_basetexture->GetType();
 
 	switch (resource_type)
@@ -3631,8 +3632,8 @@ GENRESULT NewRenderPipeline::get_texture_dim(IRP_TEXTUREHANDLE htexture, U32* ou
 	}
 	else
 	{
-		RPTEXTUREHANDLE* texture = htexture;
-		IDirect3DBaseTexture8* direct3d_basetexture = texture->direct3d_texture;
+		DX8Texture* texture = reinterpret_cast<DX8Texture*>(htexture);
+		IDirect3DBaseTexture8* direct3d_basetexture = texture->texture;
 		D3DRESOURCETYPE resource_type = direct3d_basetexture->GetType();
 
 		switch (resource_type)
@@ -5049,17 +5050,51 @@ GENRESULT NewRenderPipeline::get_calibration_enable(void)
 	return GR_GENERIC;
 }
 
-GENRESULT NewRenderPipeline::print_screen(IFileSystem* pFileSystem, const char* filepath)
+GENRESULT NewRenderPipeline::print_screen(IFileSystem* IFS, const char* child)
 {
 	return GR_NOT_IMPLEMENTED;
 }
 
-GENRESULT NewRenderPipeline::load_texture(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture)
+TRAMPOLINE(HRESULT, __stdcall, load_texture_2d, _sub_6D308FA, IDirect3DDevice8* direct3d_device, LPVOID mapping, DWORD file_size, IDirect3DCubeTexture8** out_texture);
+GENRESULT NewRenderPipeline::load_texture(IFileSystem* IFS, const char* child, IRP_TEXTUREHANDLE* out_htexture)
 {
+	unused(load_texture_2d);
 	return GR_NOT_IMPLEMENTED;
-	NOT_IMPLEMENTED;
-	GENRESULT gr = DirectX8_load_texture(this, a2_interface, filepath, out_texture);
-	return gr;
+	/*ASSERT(IFS != nullptr);
+	ASSERT(child != nullptr);
+	ASSERT(out_htexture != nullptr);
+
+	GENRESULT gr;
+
+	MappedFile mapped_file;
+	if (SUCCEEDED(gr = open_file_map(IFS, child, mapped_file)))
+	{
+		HRESULT hr;
+		IDirect3DCubeTexture8* direct3d_cubetexture;
+		if (FAILED(hr = load_texture_2d(direct3d_device, mapped_file.mapping, mapped_file.file_size, &direct3d_cubetexture)))
+		{
+			GENERAL_ERROR(TEMPSTR("load_texture: %s", HRESULT_GET_ERROR_STRING(hr)));
+			gr = GR_GENERIC;
+		}
+		else
+		{
+			DX8Texture* texture = new DX8Texture();
+			texture->texture = direct3d_cubetexture;
+			texture->unknown4 = 1;
+			*out_htexture = reinterpret_cast<IRP_TEXTUREHANDLE>(texture);
+			gr = GR_OK;
+		}
+
+		debug_point;
+	}
+	else
+	{
+		GENERAL_WARNING(TEMPSTR("%s: couldnt create file mapping", __FUNCTION__));
+	}
+
+	close_file_map(mapped_file);
+
+	return gr;*/
 }
 
 GENRESULT NewRenderPipeline::load_surface_from_file(UNKNOWN* a2_interface, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5)
@@ -5069,15 +5104,85 @@ GENRESULT NewRenderPipeline::load_surface_from_file(UNKNOWN* a2_interface, UNKNO
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::RPTexture_Unknown18(UNKNOWN a2, UNKNOWN a3, UNKNOWN* a4)
+GENRESULT NewRenderPipeline::load_dds_info(DDSInfo* out_info, DWORD membytesize, void* mapped_file_mem)
 {
-	GENRESULT gr = DirectX8_RPTexture_Unknown18(this, a2, a3, a4);
+	using namespace DirectX;
+
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT gr;
+	if (membytesize < (sizeof(DWORD) + sizeof(DDS_HEADER)))
+	{
+		gr = GR_FILE_ERROR;
+	}
+	else
+	{
+		DWORD* magic = static_cast<DWORD*>(mapped_file_mem);
+		if (*magic != MAKEFOURCC('D', 'D', 'S', ' '))
+		{
+			gr = GR_GENERIC;
+		}
+		else
+		{
+			DDS_HEADER* header = reinterpret_cast<DDS_HEADER*>(magic + 1);
+			*out_info =
+			{
+				.Width = header->width,
+				.Height = header->height,
+				.Depth = __max(1, header->depth),
+				.MipMapCount = header->mipMapCount,
+				.Format = parse_dds_d3dformat(*header),
+				.unknown14 = 3, // always 3
+				.unknown18 = 4, // always 4
+			};
+			gr = GR_OK;
+		}
+	}
 	return gr;
+
+	ASSERT(membytesize > 0);
+	ASSERT(mapped_file_mem != nullptr);
 }
 
-GENRESULT NewRenderPipeline::load_cubemap(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture)
+TRAMPOLINE(HRESULT, __stdcall, load_texture_cubemap, _sub_6D3092A, IDirect3DDevice8* direct3d_device, LPVOID mapping, DWORD file_size, IDirect3DCubeTexture8** out_texture);
+GENRESULT NewRenderPipeline::load_cubemap(IFileSystem* IFS, const char* child, IRP_TEXTUREHANDLE* out_htexture)
 {
-	GENRESULT gr = DirectX8_load_cubemap(this, a2_interface, filepath, out_texture);
+	ASSERT(IFS != nullptr);
+	ASSERT(child != nullptr);
+	ASSERT(out_htexture != nullptr);
+
+	GENRESULT gr;
+
+	MappedFile mapped_file;
+	if (SUCCEEDED(gr = open_file_map(IFS, child, mapped_file)))
+	{
+		HRESULT hr;
+		IDirect3DCubeTexture8* direct3d_cubetexture;
+		if (FAILED(hr = load_texture_cubemap(direct3d_device, mapped_file.mapping, mapped_file.file_size, &direct3d_cubetexture)))
+		{
+			GENERAL_ERROR(TEMPSTR("load_texture: %s", HRESULT_GET_ERROR_STRING(hr)));
+			gr = GR_GENERIC;
+		}
+		else
+		{
+			DX8Texture* texture = new DX8Texture();
+			texture->texture = direct3d_cubetexture;
+			texture->unknown4 = 1;
+			*out_htexture = reinterpret_cast<IRP_TEXTUREHANDLE>(texture);
+			gr = GR_OK;
+		}
+
+		debug_point;
+	}
+	else
+	{
+		char Buffer[MAX_PATH];
+		IFS->GetFileName(Buffer, _countof(Buffer));
+		GENERAL_WARNING(TEMPSTR("%s: couldnt create file mapping %s", __FUNCTION__, Buffer));
+	}
+
+	close_file_map(mapped_file);
+
 	return gr;
 }
 
@@ -5221,4 +5326,90 @@ static U32 GetPrimCount(D3DPRIMITIVETYPE type, U32 indexCount)
 		ASSERT(false);
 	}
 	return 0;
+}
+
+static D3DFORMAT parse_dds_d3dformat(const DirectX::DDS_HEADER& header)
+{
+	using namespace DirectX;
+	const DDS_PIXELFORMAT& pf = header.ddspf;
+
+	// Compressed formats via FourCC
+	if (pf.flags & DDPF_FOURCC)
+	{
+		switch (pf.fourCC)
+		{
+		case MAKEFOURCC('D', 'X', 'T', '1'): return D3DFMT_DXT1;
+		case MAKEFOURCC('D', 'X', 'T', '2'): return D3DFMT_DXT2;
+		case MAKEFOURCC('D', 'X', 'T', '3'): return D3DFMT_DXT3;
+		case MAKEFOURCC('D', 'X', 'T', '4'): return D3DFMT_DXT4;
+		case MAKEFOURCC('D', 'X', 'T', '5'): return D3DFMT_DXT5;
+		default:                          return D3DFMT_UNKNOWN;
+		}
+	}
+
+	// Uncompressed RGB(A)
+	if (pf.flags & DDPF_RGB)
+	{
+		switch (pf.RGBBitCount)
+		{
+		case 32:
+			if (pf.RBitMask == 0x00ff0000 &&
+				pf.GBitMask == 0x0000ff00 &&
+				pf.BBitMask == 0x000000ff &&
+				pf.ABitMask == 0xff000000)
+				return D3DFMT_A8R8G8B8;
+			if (pf.RBitMask == 0x00ff0000 &&
+				pf.GBitMask == 0x0000ff00 &&
+				pf.BBitMask == 0x000000ff &&
+				pf.ABitMask == 0x00000000)
+				return D3DFMT_X8R8G8B8;
+			break;
+
+		case 24:
+			return D3DFMT_R8G8B8;
+
+		case 16:
+			// 5:6:5
+			if (pf.RBitMask == 0xF800 &&
+				pf.GBitMask == 0x07E0 &&
+				pf.BBitMask == 0x001F)
+				return D3DFMT_R5G6B5;
+
+			// 1:5:5:5
+			if (pf.RBitMask == 0x7C00 &&
+				pf.GBitMask == 0x03E0 &&
+				pf.BBitMask == 0x001F)
+			{
+				if (pf.ABitMask == 0x8000) return D3DFMT_A1R5G5B5;
+				else                          return D3DFMT_X1R5G5B5;
+			}
+
+			// 4:4:4:4
+			if (pf.RBitMask == 0x0F00 &&
+				pf.GBitMask == 0x00F0 &&
+				pf.BBitMask == 0x000F)
+			{
+				if (pf.ABitMask == 0xF000) return D3DFMT_A4R4G4B4;
+				else                          return D3DFMT_X4R4G4B4;
+			}
+			break;
+		}
+	}
+
+	// Pure alpha
+	if ((pf.flags & DDPF_ALPHA) && pf.RGBBitCount == 8)
+		return D3DFMT_A8;
+
+	// Luminance
+	if (pf.flags & DDPF_LUMINANCE)
+	{
+		if (pf.RGBBitCount == 8)  return D3DFMT_L8;
+		if (pf.RGBBitCount == 16) return D3DFMT_A8L8;
+	}
+
+	// Paletted
+	if (pf.flags & DDPF_PALETTEINDEXED8) return D3DFMT_P8;
+	// if (pf.dwFlags & DDPF_PALETTEINDEXED4) return D3DFMT_P4;
+
+	return D3DFMT_UNKNOWN;
 }

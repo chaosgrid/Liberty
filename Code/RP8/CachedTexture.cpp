@@ -2,6 +2,7 @@
 
 #include "CachedTexture.h"
 #include "RenderDebugger.h"
+#include "DX8/DX8Texture.h"
 
 #include <typedefs.h>
 #include <d3d8.h>
@@ -35,9 +36,10 @@ GENRESULT CACHED_TEXTURE::set(IDirect3DDevice8* device, U32 stage_idx, IRP_TEXTU
 #endif
 
 	IDirect3DBaseTexture8* direct3d_texture = nullptr;
-	if (new_value)
+	DX8Texture* texture = reinterpret_cast<DX8Texture*>(new_value);
+	if (texture != nullptr)
 	{
-		direct3d_texture = new_value->direct3d_texture;
+		direct3d_texture = texture->texture;
 	}
 
 	GENRESULT gr = GR_OK;

@@ -74,10 +74,10 @@ HRESULT DX8VertexBuffer::dispose()
 	HRESULT hr = S_OK;
 
 	// Only dispose if we have an existing buffer
-	if (buffer)
+	if (buffer != nullptr)
 	{
 		// If it's currently locked, unlock it first
-		if (lockptr)
+		if (lockptr != nullptr)
 		{
 			lockptr = nullptr;
 			hr = buffer->Unlock();

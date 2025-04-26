@@ -396,12 +396,18 @@ target_link_libraries(x86math Core DACOM)
 target_link_libraries(THORN Core DACOM)
 target_link_libraries(System Core)
 target_link_libraries(SoundStreamer Core DACOM MSAcm32.Lib)
-target_link_libraries(SoundManager Core DACOM x86math ReadFile MSAcm32.Lib Winmm.lib)
+target_link_libraries(SoundManager Core DACOM x86math MSAcm32.Lib Winmm.lib)
 target_link_libraries(Shading Core)
 target_link_libraries(Server Core)
 target_link_libraries(RPCLocal Core)
 target_link_libraries(RP8 Core DACOM x86math dxguid.lib)
 target_link_libraries(RendComp Core)
+
+# TODO target_include_libraries
+# Need to add the include directories for these projects, but not 
+# hard link them because they use DACOM to query the interface
+target_link_libraries(SoundManager ReadFile)
+target_link_libraries(RP8 ReadFile)
 
 add_dependencies(FreeLancer 
     RemoteServer

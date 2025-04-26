@@ -4,22 +4,27 @@
 #define __RPTEXTURE_H__
 
 #include <DACOM.h>
-
+#include <d3d8.h>
 //--------------------------------------------------------------------------//
 //----------------------------IRPTexture Interface--------------------------//
 //--------------------------------------------------------------------------//
 
 typedef struct IRPTexture* LPRPTEXTURE;
-//typedef void* IRP_TEXTUREHANDLE;
-struct IDirect3DBaseTexture8;
-struct RPTEXTUREHANDLE
-{
-	IDirect3DBaseTexture8* direct3d_texture;
-	UNKNOWN unknown4;
-};
-typedef RPTEXTUREHANDLE* IRP_TEXTUREHANDLE;
+DECLARE_HANDLE(IRP_TEXTUREHANDLE);
+#define IRP_INVALID_TEXURE_HANDLE ((IRP_TEXTUREHANDLE)-1)
 
 struct IFileSystem;
+
+struct DDSInfo
+{
+	U32 Width;
+	U32 Height;
+	U32 Depth;
+	DWORD MipMapCount;
+	D3DFORMAT Format;
+	DWORD unknown14; // always 3
+	DWORD unknown18; // always 4
+};
 
 #define IID_IRPTexture DACOM_MAKE_IID("IRPTexture")
 struct DACOM_NO_VTABLE IRPTexture : public IDAComponent
@@ -32,11 +37,11 @@ struct DACOM_NO_VTABLE IRPTexture : public IDAComponent
 
 	// IRPTexture methods
 
-	DACOM_DEFMETHOD(print_screen)(IFileSystem* pFileSystem, const char* filepath);
-	DACOM_DEFMETHOD(load_texture)(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture);
+	DACOM_DEFMETHOD(print_screen)(IFileSystem* IFS, const char* child);
+	DACOM_DEFMETHOD(load_texture)(IFileSystem* IFS, const char* child, IRP_TEXTUREHANDLE* out_htexture);
 	DACOM_DEFMETHOD(load_surface_from_file)(UNKNOWN* a2_interface, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5);
-	DACOM_DEFMETHOD(RPTexture_Unknown18)(UNKNOWN a2, UNKNOWN a3, UNKNOWN* a4);
-	DACOM_DEFMETHOD(load_cubemap)(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture);
+	DACOM_DEFMETHOD(load_dds_info)(DDSInfo* out_info, DWORD membytesize, void* mapped_file_mem);
+	DACOM_DEFMETHOD(load_cubemap)(IFileSystem* IFS, const char* child, IRP_TEXTUREHANDLE* out_htexture);
 };
 
 #endif

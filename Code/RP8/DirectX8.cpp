@@ -127,11 +127,11 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_gamma_ramp, _sub_6D1560C, IGammaCo
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_gamma_ramp, _sub_6D15757, IGammaControl* _this, IGC_COMPONENT igc_component, U16* out_ramp);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_calibration_enable, _sub_6D1535D, IGammaControl* _this, bool enabled);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_calibration_enable, _sub_6D153A4, IGammaControl* _this);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_print_screen, _sub_6D13D70, IRPTexture* _this, IFileSystem* pFileSystem, const char* filepath);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_load_texture, _sub_6D148D4, IRPTexture* _this, UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_print_screen, _sub_6D13D70, IRPTexture* _this, IFileSystem* IFS, const char* child);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_load_texture, _sub_6D148D4, IRPTexture* _this, IFileSystem* IFS, const char* child, IRP_TEXTUREHANDLE* out_htexture);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_load_surface_from_file, _sub_6D1455E, IRPTexture* _this, UNKNOWN* a2_interface, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_RPTexture_Unknown18, _sub_6D152E4, IRPTexture* _this, UNKNOWN a2, UNKNOWN a3, UNKNOWN* a4);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_load_cubemap, _sub_6D14DD7, IRPTexture* _this, UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_load_dds_info, _sub_6D152E4, IRPTexture* _this, DDSInfo* out_info, DWORD membytesize, void* mapped_file_mem);
+TRAMPOLINE(GENRESULT, __stdcall, DirectX8_load_cubemap, _sub_6D14DD7, IRPTexture* _this, IFileSystem* IFS, const char* child, IRP_TEXTUREHANDLE* out_htexture);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_Initialize, _sub_6D01C68, IAggregateComponent* _this);
 
 #define CLSID_DirectX8 "DirectX8"
@@ -2285,11 +2285,11 @@ public:
 
 	// IRPTexture methods
 
-	DACOM_DEFMETHOD(print_screen)(IFileSystem* pFileSystem, const char* filepath) override;
-	DACOM_DEFMETHOD(load_texture)(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture) override;
+	DACOM_DEFMETHOD(print_screen)(IFileSystem* IFS, const char* child) override;
+	DACOM_DEFMETHOD(load_texture)(IFileSystem* IFS, const char* child, IRP_TEXTUREHANDLE* out_htexture) override;
 	DACOM_DEFMETHOD(load_surface_from_file)(UNKNOWN* a2_interface, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5) override;
-	DACOM_DEFMETHOD(RPTexture_Unknown18)(UNKNOWN a2, UNKNOWN a3, UNKNOWN* a4) override;
-	DACOM_DEFMETHOD(load_cubemap)(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture) override;
+	DACOM_DEFMETHOD(load_dds_info)(DDSInfo* out_info, DWORD membytesize, void* mapped_file_mem) override;
+	DACOM_DEFMETHOD(load_cubemap)(IFileSystem* IFS, const char* child, IRP_TEXTUREHANDLE* out_htexture) override;
 
 	// IAggregateComponent methods
 
@@ -2949,15 +2949,15 @@ GENRESULT DirectX8::get_calibration_enable(void)
 	return gr;
 }
 
-GENRESULT DirectX8::print_screen(IFileSystem* pFileSystem, const char* filepath)
+GENRESULT DirectX8::print_screen(IFileSystem* IFS, const char* child)
 {
-	GENRESULT gr = DirectX8_print_screen(this, pFileSystem, filepath);
+	GENRESULT gr = DirectX8_print_screen(this, IFS, child);
 	return gr;
 }
 
-GENRESULT DirectX8::load_texture(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture)
+GENRESULT DirectX8::load_texture(IFileSystem* IFS, const char* child, IRP_TEXTUREHANDLE* out_htexture)
 {
-	GENRESULT gr = DirectX8_load_texture(this, a2_interface, filepath, out_texture);
+	GENRESULT gr = DirectX8_load_texture(this, IFS, child, out_htexture);
 	return gr;
 }
 
@@ -2967,15 +2967,15 @@ GENRESULT DirectX8::load_surface_from_file(UNKNOWN* a2_interface, UNKNOWN a3, UN
 	return gr;
 }
 
-GENRESULT DirectX8::RPTexture_Unknown18(UNKNOWN a2, UNKNOWN a3, UNKNOWN* a4)
+GENRESULT DirectX8::load_dds_info(DDSInfo* out_info, DWORD membytesize, void* mapped_file_mem)
 {
-	GENRESULT gr = DirectX8_RPTexture_Unknown18(this, a2, a3, a4);
+	GENRESULT gr = DirectX8_load_dds_info(this, out_info, membytesize, mapped_file_mem);
 	return gr;
 }
 
-GENRESULT DirectX8::load_cubemap(UNKNOWN* a2_interface, const char* filepath, IRP_TEXTUREHANDLE* out_texture)
+GENRESULT DirectX8::load_cubemap(IFileSystem* IFS, const char* child, IRP_TEXTUREHANDLE* out_htexture)
 {
-	GENRESULT gr = DirectX8_load_cubemap(this, a2_interface, filepath, out_texture);
+	GENRESULT gr = DirectX8_load_cubemap(this, IFS, child, out_htexture);
 	return gr;
 }
 
