@@ -53,6 +53,8 @@ HRESULT DX8IndexBuffer::create_ib(IDirect3DDevice8* direct3d_device, U32 num_ind
 		// Calculate total byte size (U16 is 2 bytes)
 		UINT length = sizeof(U16) * num_indices;
 
+		ASSERT(buffer == nullptr);
+
 		// Try to create a new D3D index buffer
 		// If creation failed, log an error and return a generic failure
 		if (FAILED(hr = direct3d_device->CreateIndexBuffer(

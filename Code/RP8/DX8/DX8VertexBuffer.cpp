@@ -62,6 +62,8 @@ HRESULT DX8VertexBuffer::create_vb(IDirect3DDevice8* direct3d_device, U32 format
 		U32 stride = FVF_SIZEOF_VERT(vertex_format);
 		UINT length = stride * num_verts;
 
+		ASSERT(buffer == nullptr);
+
 		// Try to create a new D3D vertex buffer
 		// If creation failed, log an error and return a generic failure
 		if (FAILED(hr = direct3d_device->CreateVertexBuffer(

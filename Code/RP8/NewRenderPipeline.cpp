@@ -2175,7 +2175,7 @@ public:
 	HMODULE d3d8_module;
 	//typedef st6::map<U32, U32>	LightInfoMap;
 	//LightInfoMap				lights;
-	//DX8VertexBuffer VERTEX;
+	DX8VertexBuffer copy_vertices_buffer;
 	vertex_buffer_map managed_vbs;
 	vertex_buffer_list available_vbs;
 
@@ -3763,7 +3763,19 @@ GENRESULT NewRenderPipeline::get_texture_interface(IRP_TEXTUREHANDLE htexture, c
 
 GENRESULT NewRenderPipeline::set_texture_level_data(IRP_TEXTUREHANDLE htexture, U32 subsurface, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette)
 {
-	GENRESULT gr = DirectX8_set_texture_level_data(this, htexture, subsurface, src_width, src_height, src_stride, src_format, src_pixel, src_alpha, src_palette);
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT gr = GR_OK;
+	if (SUCCEEDED(is_texture(htexture)))
+	{
+		gr = DirectX8_set_texture_level_data(this, htexture, subsurface, src_width, src_height, src_stride, src_format, src_pixel, src_alpha, src_palette);
+
+	}
+	else
+	{
+		gr = GR_INVALID_PARMS;
+	}
+
 	return gr;
 }
 
@@ -4424,6 +4436,8 @@ GENRESULT NewRenderPipeline::cleanup()
 {
 	curr_hw_geometry.invalidate();
 
+	copy_vertices_buffer.dispose();
+
 	vertex_buffer_map::iterator vb;
 
 	while ((vb = managed_vbs.begin()) != managed_vbs.end())
@@ -4526,6 +4540,8 @@ GENRESULT NewRenderPipeline::acquire_vertex_buffer(D3DFORMAT vertex_format, U32 
 	}
 
 	managed_vbs[new_vb.handle] = new_vb;
+	GENERAL_NOTICE(TEMPSTR("%s managed_vbs   size = %u", __FUNCTION__, U32(managed_vbs.size())));
+	GENERAL_NOTICE(TEMPSTR("%s available_vbs size = %u", __FUNCTION__, U32(available_vbs.size())));
 
 	return gr;
 }
@@ -5012,46 +5028,48 @@ GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vb_handle, U32
 	}
 	else
 	{
-		U32 offset_ = offset ? *offset : 0;
-		void* locked_data_ptr;
-		bool already_locked;
-		U32 stride = FVF_SIZEOF_VERT(src_vb_desc->vertex_format/*vertex_buffer->vertex_format*/);
-		DX8VertexBuffer* vertex_buffer;
+		HRESULT hr;
+
 		if (vb_handle == IRP_INVALID_VB_HANDLE)
 		{
-			VertexBufferAcquire vbmem;
-			gr = acquire_vertex_buffer((D3DFORMAT)src_vb_desc->vertex_format, num_vertices, &vbmem);
-			vb_handle = vbmem.vertex_buffer;
-			offset_ = vbmem.lock_offset;
-			if (FAILED(gr))
-			{
-				GENERAL_ERROR(TEMPSTR("%s: acquire_vertex_buffer failed", __FUNCTION__));
-			}
-			locked_data_ptr = vbmem.lockptr;
-			already_locked = true;
-			vertex_buffer = reinterpret_cast<DX8VertexBuffer*>(vb_handle);
+			/* Question: Why is there a random fixup vertex buffer here?
+			Answer: The UI code doesn't bother to pass it's own valid vertex buffer handle in.
+			So it just expects to magically have a fixup under the hood. And it gets better!
+			Because that code never passed a valid handle in, it never calls any function to
+			destroy a created buffer. So there is no choice but to maintain a single, special,
+			vertex buffer just for this function, just because the API is being missused.
+			This code doesn't existin the Beta, it doesn't exist in Conqeust, someone at 
+			Digital Anvil decided they'd just throw all the fucks out of the window, just to 
+			piss of some future engineer who had to deal with their shitty code. */
+
+			// handles dispose or format change etc.
+			copy_vertices_buffer.create_vb(direct3d_device, src_vb_desc->vertex_format, num_vertices);
+			vb_handle = reinterpret_cast<IRP_VERTEXBUFFERHANDLE>(&copy_vertices_buffer);
+			curr_hw_geometry.set_vertex_buffer(vb_handle, src_vb_desc->vertex_format);
+		}
+
+		DX8VertexBuffer* vertex_buffer = reinterpret_cast<DX8VertexBuffer*>(vb_handle);
+
+		U32 stride = FVF_SIZEOF_VERT(vertex_buffer->vertex_format);
+		U32 offset_ = offset ? *offset : 0;
+
+		void* locked_data_ptr;
+		bool already_locked = vertex_buffer->lockptr != 0;
+		if (already_locked)
+		{
+			locked_data_ptr = (void*)((char*)vertex_buffer->lockptr + offset_ * stride);
+			gr = GR_OK;
 		}
 		else
 		{
-			vertex_buffer = reinterpret_cast<DX8VertexBuffer*>(vb_handle);
-			already_locked = vertex_buffer->lockptr != 0;
-			if (already_locked)
+			if (SUCCEEDED(hr = lock_vb(vb_handle, &offset_, locked_data_ptr, num_vertices)))
 			{
-				locked_data_ptr = (void*)((char*)vertex_buffer->lockptr + offset_ * stride);
 				gr = GR_OK;
 			}
 			else
 			{
-				HRESULT hr;
-				if (SUCCEEDED(hr = lock_vb(vb_handle, &offset_, locked_data_ptr, num_vertices)))
-				{
-					gr = GR_OK;
-				}
-				else
-				{
-					GENERAL_ERROR(TEMPSTR("%s: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-					gr = GR_GENERIC;
-				}
+				GENERAL_ERROR(TEMPSTR("%s: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+				gr = GR_GENERIC;
 			}
 		}
 
