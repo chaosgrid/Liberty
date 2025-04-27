@@ -28,6 +28,18 @@
 #include <FileSys_Utility.h>
 #include <DDS.h>
 
+#include <FLHook_st6.h>
+#include <map>
+#include <list>
+struct IVBM_VERTEXBUFFER
+{
+	IRP_VERTEXBUFFERHANDLE handle;
+	U32 vertex_format;
+	U32 num_verts;
+};
+typedef std::map<IRP_VERTEXBUFFERHANDLE, IVBM_VERTEXBUFFER>	vertex_buffer_map;
+typedef std::list<IVBM_VERTEXBUFFER*> vertex_buffer_list;
+
 static void Transform2D3D(D3DMATRIX& dst, const Transform& src);
 static void D3D2Transform(const D3DMATRIX& src, Transform& dest);
 static void Matrix2D3D(D3DMATRIX& dst, const Matrix4& src);
@@ -203,7 +215,6 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_light, _sub_6D0D044, IRenderPipeli
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_light_enable, _sub_6D0D0D7, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle, U32 enable);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_light_enable, _sub_6D0D157, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle, U32* out_enable);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_texture_level_data, _sub_6D0EA78, IRenderPipeline8B* _this, IRP_TEXTUREHANDLE htexture, U32 subsurface, int src_width, int src_height, int src_stride, const PFenum* src_format, const void* src_pixel, const void* src_alpha, const RGB* src_palette);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_reset_render_states_to_defaults, _sub_6D0F9E4, IRenderPipeline8B* _this);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_add_light, _sub_6D0CCB2, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_remove_light, _sub_6D0CD32, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_update_light, _sub_6D0CDDB, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle);
@@ -2164,7 +2175,9 @@ public:
 	HMODULE d3d8_module;
 	//typedef st6::map<U32, U32>	LightInfoMap;
 	//LightInfoMap				lights;
-	DX8VertexBuffer VERTEX;
+	//DX8VertexBuffer VERTEX;
+	vertex_buffer_map managed_vbs;
+	vertex_buffer_list available_vbs;
 
 	BEGIN_DACOM_MAP_INBOUND(NewRenderPipeline)
 		DACOM_INTERFACE_ENTRY(IRenderPipeline8B)
@@ -2337,8 +2350,7 @@ public:
 
 // 6D01143
 NewRenderPipeline::NewRenderPipeline() :
-	scratchIB(D3DUSAGE_DYNAMIC),
-	VERTEX(D3DUSAGE_DYNAMIC)
+	scratchIB(D3DUSAGE_DYNAMIC)
 {
 	d3d8_module = NULL;
 	direct3d_device = NULL;
@@ -2885,7 +2897,6 @@ GENRESULT NewRenderPipeline::destroy_buffers(void)
 {
 	cleanup();
 	scratchIB.dispose();
-	VERTEX.dispose();
 
 	this->window = 0;
 	this->unknown184_is_locked &= ~1u;
@@ -3807,9 +3818,9 @@ GENRESULT NewRenderPipeline::end_scene(void)
 
 GENRESULT NewRenderPipeline::reset_render_states_to_defaults(void)
 {
+	CHECK_DEVICE_LIFETIME();
 	NOT_IMPLEMENTED;
-	GENRESULT gr = DirectX8_reset_render_states_to_defaults(this);
-	return gr;
+	return GR_NOT_IMPLEMENTED;
 }
 
 GENRESULT NewRenderPipeline::set_render_state(D3DRENDERSTATETYPE state, U32 value)
@@ -4399,22 +4410,6 @@ GENRESULT NewRenderPipeline::set_world_n(UNKNOWN a2, Transform* transform)
 	NOT_IMPLEMENTED;
 	return GR_NOT_IMPLEMENTED;
 }
-
-
-#include <FLHook_st6.h>
-#include <map>
-#include <list>
-struct IVBM_VERTEXBUFFER
-{
-	IRP_VERTEXBUFFERHANDLE handle;
-	U32 vertex_format;
-	U32 num_verts;
-};
-typedef std::map<IRP_VERTEXBUFFERHANDLE, IVBM_VERTEXBUFFER>	vertex_buffer_map;
-typedef std::list<IVBM_VERTEXBUFFER*> vertex_buffer_list;
-
-vertex_buffer_map	managed_vbs;
-vertex_buffer_list	available_vbs;
 
 GENRESULT NewRenderPipeline::initialize(U32 a2, U32 a3, U32 a4, U32 a5)
 {
@@ -5010,45 +5005,53 @@ GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vb_handle, U32
 {
 	CHECK_DEVICE_LIFETIME();
 
-	GENRESULT gr = GR_GENERIC;
+	GENRESULT gr;
 	if (!is_vb_valid(vb_handle))
 	{
 		gr = GR_INVALID_PARMS;
 	}
 	else
 	{
-		HRESULT hr;
-
+		U32 offset_ = offset ? *offset : 0;
+		void* locked_data_ptr;
+		bool already_locked;
+		U32 stride = FVF_SIZEOF_VERT(src_vb_desc->vertex_format/*vertex_buffer->vertex_format*/);
+		DX8VertexBuffer* vertex_buffer;
 		if (vb_handle == IRP_INVALID_VB_HANDLE)
 		{
-			// handles dispose or format change etc.
-			VERTEX.create_vb(direct3d_device, src_vb_desc->vertex_format, num_vertices);
-			vb_handle = reinterpret_cast<IRP_VERTEXBUFFERHANDLE>(&VERTEX);
-			curr_hw_geometry.set_vertex_buffer(vb_handle, src_vb_desc->vertex_format);
-		}
-
-		DX8VertexBuffer* vertex_buffer = reinterpret_cast<DX8VertexBuffer*>(vb_handle);
-
-		U32 stride = FVF_SIZEOF_VERT(vertex_buffer->vertex_format);
-		U32 offset_ = offset ? *offset : 0;
-
-		void* locked_data_ptr;
-		bool already_locked = vertex_buffer->lockptr != 0;
-		if (already_locked)
-		{
-			locked_data_ptr = (void*)((char*)vertex_buffer->lockptr + offset_ * stride);
-			gr = GR_OK;
+			VertexBufferAcquire vbmem;
+			gr = acquire_vertex_buffer((D3DFORMAT)src_vb_desc->vertex_format, num_vertices, &vbmem);
+			vb_handle = vbmem.vertex_buffer;
+			offset_ = vbmem.lock_offset;
+			if (FAILED(gr))
+			{
+				GENERAL_ERROR(TEMPSTR("%s: acquire_vertex_buffer failed", __FUNCTION__));
+			}
+			locked_data_ptr = vbmem.lockptr;
+			already_locked = true;
+			vertex_buffer = reinterpret_cast<DX8VertexBuffer*>(vb_handle);
 		}
 		else
 		{
-			if (SUCCEEDED(hr = lock_vb(vb_handle, &offset_, locked_data_ptr, num_vertices)))
+			vertex_buffer = reinterpret_cast<DX8VertexBuffer*>(vb_handle);
+			already_locked = vertex_buffer->lockptr != 0;
+			if (already_locked)
 			{
+				locked_data_ptr = (void*)((char*)vertex_buffer->lockptr + offset_ * stride);
 				gr = GR_OK;
 			}
 			else
 			{
-				GENERAL_ERROR(TEMPSTR("%s: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
-				gr = GR_GENERIC;
+				HRESULT hr;
+				if (SUCCEEDED(hr = lock_vb(vb_handle, &offset_, locked_data_ptr, num_vertices)))
+				{
+					gr = GR_OK;
+				}
+				else
+				{
+					GENERAL_ERROR(TEMPSTR("%s: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+					gr = GR_GENERIC;
+				}
 			}
 		}
 
