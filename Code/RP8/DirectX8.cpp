@@ -16,6 +16,7 @@
 #include <d3d8.h>
 #include <Dump.h>
 #include <FLHook_st6.h>
+#include <TSmartPointer.h>
 
 #define uint U32
 
@@ -146,7 +147,7 @@ struct CACHED_PIPELINE_STATE
 class DirectX8 : IRenderPipeline8B, IVertexBufferManager, IRPDraw, IRPIndexBuffer, IRPVertexBuffer, IGammaControl, IRPTexture, IAggregateComponent
 {
 public:
-	IProfileParser* pProfileParser;
+	COMPTR<IProfileParser> profile_parser;
 	char profile_name[128];
 	char profile_name2[128];
 	DWORD direct3d_behavior_flags;
@@ -184,54 +185,11 @@ public:
 	DWORD window_width;
 	DWORD window_height;
 	HWND window;
-	DWORD unknown278;
-	DWORD unknown27C;
-	DWORD unknown280;
-	DWORD unknown284;
-	DWORD unknown288;
-	st6::map<U32, RPSTATEINFO> pipeline_state_info;
-	st6::map<U32, RPSTATEINFO> render_state_info;
-	DWORD unknown2B4;
-	DWORD unknown2B8;
-	DWORD unknown2BC;
-	DWORD unknown2C0;
-	DWORD unknown2C4;
-	DWORD unknown2C8;
-	DWORD unknown2CC;
-	DWORD unknown2D0;
-	DWORD unknown2D4;
-	DWORD unknown2D8;
-	DWORD unknown2DC;
-	DWORD unknown2E0;
-	DWORD unknown2E4;
-	DWORD unknown2E8;
-	DWORD unknown2EC;
-	DWORD unknown2F0;
-	DWORD unknown2F4;
-	DWORD unknown2F8;
-	DWORD unknown2FC;
-	DWORD unknown300;
-	DWORD unknown304;
-	DWORD unknown308;
-	DWORD unknown30C;
-	DWORD unknown310;
-	DWORD unknown314;
-	DWORD unknown318;
-	DWORD unknown31C;
-	DWORD unknown320;
-	DWORD unknown324;
-	DWORD unknown328;
-	DWORD unknown32C;
-	DWORD unknown330;
-	DWORD unknown334;
-	DWORD unknown338;
-	DWORD unknown33C;
-	DWORD unknown340;
-	DWORD unknown344;
-	DWORD unknown348;
-	DWORD unknown34C;
-	DWORD unknown350;
-	CACHED_PIPELINE_STATE pipeline_states[14];
+	PipelineStateArray pipeline_state_info;
+	AbilitiesArray abilities_info;
+	RenderStateArray render_state_info;
+	TextureStageStateArray texture_stage_state_info[D3DTSS_NUM_STAGES];
+	CACHED_PIPELINE_STATE pipeline_states[RP_MAX_PIPELINE_STATE];
 	U32 device_abilities[20];
 	DWORD unknown44C;
 	DWORD unknown450;

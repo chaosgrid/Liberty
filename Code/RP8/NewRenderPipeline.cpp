@@ -35,6 +35,11 @@ static void D3D2Matrix(const D3DMATRIX& src, Matrix4& dest);
 static U32 GetPrimCount(D3DPRIMITIVETYPE type, U32 indexCount);
 static D3DFORMAT parse_dds_d3dformat(const DirectX::DDS_HEADER& header);
 
+static void rpsi_build_render_state_info(RenderStateArray& rsa);
+static void rpsi_build_pipeline_state_info(PipelineStateArray& psa);
+static void rpsi_build_abilities_info(AbilitiesArray& aa);
+static void rpsi_build_texture_stage_state_info(TextureStageStateArray& tssa, bool enabled);
+
 #define CHECK_STARTUP() \
 if (direct3d_adapter == -1) \
 { \
@@ -224,8 +229,6 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive2, _sub_6D111E1,
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_index_buffer, _sub_6D12D4E, IRPIndexBuffer* _this, U32 count, IRP_INDEXBUFFERHANDLE* out_ib_handle, BYTE flags);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_index_buffer, _sub_6D13002, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ib_handle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_load_surface_from_file, _sub_6D1455E, IRPTexture* _this, UNKNOWN* a2_interface, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_load_dds_info, _sub_6D152E4, IRPTexture* _this, DDSInfo* out_info, DWORD membytesize, void* mapped_file_mem);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_Initialize, _sub_6D01C68, IAggregateComponent* _this);
 
 #define CLSID_NewRenderPipeline "NewRenderPipeline"
 
@@ -239,7 +242,7 @@ struct CACHED_PIPELINE_STATE
 class NewRenderPipeline : IRenderPipeline8B, IVertexBufferManager, IRPDraw, IRPIndexBuffer, IRPVertexBuffer, IGammaControl, IRPTexture, IAggregateComponent
 {
 public:
-	IProfileParser* profile_parser;
+	COMPTR<IProfileParser> profile_parser;
 	char profile_name[128];
 	char profile_nameB[128];
 	DWORD direct3d_behavior_flags;
@@ -277,54 +280,11 @@ public:
 	DWORD window_width;
 	DWORD window_height;
 	HWND window;
-	DWORD unknown278;
-	DWORD unknown27C;
-	DWORD unknown280;
-	DWORD unknown284;
-	DWORD unknown288;
-	st6::map<U32, RPSTATEINFO> pipeline_state_info;
-	st6::map<U32, RPSTATEINFO> render_state_info;
-	DWORD unknown2B4;
-	DWORD unknown2B8;
-	DWORD unknown2BC;
-	DWORD unknown2C0;
-	DWORD unknown2C4;
-	DWORD unknown2C8;
-	DWORD unknown2CC;
-	DWORD unknown2D0;
-	DWORD unknown2D4;
-	DWORD unknown2D8;
-	DWORD unknown2DC;
-	DWORD unknown2E0;
-	DWORD unknown2E4;
-	DWORD unknown2E8;
-	DWORD unknown2EC;
-	DWORD unknown2F0;
-	DWORD unknown2F4;
-	DWORD unknown2F8;
-	DWORD unknown2FC;
-	DWORD unknown300;
-	DWORD unknown304;
-	DWORD unknown308;
-	DWORD unknown30C;
-	DWORD unknown310;
-	DWORD unknown314;
-	DWORD unknown318;
-	DWORD unknown31C;
-	DWORD unknown320;
-	DWORD unknown324;
-	DWORD unknown328;
-	DWORD unknown32C;
-	DWORD unknown330;
-	DWORD unknown334;
-	DWORD unknown338;
-	DWORD unknown33C;
-	DWORD unknown340;
-	DWORD unknown344;
-	DWORD unknown348;
-	DWORD unknown34C;
-	DWORD unknown350;
-	CACHED_PIPELINE_STATE pipeline_states[14];
+	PipelineStateArray pipeline_state_info;
+	AbilitiesArray abilities_info;
+	RenderStateArray render_state_info;
+	TextureStageStateArray texture_stage_state_info[D3DTSS_NUM_STAGES];
+	CACHED_PIPELINE_STATE pipeline_states[RP_MAX_PIPELINE_STATE];
 	U32 device_abilities[20];
 	DWORD unknown44C;
 	DWORD unknown450;
@@ -2398,7 +2358,7 @@ public:
 
 
 // 6D01143
-NewRenderPipeline::NewRenderPipeline()  :
+NewRenderPipeline::NewRenderPipeline() :
 	scratchVB(D3DUSAGE_DYNAMIC)
 {
 	d3d8_module = NULL;
@@ -2537,7 +2497,7 @@ GENRESULT NewRenderPipeline::startup(const char* profile_name)
 		unknown128 |= 4;
 	}
 
-	for (auto& rs : pipeline_state_info)
+	for (auto& rs : abilities_info)
 	{
 		if (SUCCEEDED(opt_has_key(DACOM, profile_parser, profile_name, rs.second.key_name)))
 		{
@@ -2545,7 +2505,7 @@ GENRESULT NewRenderPipeline::startup(const char* profile_name)
 			auto previous_value = rs.second.rt_default_value;
 			opt_get_u32(DACOM, profile_parser, profile_name, rs.second.key_name, rs.second.ct_default_value, &rs.second.rt_default_value);
 			if (previous_value != rs.second.rt_default_value)
-				GENERAL_TRACE_1(TEMPSTR("Config Pipeline State Changed: %s %u -> %u", rs.second.key_name, previous_value, rs.second.ct_default_value));
+				GENERAL_TRACE_1(TEMPSTR("Config Ability State Changed: %s %u -> %u", rs.second.key_name, previous_value, rs.second.ct_default_value));
 		}
 	}
 
@@ -4724,7 +4684,7 @@ GENRESULT NewRenderPipeline::ressize_vb(IRP_VERTEXBUFFERHANDLE vb_handle, U32 fo
 			GENERAL_ERROR(TEMPSTR("dispose: %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
 			gr = GR_GENERIC;
 		}
-		else */if(FAILED(hr = vertex_buffer->create_vb(direct3d_device, format, num_verts)))
+		else */if (FAILED(hr = vertex_buffer->create_vb(direct3d_device, format, num_verts)))
 		{
 			GENERAL_ERROR(TEMPSTR("%s couldnt resize vb (err:%s)", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
 			gr = GR_GENERIC;
@@ -4784,7 +4744,7 @@ GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vb_handle, U32
 		}
 
 		if (SUCCEEDED(gr))
-		{ 
+		{
 			// Seems to me like this is a bug because the locked memory
 			// can't write data before it's address. But start_vertex
 			// seems to always be zero, so perhaps this code is just
@@ -4906,7 +4866,7 @@ GENRESULT NewRenderPipeline::get_vb_count(IRP_VERTEXBUFFERHANDLE vb_handle, U32*
 		{
 			*out_vertex_format = vertex_buffer->vertex_format;
 			gr = GR_OK;
-		}    
+		}
 		if (out_num_verts)
 		{
 			*out_num_verts = vertex_buffer->element_count;
@@ -5043,7 +5003,7 @@ GENRESULT NewRenderPipeline::get_calibration_enable(void)
 {
 	// #TODO Cleanup
 
-	if(!this->device_abilities[RP_A_DEVICE_GAMMA] || !this->device_abilities[RP_A_ABILITY2])
+	if (!this->device_abilities[RP_A_DEVICE_GAMMA] || !this->device_abilities[RP_A_ABILITY2])
 		return GR_INTERFACE_UNSUPPORTED;
 	if ((this->unknown184_is_locked & 2) != 0)
 		return GR_OK;
@@ -5188,7 +5148,25 @@ GENRESULT NewRenderPipeline::load_cubemap(IFileSystem* IFS, const char* child, I
 
 GENRESULT NewRenderPipeline::Initialize(void)
 {
-	GENRESULT gr = DirectX8_Initialize(this);
+	if (profile_parser == NULL)
+	{
+		DACOM_Acquire()->QueryInterface(IID_IProfileParser, profile_parser);
+	}
+
+	GENRESULT gr = GR_OK;
+
+	// build internal info lookup tables
+	rpsi_build_pipeline_state_info(pipeline_state_info);
+	rpsi_build_abilities_info(abilities_info);
+	rpsi_build_render_state_info(render_state_info);
+	rpsi_build_texture_stage_state_info(texture_stage_state_info[0], true);
+	for (int i = 1; i < D3DTSS_NUM_STAGES; i++)
+	{
+		rpsi_build_texture_stage_state_info(texture_stage_state_info[i], false);
+	}
+
+	rp_rd_init(&render_state_info, &texture_stage_state_info[0]);
+
 	return gr;
 }
 
@@ -5412,4 +5390,179 @@ static D3DFORMAT parse_dds_d3dformat(const DirectX::DDS_HEADER& header)
 	// if (pf.dwFlags & DDPF_PALETTEINDEXED4) return D3DFMT_P4;
 
 	return D3DFMT_UNKNOWN;
+}
+
+static void rpsi_build_render_state_info(RenderStateArray& rsa)
+{
+	rsa.clear();
+
+#define RSA_SET( enum_suffix, default_value ) \
+	rsa[D3DRS_ ## enum_suffix] = RPSTATEINFO( D3DRS_ ## enum_suffix, # enum_suffix, default_value, 0, true )
+	// RSA_SET( ANTIALIAS, FALSE );
+	RSA_SET(ZENABLE, TRUE);
+	RSA_SET(FILLMODE, D3DFILL_SOLID);
+	RSA_SET(SHADEMODE, D3DSHADE_GOURAUD);
+	RSA_SET(LINEPATTERN, 0);
+	RSA_SET(ZWRITEENABLE, TRUE);
+	RSA_SET(ALPHATESTENABLE, FALSE);
+	RSA_SET(LASTPIXEL, TRUE);
+	RSA_SET(SRCBLEND, D3DBLEND_ONE);
+	RSA_SET(DESTBLEND, D3DBLEND_ZERO);
+	RSA_SET(CULLMODE, D3DCULL_NONE);
+	RSA_SET(ZFUNC, D3DCMP_LESS);
+	RSA_SET(ALPHAREF, 0);
+	RSA_SET(ALPHAFUNC, D3DCMP_ALWAYS);
+	RSA_SET(DITHERENABLE, FALSE);
+	RSA_SET(ALPHABLENDENABLE, FALSE);
+	RSA_SET(FOGENABLE, FALSE);
+	RSA_SET(SPECULARENABLE, FALSE);
+	// RSA_SET( STIPPLEDALPHA, FALSE );
+	RSA_SET(FOGCOLOR, 0x00000000u);
+	RSA_SET(FOGTABLEMODE, D3DFOG_EXP);
+	RSA_SET(FOGSTART, 0);
+	RSA_SET(FOGEND, 0);
+	RSA_SET(FOGDENSITY, 0);
+	RSA_SET(EDGEANTIALIAS, FALSE);
+	RSA_SET(ZBIAS, 0);
+	RSA_SET(RANGEFOGENABLE, FALSE);
+	RSA_SET(STENCILENABLE, FALSE);
+	RSA_SET(STENCILFAIL, D3DSTENCILOP_KEEP);
+	RSA_SET(STENCILZFAIL, D3DSTENCILOP_KEEP);
+	RSA_SET(STENCILPASS, D3DSTENCILOP_KEEP);
+	RSA_SET(STENCILFUNC, D3DCMP_ALWAYS);
+	RSA_SET(STENCILREF, 0xFFFFFFFFu);
+	RSA_SET(STENCILMASK, 0xFFFFFFFFu);
+	RSA_SET(STENCILWRITEMASK, 0xFFFFFFFFu);
+	RSA_SET(TEXTUREFACTOR, 0x00000000u);
+	RSA_SET(WRAP0, 0);
+	RSA_SET(WRAP1, 0);
+	RSA_SET(WRAP2, 0);
+	RSA_SET(WRAP3, 0);
+	RSA_SET(WRAP4, 0);
+	RSA_SET(WRAP5, 0);
+	RSA_SET(WRAP6, 0);
+	RSA_SET(WRAP7, 0);
+	RSA_SET(CLIPPING, TRUE);
+	RSA_SET(LIGHTING, FALSE);
+	// RSA_SET( EXTENTS, FALSE );
+	RSA_SET(AMBIENT, 0x00000000u);
+	RSA_SET(FOGVERTEXMODE, D3DFOG_NONE);
+	RSA_SET(COLORVERTEX, FALSE);
+	RSA_SET(LOCALVIEWER, FALSE);
+	RSA_SET(NORMALIZENORMALS, FALSE);
+	RSA_SET(DIFFUSEMATERIALSOURCE, D3DMCS_COLOR1);
+	RSA_SET(SPECULARMATERIALSOURCE, D3DMCS_COLOR2);
+	RSA_SET(AMBIENTMATERIALSOURCE, D3DMCS_COLOR2);
+	RSA_SET(EMISSIVEMATERIALSOURCE, D3DMCS_MATERIAL);
+	RSA_SET(VERTEXBLEND, D3DVBF_DISABLE);
+	RSA_SET(CLIPPLANEENABLE, FALSE);
+	RSA_SET(SOFTWAREVERTEXPROCESSING, FALSE);
+	RSA_SET(POINTSIZE, coerce_cast<U32>(1.0f));
+	RSA_SET(POINTSIZE_MIN, coerce_cast<U32>(1.0f));
+	RSA_SET(POINTSPRITEENABLE, FALSE);
+	RSA_SET(POINTSCALEENABLE, FALSE);
+	RSA_SET(POINTSCALE_A, coerce_cast<U32>(1.0f));
+	RSA_SET(POINTSCALE_B, coerce_cast<U32>(0.0f));
+	RSA_SET(POINTSCALE_C, coerce_cast<U32>(0.0f));
+	RSA_SET(MULTISAMPLEANTIALIAS, TRUE);
+	RSA_SET(MULTISAMPLEMASK, 0xFFFFFFFFu);
+	RSA_SET(PATCHEDGESTYLE, D3DPATCHEDGE_DISCRETE);
+	/*#TODO What is this?*/ RSA_SET(PATCHSEGMENTS, 0);
+	RSA_SET(DEBUGMONITORTOKEN, D3DDMT_ENABLE);
+	RSA_SET(POINTSIZE_MAX, coerce_cast<U32>(1.0f));
+	RSA_SET(INDEXEDVERTEXBLENDENABLE, FALSE);
+	RSA_SET(COLORWRITEENABLE, 0xFu);
+	RSA_SET(TWEENFACTOR, coerce_cast<U32>(0.0f));
+	RSA_SET(BLENDOP, D3DBLENDOP_ADD);
+	/*#TODO What is this?*/ RSA_SET(POSITIONORDER, 1);
+	/*#TODO What is this?*/ RSA_SET(NORMALORDER, 1);
+#undef RSA_SET
+}
+
+static void rpsi_build_pipeline_state_info(PipelineStateArray& psa)
+{
+	psa.clear();
+#define PSA_SET( enum_suffix, default_value ) psa[ RP_ ## enum_suffix ] = RPSTATEINFO( RP_ ## enum_suffix, # enum_suffix, default_value, 0, true )
+
+	PSA_SET(TEXTURE, 1);
+	PSA_SET(LIGHTING, 1);
+	PSA_SET(TEXTURE_LOD, 1);
+	PSA_SET(TEXTURE_ALLOW_8BIT, 0);
+	PSA_SET(TEXTURE_ALLOW_32BIT, 1);
+	PSA_SET(TEXTURE_ALLOW_DXT, 1);
+	PSA_SET(BROKEN_MULTITEXTURE, 1);
+	PSA_SET(VIEWSPACE_LIGHTS, 1);
+	PSA_SET(CLEAR_COLOR, 0);
+	PSA_SET(CLEAR_ZDEPTH, coerce_cast<U32>(1.0f));
+	PSA_SET(CLEAR_STENCIL, 0xFFFFFFFFu);
+	PSA_SET(STATE_CACHE, 1);
+	PSA_SET(BROKEN_MOD2X, 0);
+	PSA_SET(BROKEN_FLIP, 0);
+
+#undef PSA_SET
+}
+
+static void rpsi_build_abilities_info(AbilitiesArray& aa)
+{
+	aa.clear();
+#define AA_SET( enum_suffix ) aa[ RP_A_ ## enum_suffix ] = RPSTATEINFO( RP_A_ ## enum_suffix, # enum_suffix, 0, 0, false )
+	AA_SET(DEVICE_GEOMETRY);
+	AA_SET(TEXTURE_SQUARE_ONLY);
+	AA_SET(TEXTURE_MAX_WIDTH);
+	AA_SET(TEXTURE_MAX_HEIGHT);
+	AA_SET(TEXTURE_CUBEMAPS);
+	AA_SET(DEPTH_BIAS);
+	AA_SET(FOG_VERTEX);
+	AA_SET(FOG_PIXEL);
+	AA_SET(FOG_RANGE);
+	AA_SET(FOG_W);
+	AA_SET(RASTER_ANTIALIASEDGES);
+	AA_SET(DEVICE_SUPPORT_LEVEL);
+	AA_SET(TEXTURE_TRILINEAR);
+	AA_SET(DEVICE_BAD_MODE);
+	AA_SET(DEVICE_BAD_4444);
+#undef AA_SET
+}
+
+static void rpsi_build_texture_stage_state_info(TextureStageStateArray& tssa, bool enabled)
+{
+	tssa.clear();
+#define TSSA_SET( enum_suffix, default_value ) tssa[ D3DTSS_ ## enum_suffix ] = RPSTATEINFO( D3DTSS_ ## enum_suffix, # enum_suffix, default_value, 0, true )
+	if (enabled)
+	{
+		TSSA_SET(COLOROP, D3DTOP_MODULATE);
+		TSSA_SET(ALPHAOP, D3DTOP_SELECTARG1);
+	}
+	else
+	{
+		TSSA_SET(COLOROP, D3DTOP_DISABLE);
+		TSSA_SET(ALPHAOP, D3DTOP_DISABLE);
+	}
+	TSSA_SET(COLORARG1, D3DTA_TEXTURE);
+	TSSA_SET(COLORARG2, D3DTA_CURRENT);
+	TSSA_SET(ALPHAARG1, D3DTA_TEXTURE);
+	TSSA_SET(ALPHAARG2, D3DTA_CURRENT);
+	TSSA_SET(BUMPENVMAT00, 0);
+	TSSA_SET(BUMPENVMAT01, 0);
+	TSSA_SET(BUMPENVMAT10, 0);
+	TSSA_SET(BUMPENVMAT11, 0);
+	TSSA_SET(TEXCOORDINDEX, 0);
+	// TSSA_SET( ADDRESS, D3DTADDRESS_WRAP );
+	TSSA_SET(ADDRESSU, D3DTADDRESS_WRAP);
+	TSSA_SET(ADDRESSV, D3DTADDRESS_WRAP);
+	TSSA_SET(BORDERCOLOR, 0);
+	TSSA_SET(MAGFILTER, D3DTEXF_LINEAR);
+	TSSA_SET(MINFILTER, D3DTEXF_LINEAR);
+	TSSA_SET(MIPFILTER, D3DTEXF_POINT);
+	TSSA_SET(MIPMAPLODBIAS, 0);
+	TSSA_SET(MAXMIPLEVEL, 0);
+	TSSA_SET(MAXANISOTROPY, 1);
+	TSSA_SET(BUMPENVLSCALE, 0);
+	TSSA_SET(BUMPENVLOFFSET, 0);
+	TSSA_SET(TEXTURETRANSFORMFLAGS, D3DTTFF_DISABLE);
+	TSSA_SET(ADDRESSW, D3DTADDRESS_WRAP);
+	TSSA_SET(COLORARG0, D3DTA_CURRENT);
+	TSSA_SET(ALPHAARG0, D3DTA_CURRENT);
+	TSSA_SET(RESULTARG, D3DTA_CURRENT);
+#undef TSSA_SET
 }
