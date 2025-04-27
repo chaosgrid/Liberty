@@ -198,18 +198,6 @@ _extern void __thiscall sub_6D03C94(NewRenderPipeline* _this);
 _extern void __thiscall sub_6D047DF(NewRenderPipeline* _this);
 _extern void __thiscall sub_6D2CE6A(void* _this);
 
-TRAMPOLINE(IRenderPipeline8B*, __thiscall, DirectX8_Ctor, _sub_6D01143, IRenderPipeline8B* _this);
-TRAMPOLINE(IRenderPipeline8B*, __thiscall, DirectX8_Dtor, _sub_6D01689, IRenderPipeline8B* _this);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_buffers, _sub_6D098F3, IRenderPipeline8B* _this, U32* adapter, RPBUFFERSINFO* out_buffersinfo);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_buffers, _sub_6D09982, IRenderPipeline8B* _this);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_clear_buffers, _sub_6D09B4C, IRenderPipeline8B* _this, U32 rp_clear_flags, RECT* viewport_sub_rect);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_swap_buffers, _sub_6D09D28, IRenderPipeline8B* _this);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_lock_buffer, _sub_6D09F96, IRenderPipeline8B* _this, RPLOCKDATA* lockData);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_unlock_buffer, _sub_6D0A6C1, IRenderPipeline8B* _this);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_buffer_interface, _sub_6D0A7EC, IRenderPipeline8B* _this, const char* iid, void** out_iif);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_device_stats, _sub_6D0A863, IRenderPipeline8B* _this, RPDEVICESTATS* stat);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_window, _sub_6D0AD7D, IRenderPipeline8B* _this, HWND hwnd, int x, int y, int w, int h);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_window, _sub_6D0AE23, IRenderPipeline8B* _this, HWND* out_hwnd, int* out_x, int* out_y, int* out_w, int* out_h);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_light, _sub_6D0CF9C, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_get_light, _sub_6D0D044, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle, D3DLIGHT8* out_light_values);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_light_enable, _sub_6D0D0D7, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle, U32 enable);
@@ -219,16 +207,6 @@ TRAMPOLINE(GENRESULT, __stdcall, DirectX8_reset_render_states_to_defaults, _sub_
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_add_light, _sub_6D0CCB2, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_remove_light, _sub_6D0CD32, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle);
 TRAMPOLINE(GENRESULT, __stdcall, DirectX8_update_light, _sub_6D0CDDB, IRenderPipeline8B* _this, IRP_LIGHTHANDLE handle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_set_world_n, _sub_6D0AF55, IRenderPipeline8B* _this, UNKNOWN a2, Transform* transform);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_UnknownC, _sub_6D11354, IVertexBufferManager* _this, UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_Unknown10, _sub_6D1135D, IVertexBufferManager* _this);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_acquire_vertex_buffer, _sub_6D114EA, IVertexBufferManager* _this, UNKNOWN vertex_format, U32 num_verts, VertexBufferAcquire* out_result);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_release_vertex_buffer, _sub_6D11877, IVertexBufferManager* _this, VertexBufferAcquire* vbacquire);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_VertexBufferManager_Unknown1C, _sub_6D118BC, IVertexBufferManager* _this);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_draw_indexed_primitive2, _sub_6D111E1, IRPDraw* _this, D3DPRIMITIVETYPE type, U32 min_index, U32 num_verts, U32 start_index, U32 count);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_create_index_buffer, _sub_6D12D4E, IRPIndexBuffer* _this, U32 count, IRP_INDEXBUFFERHANDLE* out_ib_handle, BYTE flags);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_destroy_index_buffer, _sub_6D13002, IRPIndexBuffer* _this, IRP_INDEXBUFFERHANDLE ib_handle);
-TRAMPOLINE(GENRESULT, __stdcall, DirectX8_load_surface_from_file, _sub_6D1455E, IRPTexture* _this, UNKNOWN* a2_interface, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5);
 
 #define CLSID_NewRenderPipeline "NewRenderPipeline"
 
@@ -243,8 +221,8 @@ class NewRenderPipeline : IRenderPipeline8B, IVertexBufferManager, IRPDraw, IRPI
 {
 public:
 	COMPTR<IProfileParser> profile_parser;
-	char profile_name[128];
-	char profile_nameB[128];
+	char ini_device_profile[128];
+	char current_device_profile[128];
 	DWORD direct3d_behavior_flags;
 	DWORD unknown128;
 	LPDIRECT3D8 direct3d;
@@ -2186,7 +2164,7 @@ public:
 	HMODULE d3d8_module;
 	//typedef st6::map<U32, U32>	LightInfoMap;
 	//LightInfoMap				lights;
-	DX8VertexBuffer scratchVB;
+	DX8VertexBuffer VERTEX;
 
 	BEGIN_DACOM_MAP_INBOUND(NewRenderPipeline)
 		DACOM_INTERFACE_ENTRY(IRenderPipeline8B)
@@ -2298,22 +2276,22 @@ public:
 
 	// IVertexBufferManager methods
 
-	DACOM_DEFMETHOD(VertexBufferManager_UnknownC)(UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN) override;
-	DACOM_DEFMETHOD(VertexBufferManager_Unknown10)() override;
-	DACOM_DEFMETHOD(acquire_vertex_buffer)(UNKNOWN vertex_format, U32 num_verts, VertexBufferAcquire* out_result) override;
-	DACOM_DEFMETHOD(release_vertex_buffer)(VertexBufferAcquire* vbacquire) override;
-	DACOM_DEFMETHOD(VertexBufferManager_Unknown1C)() override;
-	DACOM_DEFMETHOD(copy_vertex_buffer_desc)(void* dst_buffer, U32 dst_vertex_format, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices) override;
+	DACOM_DEFMETHOD(initialize)(UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN) override;
+	DACOM_DEFMETHOD(cleanup)() override;
+	DACOM_DEFMETHOD(acquire_vertex_buffer)(D3DFORMAT vertex_format, U32 num_verts, VertexBufferAcquire* out_vbmem) override;
+	DACOM_DEFMETHOD(release_vertex_buffer)(VertexBufferAcquire* vbmem) override;
+	DACOM_DEFMETHOD(IVertexBufferManager_Unknown1C)() override;
+	DACOM_DEFMETHOD(copy_vertex_data)(void* dst_buffer, U32 dst_vertex_format, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices) override;
 
 	// IRPDraw methods
 
-	DACOM_DEFMETHOD(draw_indexed_primitive)(D3DPRIMITIVETYPE type, U32 min_index, U32 num_verts, U32 start_index, U32 count) override;
+	DACOM_DEFMETHOD_(HRESULT, draw_indexed_primitive)(D3DPRIMITIVETYPE type, U32 min_index, U32 num_verts, U32 start_index, U32 count) override;
 
 	// IRPIndexBuffer methods
 
-	DACOM_DEFMETHOD(create_index_buffer)(U32 count, IRP_INDEXBUFFERHANDLE* out_ib_handle, BYTE flags) override;
-	DACOM_DEFMETHOD(destroy_index_buffer)(IRP_INDEXBUFFERHANDLE ib_handle) override;
-	DACOM_DEFMETHOD(create_ib)(IRP_INDEXBUFFERHANDLE ib_handle, U32 num_indices) override;
+	DACOM_DEFMETHOD(create_index_buffer)(U32 num_indices, IRP_INDEXBUFFERHANDLE* out_ib_handle, U8 irp_ibf_flags) override;
+	DACOM_DEFMETHOD(destroy_index_buffer)(IRP_INDEXBUFFERHANDLE* ib_handle) override;
+	DACOM_DEFMETHOD_(HRESULT, create_ib)(IRP_INDEXBUFFERHANDLE ib_handle, U32 num_indices) override;
 	DACOM_DEFMETHOD(copy_indices)(IRP_INDEXBUFFERHANDLE ib_handle, U32* start_index, U16 const* indices, U32 num_indices) override;
 	DACOM_DEFMETHOD(lock_ib)(IRP_INDEXBUFFERHANDLE ib_handle, U32* start_index, void*& out_data, U32 num_indices) override;
 	DACOM_DEFMETHOD(unlock_ib)(IRP_INDEXBUFFERHANDLE ib_handle) override;
@@ -2323,7 +2301,7 @@ public:
 
 	// IRPVertexBuffer methods
 
-	DACOM_DEFMETHOD(create_vb)(U32 format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vb_handle, U8 irp_vbf_flags) override;
+	DACOM_DEFMETHOD(create_vb)(U32 vertex_format, U32 num_verts, IRP_VERTEXBUFFERHANDLE* out_vb_handle, U8 irp_vbf_flags) override;
 	DACOM_DEFMETHOD(destroy_vb)(IRP_VERTEXBUFFERHANDLE& vb_handle) override;
 	DACOM_DEFMETHOD(ressize_vb)(IRP_VERTEXBUFFERHANDLE vb_handle, U32 format, U32 num_verts) override;
 	DACOM_DEFMETHOD(copy_vertices)(IRP_VERTEXBUFFERHANDLE vb_handle, U32* offset, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices) override;
@@ -2359,34 +2337,46 @@ public:
 
 // 6D01143
 NewRenderPipeline::NewRenderPipeline() :
-	scratchVB(D3DUSAGE_DYNAMIC)
+	scratchIB(D3DUSAGE_DYNAMIC),
+	VERTEX(D3DUSAGE_DYNAMIC)
 {
 	d3d8_module = NULL;
-	debug_point;
-	DirectX8_Ctor(this);
-	debug_point;
+	direct3d_device = NULL;
+
+	// rprd_device_flags = 0;
+	// rprd_buffers_flags = 0;
+	// rprd_lock_flags = 0;
+	// d3drp_f_flags = 0;
+
+	ini_device_profile[0] = 0;
+	current_device_profile[0] = 0;
+
+	//debug_point;
+	//DirectX8_Ctor(this);
+	//debug_point;
+
+	// internal_reset_all_caches();
 }
 
 // 6D01689
 NewRenderPipeline::~NewRenderPipeline()
 {
-	debug_point;
-	DirectX8_Dtor(this);
-	debug_point;
+	shutdown();
+	rp_rd_cleanup();
 }
 
 GENRESULT NewRenderPipeline::init(AGGDESC* descriptor)
 {
 	if (descriptor->description && strlen(descriptor->description))
 	{
-		strcpy_s(profile_name, descriptor->description);
+		strcpy_s(ini_device_profile, descriptor->description);
 	}
 	else
 	{
-		strcpy_s(profile_name, "RenderPipeline");
+		strcpy_s(ini_device_profile, "RenderPipeline");
 	}
 
-	GENERAL_NOTICE(profile_name);
+	GENERAL_NOTICE(ini_device_profile);
 
 	return GR_OK;
 }
@@ -2394,8 +2384,8 @@ GENRESULT NewRenderPipeline::init(AGGDESC* descriptor)
 GENRESULT NewRenderPipeline::startup(const char* profile_name)
 {
 	if (!profile_name)
-		profile_name = this->profile_name;
-	memcpy(profile_nameB, this->profile_name, sizeof(this->profile_name));
+		profile_name = this->ini_device_profile;
+	memcpy(current_device_profile, ini_device_profile, sizeof(current_device_profile));
 	strcpy(configuration_database_file, "FLConfigDatabase.txt");
 
 	if (d3d8_module == NULL)
@@ -2888,55 +2878,140 @@ GENRESULT NewRenderPipeline::create_buffers(HWND hwnd, RPBUFFERSINFO* buffersinf
 
 GENRESULT NewRenderPipeline::get_buffers(U32* adapter, RPBUFFERSINFO* out_buffersinfo)
 {
-	NOT_IMPLEMENTED;
-	GENRESULT gr = DirectX8_get_buffers(this, adapter, out_buffersinfo);
-	return gr;
+	return GR_NOT_IMPLEMENTED;
 }
 
 GENRESULT NewRenderPipeline::destroy_buffers(void)
 {
-	GENRESULT gr = DirectX8_destroy_buffers(this);
-	return gr;
+	cleanup();
+	scratchIB.dispose();
+	VERTEX.dispose();
+
+	this->window = 0;
+	this->unknown184_is_locked &= ~1u;
+	return GR_OK;
 }
 
 GENRESULT NewRenderPipeline::clear_buffers(U32 rp_clear_flags, RECT* viewport_sub_rect)
 {
-	GENRESULT gr = DirectX8_clear_buffers(this, rp_clear_flags, viewport_sub_rect);
-	return gr;
+	// #TODO Cleanup
+	CHECK_DEVICE_LIFETIME();
+
+	HRESULT v8; // [esp+201Ch] [ebp-Ch]
+	float v9; // [esp+2020h] [ebp-8h]
+	unsigned int v10; // [esp+2024h] [ebp-4h]
+
+	v10 = 0;
+	v9 = 1.0;
+	if ((rp_clear_flags & 1) != 0)
+		v10 |= 1u;
+	if ((rp_clear_flags & 2) != 0)
+	{
+		v10 |= 2u;
+		v9 = *(float*)&this->pipeline_states[9].value;
+	}
+	if ((rp_clear_flags & 4) != 0)
+		v10 |= 4u;
+	v8 = this->direct3d_device->Clear(
+		viewport_sub_rect != 0,
+		(const _D3DRECT*)viewport_sub_rect,
+		v10,
+		this->pipeline_states[RP_CLEAR_COLOR].value,
+		v9,
+		this->pipeline_states[RP_CLEAR_STENCIL].value);
+	if (v8 < 0)
+	{
+		GENERAL_WARNING(TEMPSTR("clear: %s", HRESULT_GET_ERROR_STRING(v8)));
+	}
+	return (GENRESULT)v8;
 }
 
 GENRESULT NewRenderPipeline::swap_buffers(void)
 {
-	GENRESULT gr = DirectX8_swap_buffers(this);
-	return gr;
+	// #TODO Cleanup
+	CHECK_DEVICE_LIFETIME();
+
+	U32 height; // [esp+0h] [ebp-54h]
+	U32 width; // [esp+4h] [ebp-50h]
+	struct tagRECT* v4; // [esp+10h] [ebp-44h]
+	struct tagRECT* lprc; // [esp+1Ch] [ebp-38h]
+	struct tagRECT rc; // [esp+28h] [ebp-2Ch] BYREF
+	struct tagRECT v8; // [esp+3Ch] [ebp-18h] BYREF
+	const tagRECT* v9; // [esp+4Ch] [ebp-8h]
+	HWND window; // [esp+50h] [ebp-4h]
+
+	lprc = 0;
+	if (this->window)
+	{
+		lprc = &rc;
+		if (this->window_width >= this->buffers_info.width)
+			width = this->buffers_info.width;
+		else
+			width = this->window_width;
+		if (this->window_height >= this->buffers_info.height)
+			height = this->buffers_info.height;
+		else
+			height = this->window_height;
+		SetRect(&rc, 0, 0, width, height);
+	}
+	else
+	{
+		SetRect(&rc, 0, 0, this->buffers_info.width, this->buffers_info.height);
+	}
+	v9 = lprc;
+	v4 = 0;
+	if (this->window)
+	{
+		window = this->window;
+		v4 = &v8;
+		SetRect(
+			&v8,
+			this->window_x,
+			this->window_y,
+			this->window_width + this->window_x,
+			this->window_height + this->window_y);
+	}
+	else
+	{
+		window = this->hwnd;
+		SetRect(&v8, 0, 0, this->buffers_info.width, this->buffers_info.height);
+	}
+	HRESULT hr = this->direct3d_device->Present(v9, v4, window, 0);
+	if (hr == -2005530520 && (this->unknown128 & 4) != 0)
+	{
+		hr = this->direct3d_device->TestCooperativeLevel();
+		if (hr == -2005530520)
+			return this->create_buffers(this->hwnd, &this->buffers_info, 0);
+	}
+	return (GENRESULT)hr;
 }
 
 GENRESULT NewRenderPipeline::lock_buffer(RPLOCKDATA* lockData)
 {
+	CHECK_DEVICE_LIFETIME();
 	NOT_IMPLEMENTED;
-	GENRESULT gr = DirectX8_lock_buffer(this, lockData);
-	return gr;
+	return GR_NOT_IMPLEMENTED;
 }
 
 GENRESULT NewRenderPipeline::unlock_buffer(void)
 {
+	CHECK_DEVICE_LIFETIME();
 	NOT_IMPLEMENTED;
-	GENRESULT gr = DirectX8_unlock_buffer(this);
-	return gr;
+	return GR_NOT_IMPLEMENTED;
 }
 
 GENRESULT NewRenderPipeline::get_buffer_interface(const char* iid, void** out_iif)
 {
+	CHECK_DEVICE_LIFETIME();
 	NOT_IMPLEMENTED;
-	GENRESULT gr = DirectX8_get_buffer_interface(this, iid, out_iif);
-	return gr;
+	return GR_NOT_IMPLEMENTED;
 }
 
 GENRESULT NewRenderPipeline::get_device_stats(RPDEVICESTATS* stat)
 {
+	CHECK_DEVICE_LIFETIME();
 	NOT_IMPLEMENTED;
-	GENRESULT gr = DirectX8_get_device_stats(this, stat);
-	return gr;
+	return GR_NOT_IMPLEMENTED;
 }
 
 GENRESULT NewRenderPipeline::set_viewport(int x, int y, int w, int h)
@@ -2989,15 +3064,13 @@ GENRESULT NewRenderPipeline::get_depth_range(float* lower_z_bound, float* upper_
 GENRESULT NewRenderPipeline::set_window(HWND hwnd, int x, int y, int w, int h)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT gr = DirectX8_set_window(this, hwnd, x, y, w, h);
-	return gr;
+	return GR_NOT_IMPLEMENTED;
 }
 
 GENRESULT NewRenderPipeline::get_window(HWND* out_hwnd, int* out_x, int* out_y, int* out_w, int* out_h)
 {
 	NOT_IMPLEMENTED;
-	GENRESULT gr = DirectX8_get_window(this, out_hwnd, out_x, out_y, out_w, out_h);
-	return gr;
+	return GR_NOT_IMPLEMENTED;
 }
 
 GENRESULT NewRenderPipeline::set_world(const Transform& world)
@@ -3673,6 +3746,7 @@ GENRESULT NewRenderPipeline::get_texture_dim(IRP_TEXTUREHANDLE htexture, U32* ou
 GENRESULT NewRenderPipeline::get_texture_interface(IRP_TEXTUREHANDLE htexture, const char* iid, void** out_iif)
 {
 	CHECK_DEVICE_LIFETIME();
+	NOT_IMPLEMENTED;
 	return GR_NOT_IMPLEMENTED;
 }
 
@@ -3685,18 +3759,21 @@ GENRESULT NewRenderPipeline::set_texture_level_data(IRP_TEXTUREHANDLE htexture, 
 GENRESULT NewRenderPipeline::blit_texture(IRP_TEXTUREHANDLE hDest, U32 destLevel, RECT destRect, IRP_TEXTUREHANDLE hSrc, U32 srcLevel, RECT srcRect)
 {
 	CHECK_DEVICE_LIFETIME();
+	NOT_IMPLEMENTED;
 	return GR_NOT_IMPLEMENTED;
 }
 
 GENRESULT NewRenderPipeline::set_render_target(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4)
 {
 	CHECK_DEVICE_LIFETIME();
+	NOT_IMPLEMENTED;
 	return GR_NOT_IMPLEMENTED;
 }
 
 GENRESULT NewRenderPipeline::get_render_target(void* a2)
 {
 	CHECK_DEVICE_LIFETIME();
+	NOT_IMPLEMENTED;
 	return GR_NOT_IMPLEMENTED;
 }
 
@@ -4147,33 +4224,30 @@ GENRESULT NewRenderPipeline::draw_primitive(D3DPRIMITIVETYPE type, U32 vertex_fo
 	{
 		return GR_INVALID_PARMS;
 	}
-	else if (unknown184_is_locked & 1)
+	else if (num_verts > 0)
 	{
-		if (num_verts > 0)
+		U32 primCount = GetPrimCount(type, num_verts);
+		if (primCount > 0)
 		{
-			U32 primCount = GetPrimCount(type, num_verts);
-			if (primCount > 0)
+			curr_hw_geometry.set_vertex_buffer(NULL, vertex_format);
+			sub_6D04138(this);
+
+			U32 stride = FVF_SIZEOF_VERT(vertex_format);
+			ASSERT(stride > 0);
+			HRESULT hr;
+			if (SUCCEEDED(hr = direct3d_device->DrawPrimitiveUP(type, primCount, verts, stride)))
 			{
-				curr_hw_geometry.set_vertex_buffer(NULL, vertex_format);
-				sub_6D04138(this);
-
-				U32 stride = FVF_SIZEOF_VERT(vertex_format);
-				ASSERT(stride > 0);
-				HRESULT hr;
-				if (SUCCEEDED(hr = direct3d_device->DrawPrimitiveUP(type, primCount, verts, stride)))
-				{
-					gr = GR_OK;
-				}
-				else
-				{
-					GENERAL_ERROR(TEMPSTR("DrawPrimitiveUP: %s", HRESULT_GET_ERROR_STRING(hr)));
-					gr = GR_GENERIC;
-				}
-
-				rp_rd_dp(type, vertex_format, verts, num_verts, flags);
-
-				curr_hw_geometry.invalidate();
+				gr = GR_OK;
 			}
+			else
+			{
+				GENERAL_ERROR(TEMPSTR("DrawPrimitiveUP: %s", HRESULT_GET_ERROR_STRING(hr)));
+				gr = GR_GENERIC;
+			}
+
+			rp_rd_dp(type, vertex_format, verts, num_verts, flags);
+
+			curr_hw_geometry.invalidate();
 		}
 	}
 	return gr;
@@ -4188,33 +4262,30 @@ GENRESULT NewRenderPipeline::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 v
 	{
 		return GR_INVALID_PARMS;
 	}
-	else if (unknown184_is_locked & 1)
+	else if (num_indices > 0)
 	{
-		if (num_indices > 0)
+		U32 primCount = GetPrimCount(type, num_indices);
+		if (primCount > 0)
 		{
-			U32 primCount = GetPrimCount(type, num_indices);
-			if (primCount > 0)
+			curr_hw_geometry.set_vertex_buffer(NULL, vertex_format);
+			sub_6D04138(this);
+
+			U32 stride = FVF_SIZEOF_VERT(vertex_format);
+			ASSERT(stride > 0);
+			HRESULT hr;
+			if (SUCCEEDED(hr = direct3d_device->DrawIndexedPrimitiveUP(type, 0, num_verts, primCount, indices, D3DFMT_INDEX16, verts, stride)))
 			{
-				curr_hw_geometry.set_vertex_buffer(NULL, vertex_format);
-				sub_6D04138(this);
-
-				U32 stride = FVF_SIZEOF_VERT(vertex_format);
-				ASSERT(stride > 0);
-				HRESULT hr;
-				if (SUCCEEDED(hr = direct3d_device->DrawIndexedPrimitiveUP(type, 0, num_verts, primCount, indices, D3DFMT_INDEX16, verts, stride)))
-				{
-					gr = GR_OK;
-				}
-				else
-				{
-					GENERAL_ERROR(TEMPSTR("DrawIndexedPrimitiveUP: %s", HRESULT_GET_ERROR_STRING(hr)));
-					gr = GR_GENERIC;
-				}
-
-				rp_rd_dip(type, vertex_format, verts, num_verts, indices, num_indices, flags);
-
-				curr_hw_geometry.invalidate();
+				gr = GR_OK;
 			}
+			else
+			{
+				GENERAL_ERROR(TEMPSTR("DrawIndexedPrimitiveUP: %s", HRESULT_GET_ERROR_STRING(hr)));
+				gr = GR_GENERIC;
+			}
+
+			rp_rd_dip(type, vertex_format, verts, num_verts, indices, num_indices, flags);
+
+			curr_hw_geometry.invalidate();
 		}
 	}
 	return gr;
@@ -4225,37 +4296,33 @@ GENRESULT NewRenderPipeline::draw_primitive_vb(D3DPRIMITIVETYPE type, IRP_VERTEX
 	CHECK_DEVICE_LIFETIME();
 
 	GENRESULT gr = GR_GENERIC;
-
 	if (!vb_handle || !num_verts || !direct3d_device)
 	{
 		return GR_INVALID_PARMS;
 	}
-	else if (unknown184_is_locked & 1)
+	else if (num_verts > 0)
 	{
-		if (num_verts > 0)
+		U32 primCount = GetPrimCount(type, num_verts);
+		if (primCount > 0)
 		{
-			U32 primCount = GetPrimCount(type, num_verts);
-			if (primCount > 0)
+
+			curr_hw_geometry.set_vertex_buffer(vb_handle, D3DFMT_UNKNOWN);
+			sub_6D04138(this);
+
+			HRESULT hr;
+			if (SUCCEEDED(hr = direct3d_device->DrawPrimitive(type, start_vert, primCount)))
 			{
-
-				curr_hw_geometry.set_vertex_buffer(vb_handle, D3DFMT_UNKNOWN);
-				sub_6D04138(this);
-
-				HRESULT hr;
-				if (SUCCEEDED(hr = direct3d_device->DrawPrimitive(type, start_vert, primCount)))
-				{
-					gr = GR_OK;
-				}
-				else
-				{
-					GENERAL_ERROR(TEMPSTR("DrawPrimitive: %s", HRESULT_GET_ERROR_STRING(hr)));
-					gr = GR_GENERIC;
-				}
-
-				rp_rd_dp_vb(type, vb_handle, start_vert, num_verts, flags);
-
-				curr_hw_geometry.invalidate();
+				gr = GR_OK;
 			}
+			else
+			{
+				GENERAL_ERROR(TEMPSTR("DrawPrimitive: %s", HRESULT_GET_ERROR_STRING(hr)));
+				gr = GR_GENERIC;
+			}
+
+			rp_rd_dp_vb(type, vb_handle, start_vert, num_verts, flags);
+
+			curr_hw_geometry.invalidate();
 		}
 	}
 	return gr;
@@ -4270,39 +4337,36 @@ GENRESULT NewRenderPipeline::draw_indexed_primitive_vb(D3DPRIMITIVETYPE type, IR
 	{
 		return GR_INVALID_PARMS;
 	}
-	else if (unknown184_is_locked & 1)
+	else if (num_verts > 0)
 	{
-		if (num_verts > 0)
+		U32 primCount = GetPrimCount(type, num_indices);
+		if (primCount > 0)
 		{
-			U32 primCount = GetPrimCount(type, num_indices);
-			if (primCount > 0)
+			U32 start_index = 0;
+			IRP_INDEXBUFFERHANDLE index_buffer = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB); // #TODO This is nasty, is there a better way to do this?
+			if (SUCCEEDED(gr = copy_indices(index_buffer, &start_index, indices, num_indices)))
 			{
-				U32 start_index = 0;
 				IRP_INDEXBUFFERHANDLE index_buffer = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB); // #TODO This is nasty, is there a better way to do this?
-				if (SUCCEEDED(gr = copy_indices(index_buffer, &start_index, indices, num_indices)))
+
+				curr_hw_geometry.set_vertex_buffer(vb_handle, 0);
+				curr_hw_geometry.set_index_buffer(index_buffer, start_vert);
+
+				sub_6D04138(this);
+
+				HRESULT hr;
+				if (SUCCEEDED(hr = direct3d_device->DrawIndexedPrimitive(type, 0, num_verts, start_index, primCount)))
 				{
-					IRP_INDEXBUFFERHANDLE index_buffer = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB); // #TODO This is nasty, is there a better way to do this?
-
-					curr_hw_geometry.set_vertex_buffer(vb_handle, 0);
-					curr_hw_geometry.set_index_buffer(index_buffer, start_vert);
-
-					sub_6D04138(this);
-
-					HRESULT hr;
-					if (SUCCEEDED(hr = direct3d_device->DrawIndexedPrimitive(type, 0, num_verts, start_index, primCount)))
-					{
-						gr = GR_OK;
-					}
-					else
-					{
-						GENERAL_ERROR(TEMPSTR("DrawPrimitive: %s", HRESULT_GET_ERROR_STRING(hr)));
-						gr = GR_GENERIC;
-					}
-
-					rp_rd_dip_vb(type, vb_handle, start_vert, num_verts, indices, num_indices, flags);
-
-					curr_hw_geometry.invalidate();
+					gr = GR_OK;
 				}
+				else
+				{
+					GENERAL_ERROR(TEMPSTR("DrawPrimitive: %s", HRESULT_GET_ERROR_STRING(hr)));
+					gr = GR_GENERIC;
+				}
+
+				rp_rd_dip_vb(type, vb_handle, start_vert, num_verts, indices, num_indices, flags);
+
+				curr_hw_geometry.invalidate();
 			}
 		}
 	}
@@ -4331,67 +4395,312 @@ GENRESULT NewRenderPipeline::update_light(IRP_LIGHTHANDLE handle)
 
 GENRESULT NewRenderPipeline::set_world_n(UNKNOWN a2, Transform* transform)
 {
+	CHECK_DEVICE_LIFETIME();
 	NOT_IMPLEMENTED;
-	GENRESULT gr = DirectX8_set_world_n(this, a2, transform);
-	return gr;
+	return GR_NOT_IMPLEMENTED;
 }
 
-GENRESULT NewRenderPipeline::VertexBufferManager_UnknownC(UNKNOWN a2, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5)
-{
-	GENRESULT gr = DirectX8_VertexBufferManager_UnknownC(this, a2, a3, a4, a5);
-	return gr;
-}
 
-GENRESULT NewRenderPipeline::VertexBufferManager_Unknown10()
+#include <FLHook_st6.h>
+#include <map>
+#include <list>
+struct IVBM_VERTEXBUFFER
 {
-	GENRESULT gr = DirectX8_VertexBufferManager_Unknown10(this);
-	return gr;
-}
+	IRP_VERTEXBUFFERHANDLE handle;
+	U32 vertex_format;
+	U32 num_verts;
+};
+typedef std::map<IRP_VERTEXBUFFERHANDLE, IVBM_VERTEXBUFFER>	vertex_buffer_map;
+typedef std::list<IVBM_VERTEXBUFFER*> vertex_buffer_list;
 
-GENRESULT NewRenderPipeline::acquire_vertex_buffer(UNKNOWN vertex_format, U32 num_verts, VertexBufferAcquire* out_result)
-{
-	GENRESULT gr = DirectX8_acquire_vertex_buffer(this, vertex_format, num_verts, out_result);
-	return gr;
-}
+vertex_buffer_map	managed_vbs;
+vertex_buffer_list	available_vbs;
 
-GENRESULT NewRenderPipeline::release_vertex_buffer(VertexBufferAcquire* vbacquire)
+GENRESULT NewRenderPipeline::initialize(U32 a2, U32 a3, U32 a4, U32 a5)
 {
-	GENRESULT gr = DirectX8_release_vertex_buffer(this, vbacquire);
-	return gr;
-}
-
-GENRESULT NewRenderPipeline::VertexBufferManager_Unknown1C()
-{
-	NOT_IMPLEMENTED;
-	GENRESULT gr = DirectX8_VertexBufferManager_Unknown1C(this);
-	return gr;
-}
-
-GENRESULT NewRenderPipeline::copy_vertex_buffer_desc(void* dst_buffer, U32 dst_vertex_format, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices)
-{
-	::copy_vertex_buffer_desc(dst_buffer, dst_vertex_format, src_vb_desc, start_vertex, num_vertices);
+	unused(a2);
+	unused(a3);
+	unused(a4);
+	unused(a5);
 	return GR_OK;
 }
 
-GENRESULT NewRenderPipeline::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 min_index, U32 num_verts, U32 start_index, U32 count)
+GENRESULT NewRenderPipeline::cleanup()
 {
-	GENRESULT gr = DirectX8_draw_indexed_primitive2(this, type, min_index, num_verts, start_index, count);
+	curr_hw_geometry.invalidate();
+
+	vertex_buffer_map::iterator vb;
+
+	while ((vb = managed_vbs.begin()) != managed_vbs.end())
+	{
+		destroy_vb(vb->second.handle);
+		managed_vbs.erase(vb);
+	}
+
+	available_vbs.clear();
+
+	return GR_OK;
+}
+
+GENRESULT NewRenderPipeline::acquire_vertex_buffer(D3DFORMAT vertex_format, U32 num_verts, VertexBufferAcquire* out_vbmem)
+{
+	ASSERT(out_vbmem != nullptr);
+
+	vertex_buffer_list::iterator beg = available_vbs.begin();
+	vertex_buffer_list::iterator end = available_vbs.end();
+	vertex_buffer_list::iterator avb;
+
+	IVBM_VERTEXBUFFER* vb;
+	U32 vf_items, vf_items_match, vf_uv, vf_uv_match, vbnum_verts;
+
+	vf_items = vertex_format & ~(D3DFVF_TEXCOUNT_MASK);
+	vf_uv = vertex_format & D3DFVF_TEXCOUNT_MASK;
+
+	for (avb = beg; avb != end; avb++) {
+
+		vb = *avb;
+
+		// TODO: support _EXACT
+
+		vf_items_match = ((vb->vertex_format & ~(D3DFVF_TEXCOUNT_MASK)) & vf_items);
+		vf_uv_match = (vb->vertex_format & D3DFVF_TEXCOUNT_MASK) == vf_uv;
+
+		if ((vf_items_match == vf_items)
+			&& vf_uv_match
+			&& (vb->num_verts >= num_verts)) {
+
+			U32 start = 0;
+			void* vbmemptr;
+			if (FAILED(lock_vb(vb->handle, &start, vbmemptr, num_verts)))
+			{
+				continue;
+			}
+
+			out_vbmem->vertex_buffer = vb->handle;
+			out_vbmem->vertex_format = vb->vertex_format;
+			out_vbmem->lock_offset = start;
+			out_vbmem->lockptr = vbmemptr;
+
+			curr_hw_geometry.set_vertex_buffer(vb->handle, D3DFMT_UNKNOWN);
+			available_vbs.erase(avb);
+
+			return GR_OK;
+		}
+	}
+
+	// could not find a vertex buffer to use 
+	// -- or -- 
+	// none of the available buffers were lockable.
+	//
+	// so we allocate a new buffer and add it to the managed list.
+
+	IVBM_VERTEXBUFFER new_vb;
+
+	// prevents excessively reallocating small buffers
+#define vertex_count_granularity 1024
+	vbnum_verts = (num_verts / vertex_count_granularity) * vertex_count_granularity;
+	vbnum_verts += (num_verts % vertex_count_granularity) ? vertex_count_granularity : 0;
+	if (vbnum_verts < vertex_count_granularity)
+	{
+		vbnum_verts = vertex_count_granularity;
+	}
+
+	GENRESULT gr = GR_GENERIC;
+	if (FAILED(gr = create_vb(vertex_format, vbnum_verts, &new_vb.handle, IRP_VBF_READ)))
+	{
+		GENERAL_ERROR("create_vb failed");
+	}
+	else
+	{
+		curr_hw_geometry.set_vertex_buffer(new_vb.handle, D3DFMT_UNKNOWN);
+		U32 lock_offset = 0;
+		if (FAILED(gr = lock_vb(new_vb.handle, &lock_offset, out_vbmem->lockptr, num_verts)))
+		{
+			GENERAL_ERROR("lock_vb failed");
+		}
+		else
+		{
+			DX8VertexBuffer* vertex_buffer = reinterpret_cast<DX8VertexBuffer*>(new_vb.handle);
+
+			out_vbmem->vertex_buffer = new_vb.handle;
+			out_vbmem->vertex_format = vertex_buffer->vertex_format;
+			out_vbmem->lock_offset = lock_offset;
+			new_vb.vertex_format = vertex_format;
+			new_vb.num_verts = vbnum_verts;
+		}
+	}
+
+	managed_vbs[new_vb.handle] = new_vb;
+
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::create_index_buffer(U32 count, IRP_INDEXBUFFERHANDLE* out_ib_handle, BYTE flags)
+GENRESULT NewRenderPipeline::release_vertex_buffer(VertexBufferAcquire* locked_vbmem)
 {
-	GENRESULT gr = DirectX8_create_index_buffer(this, count, out_ib_handle, flags);
+	//return GR_OK;
+	ASSERT(locked_vbmem != nullptr);
+	//ASSERT(locked_vbmem->vertex_buffer == (IRP_VERTEXBUFFERHANDLE)(&VERTEX2));
+
+	GENRESULT gr;
+	if (locked_vbmem->vertex_buffer == nullptr)
+	{
+		gr = GR_INVALID_PARMS;
+	}
+	else
+	{
+		locked_vbmem->lockptr = nullptr;
+
+		IRP_VERTEXBUFFERHANDLE vb_handle = locked_vbmem->vertex_buffer;
+		DX8VertexBuffer* vertex_buffer = reinterpret_cast<DX8VertexBuffer*>(vb_handle);
+		HRESULT hr;
+		if (FAILED(hr = vertex_buffer->unlock_vb()))
+		{
+			GENERAL_ERROR(TEMPSTR("DrawPrimitive: %s", HRESULT_GET_ERROR_STRING(hr)));
+			gr = GR_GENERIC;
+		}
+		else
+		{
+			gr = GR_OK;
+		}
+
+		available_vbs.push_back(&managed_vbs[vb_handle]);
+
+		//if (FAILED(gr = destroy_vb(vb_handle)))
+		//{
+		//	GENERAL_ERROR("destroy_vb failed");
+		//}
+	}
+
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::destroy_index_buffer(IRP_INDEXBUFFERHANDLE ib_handle)
+GENRESULT NewRenderPipeline::IVertexBufferManager_Unknown1C()
 {
-	GENRESULT gr = DirectX8_destroy_index_buffer(this, ib_handle);
+	NOT_IMPLEMENTED; // #NOTE: Not implemented in vanilla
+	return GR_NOT_IMPLEMENTED;
+}
+
+GENRESULT NewRenderPipeline::copy_vertex_data(void* dst_buffer, U32 dst_vertex_format, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices)
+{
+	::copy_vertex_data(dst_buffer, dst_vertex_format, src_vb_desc, start_vertex, num_vertices);
+	return GR_OK;
+}
+
+HRESULT NewRenderPipeline::draw_indexed_primitive(D3DPRIMITIVETYPE type, U32 min_index, U32 num_verts, U32 start_index, U32 count)
+{
+	CHECK_DEVICE_LIFETIME();
+
+	HRESULT hr = E_FAIL;
+	U32 primitive_count = GetPrimCount(type, count);
+	if (primitive_count > 0)
+	{
+		sub_6D04138(this);
+		if (FAILED(hr = direct3d_device->DrawIndexedPrimitive(
+			type,
+			min_index,
+			num_verts,
+			start_index,
+			primitive_count)))
+		{
+			GENERAL_WARNING(TEMPSTR("draw_indexed_primitive: %s", HRESULT_GET_ERROR_STRING(hr)));
+		}
+	}
+	return hr;
+}
+
+GENRESULT NewRenderPipeline::create_index_buffer(U32 num_indices, IRP_INDEXBUFFERHANDLE* out_ib_handle, U8 irp_ibf_flags)
+{
+	CHECK_DEVICE_LIFETIME();
+
+	GENRESULT gr;
+	HRESULT hr;
+
+	DWORD usage = 0;
+	if (irp_ibf_flags & IRP_IBF_READ)
+	{
+		usage |= D3DUSAGE_DYNAMIC;
+	}
+	if (irp_ibf_flags & IRP_IBF_SOFTWAREPROCESSING)
+	{
+		usage |= D3DUSAGE_SOFTWAREPROCESSING;
+	}
+	DX8IndexBuffer* index_buffer = new DX8IndexBuffer(usage);
+
+	// #TODO some kind of linked list ???
+	{
+		auto unknown22F4 = this->unknown22F4;
+		this->unknown22F4 = (DWORD)index_buffer;
+		if (unknown22F4)
+			*(DWORD*)(unknown22F4 + 12) = (DWORD)index_buffer;
+		else
+			this->unknown22F0 = (DWORD)index_buffer;
+		index_buffer->unknownC = 0;
+		index_buffer->unknown10 = unknown22F4;
+		++this->unknown22F8;
+	}
+
+	IRP_INDEXBUFFERHANDLE ib_handle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(index_buffer);
+
+	if (FAILED(hr = create_ib(ib_handle, num_indices)))
+	{
+		GENERAL_ERROR(TEMPSTR("create_ib: %s", HRESULT_GET_ERROR_STRING(hr)));
+		gr = GR_GENERIC;
+		destroy_index_buffer(&ib_handle);
+	}
+	else
+	{
+		gr = GR_OK;
+		*out_ib_handle = ib_handle;
+	}
+
 	return gr;
 }
 
-GENRESULT NewRenderPipeline::create_ib(IRP_INDEXBUFFERHANDLE ib_handle, U32 num_indices)
+GENRESULT NewRenderPipeline::destroy_index_buffer(IRP_INDEXBUFFERHANDLE* ib_handle)
+{
+	CHECK_DEVICE_LIFETIME();
+
+	DX8IndexBuffer* index_buffer; // [esp+14h] [ebp-8h]
+	GENRESULT v4; // [esp+18h] [ebp-4h]
+
+	v4 = GR_GENERIC;
+	if (*ib_handle != IRP_INVALID_IB_HANDLE)
+	{
+		index_buffer = (DX8IndexBuffer*)*ib_handle;
+		*ib_handle = 0;
+		if (index_buffer)
+		{
+			if (index_buffer == (DX8IndexBuffer*)this->curr_hw_geometry.current_index_buffer_handle)
+				this->select_ib(0, 0, 0, 0);
+			if (index_buffer->unknown10)
+				*(DWORD*)(index_buffer->unknown10 + 12) = index_buffer->unknownC;
+			else
+				this->unknown22F0 = index_buffer->unknownC;
+			if (index_buffer->unknownC)
+				*(DWORD*)(index_buffer->unknownC + 16) = index_buffer->unknown10;
+			else
+				this->unknown22F4 = index_buffer->unknown10;
+			--this->unknown22F8;
+			if (index_buffer->buffer)
+			{
+				if (index_buffer->lockptr)
+				{
+					index_buffer->lockptr = 0;
+					index_buffer->buffer->Unlock();
+				}
+				index_buffer->buffer->Release();
+				index_buffer->buffer = 0;
+			}
+
+			delete index_buffer;
+
+			return GR_OK;
+		}
+	}
+	return v4;
+}
+
+HRESULT NewRenderPipeline::create_ib(IRP_INDEXBUFFERHANDLE ib_handle, U32 num_indices)
 {
 	CHECK_DEVICE_LIFETIME();
 
@@ -4403,7 +4712,7 @@ GENRESULT NewRenderPipeline::create_ib(IRP_INDEXBUFFERHANDLE ib_handle, U32 num_
 	}
 	else
 	{
-		if (ib_handle == IRP_SCRATCH_IB_HANDLE)
+		if (ib_handle == IRP_INVALID_IB_HANDLE)
 		{
 			ib_handle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
 		}
@@ -4436,7 +4745,7 @@ GENRESULT NewRenderPipeline::copy_indices(IRP_INDEXBUFFERHANDLE ib_handle, U32* 
 	}
 	else
 	{
-		if (ib_handle == IRP_SCRATCH_IB_HANDLE)
+		if (ib_handle == IRP_INVALID_IB_HANDLE)
 		{
 			ib_handle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
 		}
@@ -4475,7 +4784,7 @@ GENRESULT NewRenderPipeline::lock_ib(IRP_INDEXBUFFERHANDLE ib_handle, U32* start
 	}
 	else
 	{
-		if (ib_handle == IRP_SCRATCH_IB_HANDLE)
+		if (ib_handle == IRP_INVALID_IB_HANDLE)
 		{
 			ib_handle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
 		}
@@ -4509,7 +4818,7 @@ GENRESULT NewRenderPipeline::unlock_ib(IRP_INDEXBUFFERHANDLE ib_handle)
 	}
 	else
 	{
-		if (ib_handle == IRP_SCRATCH_IB_HANDLE)
+		if (ib_handle == IRP_INVALID_IB_HANDLE)
 		{
 			ib_handle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
 		}
@@ -4535,7 +4844,7 @@ GENRESULT NewRenderPipeline::select_ib(IRP_INDEXBUFFERHANDLE ib_handle, U32 base
 	unused(a4);
 	unused(a5);
 
-	if (ib_handle == IRP_SCRATCH_IB_HANDLE)
+	if (ib_handle == IRP_INVALID_IB_HANDLE)
 	{
 		ib_handle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
 	}
@@ -4556,7 +4865,7 @@ GENRESULT NewRenderPipeline::get_ib_count(IRP_INDEXBUFFERHANDLE ib_handle, U32* 
 {
 	CHECK_DEVICE_LIFETIME();
 
-	if (ib_handle == IRP_SCRATCH_IB_HANDLE)
+	if (ib_handle == IRP_INVALID_IB_HANDLE)
 	{
 		ib_handle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
 	}
@@ -4580,7 +4889,7 @@ BOOL32 NewRenderPipeline::is_ib_valid(IRP_INDEXBUFFERHANDLE ib_handle)
 	BOOL32 result = FALSE;
 	if (ib_handle)
 	{
-		if (ib_handle == IRP_SCRATCH_IB_HANDLE)
+		if (ib_handle == IRP_INVALID_IB_HANDLE)
 		{
 			ib_handle = reinterpret_cast<IRP_INDEXBUFFERHANDLE>(&scratchIB);
 		}
@@ -4594,7 +4903,7 @@ BOOL32 NewRenderPipeline::is_ib_valid(IRP_INDEXBUFFERHANDLE ib_handle)
 	return result;
 }
 
-GENRESULT NewRenderPipeline::create_vb(U32 format, U32 count, IRP_VERTEXBUFFERHANDLE* out_vb_handle, U8 irp_vbf_flags)
+GENRESULT NewRenderPipeline::create_vb(U32 vertex_format, U32 num_verts, IRP_VERTEXBUFFERHANDLE* out_vb_handle, U8 irp_vbf_flags)
 {
 	CHECK_DEVICE_LIFETIME();
 
@@ -4605,15 +4914,15 @@ GENRESULT NewRenderPipeline::create_vb(U32 format, U32 count, IRP_VERTEXBUFFERHA
 		DWORD usage = 0;
 		if (irp_vbf_flags & IRP_VBF_READ)
 		{
-			usage = D3DUSAGE_DYNAMIC;
+			usage |= D3DUSAGE_DYNAMIC;
 		}
 		if (irp_vbf_flags & IRP_VBF_SOFTWAREPROCESSING)
 		{
-			usage = D3DUSAGE_SOFTWAREPROCESSING;
+			usage |= D3DUSAGE_SOFTWAREPROCESSING;
 		}
 		DX8VertexBuffer* vertex_buffer = new DX8VertexBuffer(usage);
 
-		// some kind of linked list ???
+		// #TODO some kind of linked list ???
 		{
 			auto _unknown22E8 = this->unknown22E8;
 			this->unknown22E8 = (DWORD)vertex_buffer;
@@ -4627,7 +4936,7 @@ GENRESULT NewRenderPipeline::create_vb(U32 format, U32 count, IRP_VERTEXBUFFERHA
 		}
 
 		IRP_VERTEXBUFFERHANDLE hvertexbuffer = reinterpret_cast<IRP_VERTEXBUFFERHANDLE>(vertex_buffer);
-		if (SUCCEEDED(gr = ressize_vb(hvertexbuffer, format, count)))
+		if (SUCCEEDED(gr = ressize_vb(hvertexbuffer, vertex_format, num_verts)))
 		{
 			*out_vb_handle = hvertexbuffer;
 		}
@@ -4713,8 +5022,8 @@ GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vb_handle, U32
 		if (vb_handle == IRP_INVALID_VB_HANDLE)
 		{
 			// handles dispose or format change etc.
-			scratchVB.create_vb(direct3d_device, src_vb_desc->vertex_format, num_vertices);
-			vb_handle = reinterpret_cast<IRP_VERTEXBUFFERHANDLE>(&scratchVB);
+			VERTEX.create_vb(direct3d_device, src_vb_desc->vertex_format, num_vertices);
+			vb_handle = reinterpret_cast<IRP_VERTEXBUFFERHANDLE>(&VERTEX);
 			curr_hw_geometry.set_vertex_buffer(vb_handle, src_vb_desc->vertex_format);
 		}
 
@@ -4753,7 +5062,7 @@ GENRESULT NewRenderPipeline::copy_vertices(IRP_VERTEXBUFFERHANDLE vb_handle, U32
 			ASSERT(start_vertex == 0);
 			locked_data_ptr = (char*)locked_data_ptr - start_vertex * stride;
 
-			copy_vertex_buffer_desc(locked_data_ptr, vertex_buffer->vertex_format, src_vb_desc, start_vertex, num_vertices);
+			copy_vertex_data(locked_data_ptr, vertex_buffer->vertex_format, src_vb_desc, start_vertex, num_vertices);
 
 			if (!already_locked)
 			{
@@ -5015,53 +5324,14 @@ GENRESULT NewRenderPipeline::print_screen(IFileSystem* IFS, const char* child)
 	return GR_NOT_IMPLEMENTED;
 }
 
-TRAMPOLINE(HRESULT, __stdcall, load_texture_2d, _sub_6D308FA, IDirect3DDevice8* direct3d_device, LPVOID mapping, DWORD file_size, IDirect3DCubeTexture8** out_texture);
 GENRESULT NewRenderPipeline::load_texture(IFileSystem* IFS, const char* child, IRP_TEXTUREHANDLE* out_htexture)
 {
-	unused(load_texture_2d);
 	return GR_NOT_IMPLEMENTED;
-	/*ASSERT(IFS != nullptr);
-	ASSERT(child != nullptr);
-	ASSERT(out_htexture != nullptr);
-
-	GENRESULT gr;
-
-	MappedFile mapped_file;
-	if (SUCCEEDED(gr = open_file_map(IFS, child, mapped_file)))
-	{
-		HRESULT hr;
-		IDirect3DCubeTexture8* direct3d_cubetexture;
-		if (FAILED(hr = load_texture_2d(direct3d_device, mapped_file.mapping, mapped_file.file_size, &direct3d_cubetexture)))
-		{
-			GENERAL_ERROR(TEMPSTR("load_texture: %s", HRESULT_GET_ERROR_STRING(hr)));
-			gr = GR_GENERIC;
-		}
-		else
-		{
-			DX8Texture* texture = new DX8Texture();
-			texture->texture = direct3d_cubetexture;
-			texture->unknown4 = 1;
-			*out_htexture = reinterpret_cast<IRP_TEXTUREHANDLE>(texture);
-			gr = GR_OK;
-		}
-
-		debug_point;
-	}
-	else
-	{
-		GENERAL_WARNING(TEMPSTR("%s: couldnt create file mapping", __FUNCTION__));
-	}
-
-	close_file_map(mapped_file);
-
-	return gr;*/
 }
 
 GENRESULT NewRenderPipeline::load_surface_from_file(UNKNOWN* a2_interface, UNKNOWN a3, UNKNOWN a4, UNKNOWN a5)
 {
-	NOT_IMPLEMENTED;
-	GENRESULT gr = DirectX8_load_surface_from_file(this, a2_interface, a3, a4, a5);
-	return gr;
+	return GR_NOT_IMPLEMENTED;
 }
 
 GENRESULT NewRenderPipeline::load_dds_info(DDSInfo* out_info, DWORD membytesize, void* mapped_file_mem)

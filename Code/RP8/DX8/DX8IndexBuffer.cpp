@@ -6,8 +6,8 @@
 
 #define HRESULT_GET_ERROR_STRING(...) 0
 
-DX8IndexBuffer::DX8IndexBuffer() :
-	usage(),
+DX8IndexBuffer::DX8IndexBuffer(DWORD _usage) :
+	usage(_usage | D3DUSAGE_WRITEONLY),
 	buffer(),
 	lockptr(),
 	unknownC(),
@@ -16,6 +16,15 @@ DX8IndexBuffer::DX8IndexBuffer() :
 	element_count()
 {
 
+}
+
+DX8IndexBuffer::~DX8IndexBuffer()
+{
+	HRESULT hr;
+	if (FAILED(hr = dispose()))
+	{
+		GENERAL_ERROR(TEMPSTR("%s failed to dispose correctly %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+	}
 }
 
 HRESULT DX8IndexBuffer::create_ib(IDirect3DDevice8* direct3d_device, U32 num_indices)

@@ -4,6 +4,8 @@
 #define __VERTEXBUFFERMANAGER_H__
 
 #include <DACOM.h>
+#include <d3d8.h>
+#include <RPVertexBuffer.h>
 
 //--------------------------------------------------------------------------//
 //------------------------IVertexBufferManager Interface--------------------//
@@ -13,10 +15,10 @@ typedef struct IVertexBufferManager* LPVERTEXBUFFERMANAGER;
 
 struct VertexBufferAcquire
 {
-	void* handle;
-	UNKNOWN vertex_format;
-	UNKNOWN lock_offset;
-	void* locked_data;
+	IRP_VERTEXBUFFERHANDLE vertex_buffer;
+	U32 vertex_format;
+	U32 lock_offset;
+	void* lockptr;
 };
 
 #define IID_IVertexBufferManager DACOM_MAKE_IID("IVertexBufferManager")
@@ -30,12 +32,12 @@ struct DACOM_NO_VTABLE IVertexBufferManager : public IDAComponent
 
 	// IVertexBufferManager methods
 
-	DACOM_DEFMETHOD(VertexBufferManager_UnknownC)(UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN) = 0;
-	DACOM_DEFMETHOD(VertexBufferManager_Unknown10)() = 0;
-	DACOM_DEFMETHOD(acquire_vertex_buffer)(UNKNOWN vertex_format, U32 num_verts, VertexBufferAcquire* out_result) = 0;
-	DACOM_DEFMETHOD(release_vertex_buffer)(VertexBufferAcquire* vbacquire) = 0;
-	DACOM_DEFMETHOD(VertexBufferManager_Unknown1C)() = 0;
-	DACOM_DEFMETHOD(copy_vertex_buffer_desc)(void* dst_buffer, U32 dst_vertex_format, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices) = 0;
+	DACOM_DEFMETHOD(initialize)(UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN) = 0;
+	DACOM_DEFMETHOD(cleanup)() = 0;
+	DACOM_DEFMETHOD(acquire_vertex_buffer)(D3DFORMAT vertex_format, U32 num_verts, VertexBufferAcquire* out_vbmem) = 0;
+	DACOM_DEFMETHOD(release_vertex_buffer)(VertexBufferAcquire* vbmem) = 0;
+	DACOM_DEFMETHOD(IVertexBufferManager_Unknown1C)() = 0;
+	DACOM_DEFMETHOD(copy_vertex_data)(void* dst_buffer, U32 dst_vertex_format, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices) = 0;
 };
 
 #endif

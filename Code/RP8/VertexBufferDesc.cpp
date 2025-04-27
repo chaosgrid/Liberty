@@ -264,7 +264,7 @@ inline U32 cvbd_fvf_to_index(U32 vertex_format)
 	return index;
 }
 
-void copy_vertex_buffer_desc(void* dst_buffer, U32 dst_vertex_format, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices)
+void copy_vertex_data(void* dst_buffer, U32 dst_vertex_format, VertexBufferDesc* src_vb_desc, U32 start_vertex, U32 num_vertices)
 {
 	// TODO: put in a bunch of assertion code to make sure formats are compatible.
 	// assert that no beta weights are used, only two sets of texture coordinates

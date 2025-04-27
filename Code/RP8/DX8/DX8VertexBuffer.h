@@ -31,6 +31,7 @@ public:
 
 	DX8VertexBuffer(DWORD usage = 0);
 	DX8VertexBuffer(DX8VertexBuffer&) = delete;
+	~DX8VertexBuffer();
 
 	HRESULT create_vb(
 		// The D3D device used to create the index buffer

@@ -21,6 +21,15 @@ DX8VertexBuffer::DX8VertexBuffer(DWORD _usage) :
 
 }
 
+DX8VertexBuffer::~DX8VertexBuffer()
+{
+	HRESULT hr;
+	if (FAILED(hr = dispose()))
+	{
+		GENERAL_ERROR(TEMPSTR("%s failed to dispose correctly %s", __FUNCTION__, HRESULT_GET_ERROR_STRING(hr)));
+	}
+}
+
 HRESULT DX8VertexBuffer::create_vb(IDirect3DDevice8* direct3d_device, U32 format, U32 num_verts)
 {
 	HRESULT hr;

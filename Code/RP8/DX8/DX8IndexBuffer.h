@@ -27,8 +27,9 @@ public:
 
 	/* ---------- member functions */
 
-	DX8IndexBuffer();
+	DX8IndexBuffer(DWORD usage = 0);
 	DX8IndexBuffer(DX8IndexBuffer&) = delete;
+	~DX8IndexBuffer();
 
 	HRESULT create_ib(
 		// The D3D device used to create the index buffer

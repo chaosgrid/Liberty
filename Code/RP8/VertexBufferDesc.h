@@ -56,7 +56,7 @@ static_assert(sizeof(VertexBufferDesc) == 0x70);
 
 /* ---------- prototypes */
 
-void copy_vertex_buffer_desc(void* dst_buffer, U32 dst_vertex_format, VertexBufferDesc* vb_desc, U32 num_vertices, U32 start_vertex);
+void copy_vertex_data(void* dst_buffer, U32 dst_vertex_format, VertexBufferDesc* vb_desc, U32 num_vertices, U32 start_vertex);
 
 /* ---------- globals */
 

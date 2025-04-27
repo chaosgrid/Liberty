@@ -24,7 +24,7 @@ struct DACOM_NO_VTABLE IRPDraw : public IDAComponent
 
 	// IRPDraw methods
 
-	DACOM_DEFMETHOD(draw_indexed_primitive)(D3DPRIMITIVETYPE type, U32 min_index, U32 num_verts, U32 start_index, U32 count);
+	DACOM_DEFMETHOD_(HRESULT, draw_indexed_primitive)(D3DPRIMITIVETYPE type, U32 min_index, U32 num_verts, U32 start_index, U32 count);
 };
 
 #endif

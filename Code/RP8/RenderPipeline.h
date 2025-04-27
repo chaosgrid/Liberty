@@ -174,6 +174,10 @@ struct RPLOCKDATA
 
 typedef D3DLIGHT8* IRP_LIGHTHANDLE;
 
+// Flags used with irp_ibf_flags parameter of create_index_buffer()
+#define IRP_IBF_READ (1<<0)						// client would like read access to the vertex buffer
+#define IRP_IBF_SOFTWAREPROCESSING (1<<1)		// buffer used with software vertex processing
+
 // Flags used with irp_vbf_flags parameter of create_vertex_buffer()
 #define IRP_VBF_READ (1<<0)						// client would like read access to the vertex buffer
 #define IRP_VBF_SOFTWAREPROCESSING (1<<1)		// buffer used with software vertex processing

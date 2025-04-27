@@ -13,7 +13,7 @@
 
 typedef struct IRPIndexBuffer* LPRPINDEXBUFFER;
 DECLARE_HANDLE(IRP_INDEXBUFFERHANDLE);
-#define IRP_SCRATCH_IB_HANDLE ((IRP_INDEXBUFFERHANDLE)-1)
+#define IRP_INVALID_IB_HANDLE ((IRP_INDEXBUFFERHANDLE)-1)
 
 #define IID_IRPIndexBuffer DACOM_MAKE_IID("IRPIndexBuffer")
 struct DACOM_NO_VTABLE IRPIndexBuffer : public IDAComponent
@@ -26,9 +26,9 @@ struct DACOM_NO_VTABLE IRPIndexBuffer : public IDAComponent
 
 	// IRPIndexBuffer methods
 
-	DACOM_DEFMETHOD(create_index_buffer)(U32 count, IRP_INDEXBUFFERHANDLE* out_ib_handle, BYTE flags);
-	DACOM_DEFMETHOD(destroy_index_buffer)(IRP_INDEXBUFFERHANDLE ib_handle);
-	DACOM_DEFMETHOD(create_ib)(IRP_INDEXBUFFERHANDLE ib_handle, U32 num_indices);
+	DACOM_DEFMETHOD(create_index_buffer)(U32 num_indices, IRP_INDEXBUFFERHANDLE* out_ib_handle, U8 irp_ibf_flags);
+	DACOM_DEFMETHOD(destroy_index_buffer)(IRP_INDEXBUFFERHANDLE* ib_handle);
+	DACOM_DEFMETHOD_(HRESULT, create_ib)(IRP_INDEXBUFFERHANDLE ib_handle, U32 num_indices);
 	DACOM_DEFMETHOD(copy_indices)(IRP_INDEXBUFFERHANDLE ib_handle, U32* start_index, U16 const* indices, U32 num_indices);
 	DACOM_DEFMETHOD(lock_ib)(IRP_INDEXBUFFERHANDLE ib_handle, U32* start_index, void*& out_data, U32 num_indices);
 	DACOM_DEFMETHOD(unlock_ib)(IRP_INDEXBUFFERHANDLE ib_handle);

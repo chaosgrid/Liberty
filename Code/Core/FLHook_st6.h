@@ -3,6 +3,7 @@
 #ifdef __INTELLISENSE__
 #include <map>
 #include <vector>
+#include <list>
 #define st6 std
 
 #else
