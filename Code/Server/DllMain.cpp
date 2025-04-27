@@ -1,6 +1,8 @@
 #include <Windows.h>
 #include <PCH.h>
 
+#include <DACOM.h>
+
 extern "C" __declspec(dllexport) void Liberty() {}
 
 _extern _naked void sub_6D4CCD0() // _sub_6D4CCD0
@@ -2144,4 +2146,10 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
 	BOOL Result = EntryPoint(hinstDLL, fdwReason, lpvReserved);
 	return Result;
+}
+
+extern "C"
+{
+    // .rdata:06D6AD90 aFreelancer     db 'Freelancer',0 
+    char data_6D6AD90[] = "Liberty";
 }
