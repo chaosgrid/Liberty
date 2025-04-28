@@ -1,7 +1,102 @@
+/* ---------- headers */
+
 #include "EngineObject.h"
 
 #include <Dump.h>
 #include <Core.h>
+
+/* ---------- prototypes */
+
+_extern void __thiscall sub_627CAF0(EngineObject const*);
+
+/* ---------- public code */
+
+EngineObject::EngineObject(const EngineObject& copy)
+{
+    mangled_assert("??0EngineObject@@QAE@ABU0@@Z");
+
+    *this = copy;
+}
+
+EngineObject::EngineObject() :
+    index(-1),
+    transform(),
+    radius(),
+    centerOfMass(),
+    instanceFlags()
+{
+    mangled_assert("??0EngineObject@@QAE@XZ");
+
+    transform.set_identity();
+}
+
+COMMON_DEC EngineObject& EngineObject::operator=(EngineObject const& copy)
+{
+    mangled_assert("??4EngineObject@@QAEAAU0@ABU0@@Z");
+
+    this->index = copy.index;
+    this->transform = copy.transform;
+
+    return *this;
+}
+
+COMMON_DEC const Matrix& EngineObject::get_orientation() const
+{
+    mangled_assert("?get_orientation@EngineObject@@QBEABVMatrix@@XZ");
+
+    return transform.get_orientation();
+}
+
+COMMON_DEC const Vector& EngineObject::get_position() const
+{
+    mangled_assert("?get_position@EngineObject@@QBEABVVector@@XZ");
+
+    return transform.get_position();
+}
+
+COMMON_DEC const float EngineObject::get_radius() const
+{
+    mangled_assert("?get_radius@EngineObject@@QBE?BMXZ");
+
+    return radius;
+}
+
+COMMON_DEC const Transform& EngineObject::get_transform() const
+{
+    mangled_assert("?get_transform@EngineObject@@QBEABVTransform@@XZ");
+
+    return transform;
+}
+
+COMMON_DEC void EngineObject::set_orientation(const Matrix& orientation)
+{
+    mangled_assert("?set_orientation@EngineObject@@QAEXABVMatrix@@@Z");
+
+    transform.set_orientation(orientation);
+}
+
+COMMON_DEC void EngineObject::set_position(const Vector& pos)
+{
+    mangled_assert("?set_position@EngineObject@@QAEXABVVector@@@Z");
+
+    transform.set_position(pos);
+}
+
+COMMON_DEC void EngineObject::set_transform(const Transform& transform)
+{
+    mangled_assert("?set_transform@EngineObject@@QAEXABVTransform@@@Z");
+
+    this->transform = transform;
+}
+
+COMMON_DEC void EngineObject::update_tree() const
+{
+    mangled_assert("?update_tree@EngineObject@@QBEXXZ");
+
+    sub_627CAF0(this);
+}
+
+/* ---------- private code */
 
 COMMON_DEC void __stdcall EngineObject::initialize_instance(long index)
 {
@@ -70,7 +165,7 @@ COMMON_DEC const Transform& __stdcall EngineObject::get_transform(long index) co
 {
     mangled_assert("?get_transform@EngineObject@@EBGABVTransform@@J@Z");
     unused(index);
-    
+
     return transform;
 }
 
@@ -78,7 +173,7 @@ COMMON_DEC void __stdcall EngineObject::get_centered_radius(long index, float* o
 {
     mangled_assert("?get_centered_radius@EngineObject@@EBGXJPAMPAVVector@@@Z");
     unused(index);
-    
+
     *out_radius = radius;
     *out_centerOfMass = centerOfMass;
 }
@@ -143,7 +238,7 @@ COMMON_DEC const Vector& __stdcall EngineObject::get_angular_velocity(long index
 {
     mangled_assert("?get_angular_velocity@EngineObject@@EBGABVVector@@J@Z");
     unused(index);
-    
+
     static const Vector v;
     return v;
 }
@@ -157,59 +252,6 @@ COMMON_DEC void __stdcall EngineObject::set_angular_velocity(long index, Vector 
     noop();
 }
 
-EngineObject::EngineObject(const EngineObject& copy)
-{
-    mangled_assert("??0EngineObject@@QAE@ABU0@@Z");
-
-    *this = copy;
-}
-
-EngineObject::EngineObject()
-{
-    mangled_assert("??0EngineObject@@QAE@XZ");
-
-    index = -1;
-    transform.set_identity();
-}
-
-COMMON_DEC EngineObject& EngineObject::operator=(EngineObject const& copy)
-{
-    mangled_assert("??4EngineObject@@QAEAAU0@ABU0@@Z");
-
-    this->index = copy.index;
-    this->transform = copy.transform;
-
-    return *this;
-}
-
-COMMON_DEC const Matrix& EngineObject::get_orientation() const
-{
-    mangled_assert("?get_orientation@EngineObject@@QBEABVMatrix@@XZ");
-
-    return transform.get_orientation();
-}
-
-COMMON_DEC const Vector& EngineObject::get_position() const
-{
-    mangled_assert("?get_position@EngineObject@@QBEABVVector@@XZ");
-
-    return transform.get_position();
-}
-
-COMMON_DEC const float EngineObject::get_radius() const
-{
-    mangled_assert("?get_radius@EngineObject@@QBE?BMXZ");
-    
-    return radius;
-}
-
-COMMON_DEC const Transform& EngineObject::get_transform() const
-{
-    mangled_assert("?get_transform@EngineObject@@QBEABVTransform@@XZ");
-
-    return transform;
-}
-
 COMMON_DEC void EngineObject::set_centered_radius(float radius, Vector const& centerOfMass)
 {
     mangled_assert("?set_centered_radius@EngineObject@@AAEXMABVVector@@@Z");
@@ -218,31 +260,11 @@ COMMON_DEC void EngineObject::set_centered_radius(float radius, Vector const& ce
     this->radius = radius;
 }
 
-COMMON_DEC void EngineObject::set_orientation(const Matrix& orientation)
+/* ---------- reverse engineering */
+
+#include <new>
+_extern EngineObject* __thiscall _sub_63098A0(EngineObject* _this);
+_extern EngineObject* __thiscall sub_63098A0(EngineObject* _this)
 {
-    mangled_assert("?set_orientation@EngineObject@@QAEXABVMatrix@@@Z");
-
-    transform.set_orientation(orientation);
-}
-
-COMMON_DEC void EngineObject::set_position(const Vector& pos)
-{
-    mangled_assert("?set_position@EngineObject@@QAEXABVVector@@@Z");
-
-    transform.set_position(pos);
-}
-
-COMMON_DEC void EngineObject::set_transform(const Transform& transform)
-{
-    mangled_assert("?set_transform@EngineObject@@QAEXABVTransform@@@Z");
-
-    this->transform = transform;
-}
-
-_extern void __thiscall sub_627CAF0(EngineObject const*);
-COMMON_DEC void EngineObject::update_tree() const
-{
-    mangled_assert("?update_tree@EngineObject@@QBEXXZ");
-
-    sub_627CAF0(this);
+    return new(_this) EngineObject();
 }
